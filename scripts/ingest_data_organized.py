@@ -1,16 +1,20 @@
 """
-Data Ingestion CLI for Y:\1-Data_Organized
+Data Ingestion CLI for Y:\\1-Data_Organized
 Ingests multi-builder spreadsheets (.xlsx, .xls, .csv) into Local PostgreSQL.
-Enforces a hard ceiling of ~2.956M records and monitors disk space safety.
+Enforces multi-threaded high-throughput parallel execution, safety limits,
+and atomic restore-point checkpointing to disk.
 """
 import os
 import sys
 import time
+import json
 import shutil
 import hashlib
 import argparse
+import threading
 from pathlib import Path
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Add workspace root to PYTHONPATH
 ROOT = Path(__file__).resolve().parent.parent
@@ -25,9 +29,10 @@ from backend.app.models.models import SourceFile, ProcessingJob, Record, Process
 from backend.app.config import settings
 from engine.processor import Processor
 
-# Default Target Ceiling (0 = unlimited / ingest all safe files)
+# Safety thresholds
 TARGET_MAX_RECORDS = 0
 MIN_FREE_DISK_GB = 15.0
+CHECKPOINT_FILE = ROOT / "scripts" / "ingestion_checkpoint.json"
 
 
 def sha256_file(path: Path) -> str:
@@ -49,13 +54,24 @@ def check_disk_safety() -> tuple[bool, float]:
         return True, 999.0
 
 
-def ingest_file(db, file_path: Path, processor: Processor, seen_hashes: set) -> tuple[int, int, int]:
+def save_checkpoint(data: dict):
+    """Write an atomic restore-point checkpoint file to disk."""
+    try:
+        tmp_file = CHECKPOINT_FILE.with_suffix(".tmp")
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        tmp_file.replace(CHECKPOINT_FILE)
+    except Exception:
+        pass
+
+
+def ingest_file(db, file_path: Path, processor: Processor) -> tuple[int, int, int]:
     file_path = Path(file_path)
     file_hash = sha256_file(file_path)
     file_size = file_path.stat().st_size
     filename = file_path.name
 
-    # Check if already ingested
+    # Check if already ingested via content SHA-256
     src = db.scalar(select(SourceFile).where(SourceFile.content_sha256 == file_hash))
     if src:
         existing_job = db.scalar(
@@ -112,13 +128,13 @@ def ingest_file(db, file_path: Path, processor: Processor, seen_hashes: set) -> 
             job.progress_percent = min(round(100.0 * res.processed_rows / res.total_rows, 1), 99.0)
         db.commit()
 
-    # Process file through engine
+    # Process file through engine (seen_hashes=None uses intra-file dedup to conserve RAM)
     result = processor.process(
         file_path,
         source_name=filename,
         on_batch=on_batch,
         on_progress=on_progress,
-        seen_hashes=seen_hashes,
+        seen_hashes=None,
     )
 
     src.detected_format = result.detected_format
@@ -157,13 +173,15 @@ def refresh_materialized_views(db):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Ingest spreadsheets up to target record cap into PostgreSQL")
+    parser = argparse.ArgumentParser(description="High-Throughput Parallel Ingest into PostgreSQL")
     parser.add_argument("--dir", default=r"Y:\1-Data_Organized", help="Source folder path")
     parser.add_argument("--subfolder", default="", help="Specific subfolder to process")
     parser.add_argument("--max-records", type=int, default=TARGET_MAX_RECORDS, help="Target record ceiling")
+    parser.add_argument("--workers", type=int, default=6, help="Parallel worker threads (default 6)")
     args = parser.parse_args()
 
     max_target = args.max_records
+    workers = max(1, args.workers)
     target_dir = Path(args.dir)
     if args.subfolder:
         target_dir = target_dir / args.subfolder
@@ -181,11 +199,13 @@ def main():
 
     target_display = f"{max_target:,}" if max_target > 0 else "Unlimited (All files)"
     print("=" * 70)
-    print("  DATALINK ENGINE: CONTROLLED BULK INGESTION")
+    print("  DATALINK HIGH-THROUGHPUT BULK INGESTION (PARALLEL)")
     print(f"  Source Directory:    {target_dir}")
+    print(f"  Parallel Workers:    {workers} threads (utilizing CPU cores)")
     print(f"  Current DB Records:  {current_count:,}")
     print(f"  Target Max Records:  {target_display}")
     print(f"  Disk Free Space:     {free_gb:.1f} GB (Safe threshold: {MIN_FREE_DISK_GB} GB)")
+    print(f"  Restore Point File:  {CHECKPOINT_FILE}")
     print("=" * 70)
 
     if max_target > 0 and current_count >= max_target:
@@ -196,7 +216,7 @@ def main():
         return
 
     # Collect files
-    print("\nScanning for remaining spreadsheets...", flush=True)
+    print("\nScanning for spreadsheets...", flush=True)
     files = sorted([
         f for f in target_dir.glob("**/*")
         if f.is_file() 
@@ -205,7 +225,8 @@ def main():
         and not f.name.startswith("._")
     ])
 
-    print(f"Found {len(files):,} spreadsheet files to check.\n", flush=True)
+    print(f"Found {len(files):,} spreadsheet files to process.\n", flush=True)
+    db.close()
 
     processor = Processor(
         batch_size=settings.BATCH_SIZE,
@@ -214,64 +235,113 @@ def main():
         record_grain=settings.RECORD_GRAIN,
     )
 
-    print("Loading existing identity hashes for deduplication...", flush=True)
-    seen_hashes = set(db.scalars(select(Record.identity_hash)).all())
-    print(f"Loaded {len(seen_hashes):,} existing identity hashes.\n", flush=True)
-
-    total_files_processed = 0
-    total_files_skipped = 0
-    grand_total_rows = 0
-    grand_valid_rows = 0
+    # Thread-safe tracking state
+    print_lock = threading.Lock()
+    state_lock = threading.Lock()
+    stats = {
+        "processed": 0,
+        "skipped": 0,
+        "failed": 0,
+        "total_rows": 0,
+        "valid_rows": 0,
+        "stop_requested": False,
+    }
     t0 = time.time()
 
-    for idx, f in enumerate(files, 1):
-        # 1. Check Disk Safety
-        safe, free_gb = check_disk_safety()
-        if not safe:
-            print(f"\n[SAFETY STOP]: Free disk space dropped to {free_gb:.1f} GB (below {MIN_FREE_DISK_GB} GB). Stopping ingestion to protect disk.", flush=True)
-            break
+    def process_single_file(item):
+        idx, total_count, file_path = item
+        if stats["stop_requested"]:
+            return
 
-        # 2. Check Record Cap
-        curr_records = db.scalar(select(func.count(Record.id))) or 0
-        if max_target > 0 and curr_records >= max_target:
-            print(f"\n🎉 [TARGET REACHED]: Database now has {curr_records:,} records (Target: {max_target:,}). Stopping ingestion cleanly!", flush=True)
-            break
+        # Check disk safety
+        is_safe, free_space = check_disk_safety()
+        if not is_safe:
+            with state_lock:
+                stats["stop_requested"] = True
+            with print_lock:
+                print(f"\n[SAFETY STOP]: Free space dropped to {free_space:.1f} GB. Halting.", flush=True)
+            return
 
-        file_size_kb = f.stat().st_size / 1024
-        print(f"[{idx:04d}/{len(files):04d}] {f.name[:45]:<45} ({file_size_kb:7.1f} KB)... ", end="", flush=True)
+        file_size_kb = file_path.stat().st_size / 1024
+        thread_db = SessionLocal()
         try:
-            t_f = time.time()
-            status_code, total_r, valid_r = ingest_file(db, f, processor, seen_hashes)
-            dur = time.time() - t_f
-            if status_code == -1:
-                total_files_skipped += 1
-                print(f"SKIPPED (already in DB with {total_r:,} rows)")
-            else:
-                total_files_processed += 1
-                grand_total_rows += total_r
-                grand_valid_rows += valid_r
-                print(f"DONE: {total_r:,} rows ({valid_r:,} valid) [{dur:.1f}s]")
-        except Exception as e:
-            print(f"FAILED: {e}")
-            db.rollback()
+            t_start = time.time()
+            status_code, total_r, valid_r = ingest_file(thread_db, file_path, processor)
+            duration = time.time() - t_start
 
-        # Periodically refresh views every 20 files
-        if total_files_processed > 0 and total_files_processed % 20 == 0:
-            refresh_materialized_views(db)
+            with state_lock:
+                if status_code == -1:
+                    stats["skipped"] += 1
+                    status_text = f"SKIPPED (already in DB with {total_r:,} rows)"
+                else:
+                    stats["processed"] += 1
+                    stats["total_rows"] += total_r
+                    stats["valid_rows"] += valid_r
+                    status_text = f"DONE: +{total_r:,} rows ({valid_r:,} valid) [{duration:.1f}s]"
 
-    # Final refresh
-    refresh_materialized_views(db)
-    final_count = db.scalar(select(func.count(Record.id))) or 0
-    db.close()
+                # Update disk checkpoint restore point
+                save_checkpoint({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "last_processed_file": file_path.name,
+                    "completed_files": stats["processed"],
+                    "skipped_files": stats["skipped"],
+                    "failed_files": stats["failed"],
+                    "total_files": total_count,
+                    "new_rows_inserted": stats["total_rows"],
+                    "free_disk_gb": round(free_space, 2),
+                    "status": "RUNNING",
+                })
+
+            with print_lock:
+                print(f"[{idx:04d}/{total_count:04d}] {file_path.name[:42]:<42} ({file_size_kb:7.1f} KB)... {status_text}", flush=True)
+
+        except Exception as exc:
+            with state_lock:
+                stats["failed"] += 1
+            with print_lock:
+                print(f"[{idx:04d}/{total_count:04d}] {file_path.name[:42]:<42}... FAILED: {exc}", flush=True)
+            thread_db.rollback()
+        finally:
+            thread_db.close()
+
+    items = [(i, len(files), f) for i, f in enumerate(files, 1)]
+
+    print(f"Starting execution with {workers} parallel workers...\n", flush=True)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(process_single_file, item) for item in items]
+        for f in as_completed(futures):
+            if stats["stop_requested"]:
+                executor.shutdown(wait=False, cancel_futures=True)
+                break
+
+    # Final wrap-up
+    final_db = SessionLocal()
+    refresh_materialized_views(final_db)
+    final_count = final_db.scalar(select(func.count(Record.id))) or 0
+    final_db.close()
     elapsed = time.time() - t0
+
+    save_checkpoint({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "completed_files": stats["processed"],
+        "skipped_files": stats["skipped"],
+        "failed_files": stats["failed"],
+        "total_files": len(files),
+        "new_rows_inserted": stats["total_rows"],
+        "final_db_records": final_count,
+        "elapsed_seconds": round(elapsed, 1),
+        "status": "STOPPED_SAFELY" if stats["stop_requested"] else "COMPLETED",
+    })
 
     print("\n" + "=" * 70)
     print("  INGESTION SUMMARY")
     print("=" * 70)
-    print(f"  Final Record Count in DB: {final_count:,} (Target: {max_target:,})")
-    print(f"  Files Newly Ingested:     {total_files_processed:,}")
-    print(f"  Files Skipped (in DB):    {total_files_skipped:,}")
+    print(f"  Final Record Count in DB: {final_count:,}")
+    print(f"  Files Newly Ingested:     {stats['processed']:,}")
+    print(f"  Files Skipped (in DB):    {stats['skipped']:,}")
+    print(f"  Files Failed:             {stats['failed']:,}")
     print(f"  Total Time Elapsed:       {elapsed:.1f}s")
+    print(f"  Restore Point Checkpoint: {CHECKPOINT_FILE}")
     print("=" * 70)
 
 

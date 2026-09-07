@@ -45,7 +45,10 @@ def setup_database():
                 is_active=True,
                 can_export=True,
             ))
-            db.commit()
+        else:
+            existing.is_active = True
+            existing.hashed_password = hash_password(TEST_ADMIN_PASSWORD)
+        db.commit()
 
         # Records below are inserted with job_id=1. Foreign keys are enforced
         # now (PRAGMA foreign_keys=ON), so the parent rows have to exist --

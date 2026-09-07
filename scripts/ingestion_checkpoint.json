@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-09-07T11:35:07.166276+00:00",
+  "completed_files": 436,
+  "skipped_files": 1307,
+  "failed_files": 11,
+  "total_files": 1754,
+  "new_rows_inserted": 7139108,
+  "final_db_records": 25479617,
+  "elapsed_seconds": 5803.7,
+  "status": "COMPLETED"
+}

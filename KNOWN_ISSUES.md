@@ -11,6 +11,8 @@ This document tracks identified bugs, edge cases, and their current mitigation o
 | **DEF-002** | Numbered communities collapsed | Trailing digits were stripped before canonical lookup | Fixed regex in `cleaning.py` to preserve community numbers (`Al Barsha 1/2/3`). |
 | **DEF-003** | Emaar stamped on all Dubai Hills | Fallback rule assumed whole estate was Emaar | Added sub-community developer mapping in `reference.py`. |
 | **DEF-004** | Stale jobs hung on server restart | In-memory job state died with the Python process | Added `reap_stale_jobs()` in `lifespan` hook to mark orphaned jobs `FAILED`. |
+| **DEF-005** | Overlength `plot_reg_no` bulk-insert failure | Unformatted numeric/scientific IDs from Excel exceeded VARCHAR(128) | Altered PostgreSQL column to VARCHAR(512) and added safe truncation guard in `engine/validation.py`. |
+| **DEF-006** | Test setup admin login 403 failure | `pytest-admin@datalink.ae` seed account was inactive in DB | Updated test fixture in `tests/test_enterprise_hardening.py` to assert and enforce active status and password sync. |
 
 ---
 
