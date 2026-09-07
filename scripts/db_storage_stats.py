@@ -84,7 +84,7 @@ print(f"  With Email:        {e:,} ({e/total_records*100:.1f}%)")
 print(f"  With Owner Name:   {n:,} ({n/total_records*100:.1f}%)")
 
 print("\n--- DISK USAGE ---")
-for drive in ['C:\\', 'D:\\', 'Y:\\']:
+for drive in [d for d in ['C:\\', 'D:\\', 'Y:\\'] if Path(d).exists()]:
     total, used, free = shutil.disk_usage(drive)
     print(f"  {drive} Free: {free/(1024**3):.1f} GB / Total: {total/(1024**3):.1f} GB")
 
