@@ -25,8 +25,8 @@ from backend.app.models.models import SourceFile, ProcessingJob, Record, Process
 from backend.app.config import settings
 from engine.processor import Processor
 
-# Hard Target Ceiling requested by user
-TARGET_MAX_RECORDS = 2_956_000
+# Default Target Ceiling (0 = unlimited / ingest all safe files)
+TARGET_MAX_RECORDS = 0
 MIN_FREE_DISK_GB = 15.0
 
 
@@ -60,7 +60,10 @@ def ingest_file(db, file_path: Path, processor: Processor, seen_hashes: set) -> 
     if src:
         existing_job = db.scalar(
             select(ProcessingJob)
-            .where(ProcessingJob.source_file_id == src.id, ProcessingJob.status == JobStatus.COMPLETED)
+            .where(
+                ProcessingJob.source_file_id == src.id,
+                ProcessingJob.status.in_((JobStatus.COMPLETED, JobStatus.COMPLETED_WITH_ERRORS))
+            )
             .order_by(ProcessingJob.id.desc()).limit(1)
         )
         if existing_job:
@@ -176,15 +179,16 @@ def main():
     current_count = db.scalar(select(func.count(Record.id))) or 0
     safe, free_gb = check_disk_safety()
 
+    target_display = f"{max_target:,}" if max_target > 0 else "Unlimited (All files)"
     print("=" * 70)
     print("  DATALINK ENGINE: CONTROLLED BULK INGESTION")
     print(f"  Source Directory:    {target_dir}")
     print(f"  Current DB Records:  {current_count:,}")
-    print(f"  Target Max Records:  {max_target:,} (~2.956M)")
+    print(f"  Target Max Records:  {target_display}")
     print(f"  Disk Free Space:     {free_gb:.1f} GB (Safe threshold: {MIN_FREE_DISK_GB} GB)")
     print("=" * 70)
 
-    if current_count >= max_target:
+    if max_target > 0 and current_count >= max_target:
         print(f"\nTarget cap of {max_target:,} records is ALREADY reached ({current_count:,} records).")
         print("No further ingestion required. Database is fully populated and safe.")
         refresh_materialized_views(db)
@@ -229,7 +233,7 @@ def main():
 
         # 2. Check Record Cap
         curr_records = db.scalar(select(func.count(Record.id))) or 0
-        if curr_records >= max_target:
+        if max_target > 0 and curr_records >= max_target:
             print(f"\n🎉 [TARGET REACHED]: Database now has {curr_records:,} records (Target: {max_target:,}). Stopping ingestion cleanly!", flush=True)
             break
 

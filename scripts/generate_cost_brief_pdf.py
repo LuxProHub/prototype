@@ -267,7 +267,6 @@ def build_pdf():
         ("RIGHTPADDING", (0, 0), (-1, -1), 6),
     ]))
     story.append(comp_table)
-
     doc.build(story)
     print(f"Successfully generated clean PDF at: {OUTPUT_PDF}")
 
