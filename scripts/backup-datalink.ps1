@@ -123,29 +123,14 @@ Write-Log "Backup process initiated." "INFO"
 Write-Log "pg_dump binary: $pgDumpPath" "INFO"
 Write-Log "Target database: $Database at $HostName`:$Port as user $Username" "INFO"
 
-# Secure credential extraction
-$clearedPgPasswordOnExit = $false
-try {
-    if (-not $env:PGPASSWORD -and -not (Test-Path "$env:APPDATA\postgresql\pgpass.conf")) {
-        # Check parent repository .env file
-        $repoEnvFile = Join-Path -Path $PSScriptRoot -ChildPath "..\.env"
-        if (-not (Test-Path -Path $repoEnvFile)) {
-            $repoEnvFile = Join-Path -Path (Get-Location) -ChildPath ".env"
-        }
-        if (Test-Path -Path $repoEnvFile) {
-            $envLines = Get-Content -Path $repoEnvFile -ErrorAction SilentlyContinue
-            foreach ($line in $envLines) {
-                if ($line -match '^\s*DATABASE_URL\s*=\s*[''"]?postgresql://(?<usr>[^:]+):(?<pwd>[^@]+)@') {
-                    $env:PGPASSWORD = $matches['pwd'].Trim()
-                    $clearedPgPasswordOnExit = $true
-                    Write-Log "Authentication credentials resolved from local .env (never logged)." "INFO"
-                    break
-                }
-            }
-        }
-    }
-} catch {
-    Write-Log "Error reading credential configuration: $_" "WARNING"
+# Credential verification (uses dedicated %APPDATA%\postgresql\pgpass.conf or existing $env:PGPASSWORD)
+$pgPassPath = Join-Path -Path $env:APPDATA -ChildPath "postgresql\pgpass.conf"
+if (Test-Path -Path $pgPassPath) {
+    Write-Log "Authentication credentials resolved from dedicated pgpass ($pgPassPath)." "INFO"
+} elseif ($env:PGPASSWORD) {
+    Write-Log "Authentication credentials resolved from environment variable PGPASSWORD." "INFO"
+} else {
+    Write-Log "Notice: No pgpass.conf found at '$pgPassPath' and PGPASSWORD is unset. pg_dump will attempt default/trust authentication." "WARNING"
 }
 
 $dateStamp = (Get-Date).ToString("yyyy-MM-dd_HH-mm-ss")
@@ -249,11 +234,6 @@ try {
     Write-Log "Unhandled exception during backup: $_" "ERROR"
     if (Test-Path -Path $tempDumpPath) {
         Remove-Item -Path $tempDumpPath -Force -ErrorAction SilentlyContinue
-    }
-    exit 1
-} finally {
-    if ($clearedPgPasswordOnExit) {
-        $env:PGPASSWORD = $null
     }
 }
 
