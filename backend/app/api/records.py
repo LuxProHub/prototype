@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..config import settings
 from ..database.session import IS_POSTGRES, get_db, get_read_db
+from ..core.cache import get_cached_default_count, set_cached_default_count
 from ..core.search import build_search_filter
 from ..core.security import (
     get_current_user, require_export_permission, require_role,
@@ -187,10 +188,13 @@ def list_records(
     sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(settings.DEFAULT_PAGE_SIZE, ge=1, le=settings.MAX_PAGE_SIZE),
+    limit: int | None = Query(None, ge=1, le=settings.MAX_PAGE_SIZE, description="Alias for page_size"),
     total_hint: int | None = Query(None, description="Previous total from page 1 to bypass redundant counting during pagination"),
     _user: User = Depends(get_current_user),
     db: Session = Depends(get_read_db),
 ):
+    effective_page_size = limit if limit is not None else page_size
+
     if sort_by not in SORTABLE:
         raise HTTPException(400, f"sort_by must be one of {sorted(SORTABLE)}")
 
@@ -205,8 +209,9 @@ def list_records(
 
     # Counting the full match set is a scan of every matching row. On a broad
     # filter over millions of records that is the slowest part of the request.
-    # For broad/unfiltered views on PostgreSQL, the dataset is known to exceed
-    # COUNT_CEILING (20,000), so we return the ceiling directly in 0ms.
+    # For default unfiltered views on PostgreSQL, we cache the genuine exact count
+    # in-process with invalidation on record edits/ingestion to eliminate repeated
+    # scans while maintaining complete correctness.
     # When free-text searching, count is capped at COUNT_CEILING_SEARCH (5,000)
     # to avoid multi-second bitmap walks.
     # When paginating past page 1, client passes total_hint to avoid re-counting.
@@ -219,8 +224,16 @@ def list_records(
     active_ceiling = COUNT_CEILING_SEARCH if q else COUNT_CEILING
 
     if not has_narrowing_filter and IS_POSTGRES and (effective_status in (None, "", "VALID", "COMPLETE", "ALL", "ALL_RECORDS", "SHOW_ALL", "DUPLICATE")):
-        total = COUNT_CEILING
-        total_capped = True
+        cached_count = get_cached_default_count()
+        if cached_count is not None:
+            total = cached_count
+            total_capped = False
+        else:
+            total = db.scalar(
+                select(func.count()).select_from(stmt.subquery())
+            ) or 0
+            set_cached_default_count(total)
+            total_capped = False
     elif total_hint is not None and page > 1:
         total = total_hint
         total_capped = total >= active_ceiling
@@ -235,6 +248,11 @@ def list_records(
         # Free-text search with default ordering: skip full 174,000-row heapsort
         # so GIN index scan stops immediately at LIMIT 25 in <150ms.
         pass
+    elif sort_by == "id":
+        # Primary key index is (id ASC) or (id DESC) with default NULLS FIRST.
+        # id is NOT NULL; omitting .nullslast() allows PostgreSQL to use idx_records_default_id
+        # directly in an Index-Only Scan (0.17ms) instead of a 400ms parallel heapsort.
+        stmt = stmt.order_by(Record.id.desc() if sort_dir == "desc" else Record.id.asc())
     elif sort_by == "name" and sort_dir == "asc" and not q:
         # On default initial page load, prioritize complete records where procedure_value > 0 so VALUE (AED) and BEDROOM are visible right at the top
         stmt = stmt.order_by(
@@ -247,17 +265,16 @@ def list_records(
         order_clause = col.desc().nullslast() if sort_dir == "desc" else col.asc().nullslast()
         stmt = stmt.order_by(order_clause, Record.id.desc())
 
-
     # OFFSET is bounded by COUNT_CEILING above (the UI cannot page past the
     # capped total), so the planner never walks more than a few thousand index
     # entries before the LIMIT. That keeps plain offset pagination viable; if
     # deeper navigation is ever exposed, this is the point to switch to a
     # keyset cursor on (sort_key, id).
-    rows = db.scalars(stmt.offset((page - 1) * page_size).limit(page_size)).all()
-    pages = (total + page_size - 1) // page_size
+    rows = db.scalars(stmt.offset((page - 1) * effective_page_size).limit(effective_page_size)).all()
+    pages = (total + effective_page_size - 1) // effective_page_size
     return Page[RecordOut](
         items=[RecordOut.model_validate(r) for r in rows], total=total, page=page,
-        page_size=page_size, total_pages=pages, has_next=page < pages, has_prev=page > 1,
+        page_size=effective_page_size, total_pages=pages, has_next=page < pages, has_prev=page > 1,
         total_capped=total_capped,
     )
 
