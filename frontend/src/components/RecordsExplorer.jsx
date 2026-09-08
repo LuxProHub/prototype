@@ -15,6 +15,7 @@ export default function RecordsExplorer({ initialQuery = '' }) {
   const [isExporting, setIsExporting] = useState(null); // 'csv' | 'xlsx' | null
   const [search, setSearch] = useState(initialQuery);
   const [debouncedSearch, setDebouncedSearch] = useState(initialQuery);
+  const activeRequestRef = useRef(0);
   const [community, setCommunity] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [bedroom, setBedroom] = useState('');
@@ -43,6 +44,15 @@ export default function RecordsExplorer({ initialQuery = '' }) {
   const [saveError, setSaveError] = useState(null);
   const overlayRef = useRef(null);
 
+  // 300ms debounce for search query to eliminate keystroke request spam
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -59,15 +69,6 @@ export default function RecordsExplorer({ initialQuery = '' }) {
   useEffect(() => {
     fetchFilterOptions();
   }, []);
-
-  // Debounce search keystrokes to prevent local server queuing
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   useEffect(() => {
     fetchRecords();
@@ -95,6 +96,7 @@ export default function RecordsExplorer({ initialQuery = '' }) {
   };
 
   const fetchRecords = async () => {
+    const currentReq = ++activeRequestRef.current;
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -111,6 +113,9 @@ export default function RecordsExplorer({ initialQuery = '' }) {
       if (sourceFile) params.append('source_file', sourceFile);
 
       const res = await apiFetch(`/api/records?${params.toString()}`);
+      if (currentReq !== activeRequestRef.current) {
+        return; // newer request is in-flight; ignore stale response
+      }
       if (res.ok) {
         const data = await res.json();
         const items = data.items || data.records || [];

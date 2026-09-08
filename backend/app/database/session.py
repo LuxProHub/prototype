@@ -71,6 +71,13 @@ if _is_sqlite:
         # not fire, and leads.record_id SET NULL leaves a dangling pointer.
         cur.execute("PRAGMA foreign_keys=ON")
         cur.close()
+else:
+    @event.listens_for(engine, "connect")
+    def _postgres_session_tuning(dbapi_conn, _):
+        cur = dbapi_conn.cursor()
+        cur.execute("SET random_page_cost = 1.1")
+        cur.execute("SET work_mem = '64MB'")
+        cur.close()
 
 read_db_url = _clean_url(settings.READ_DATABASE_URL or settings.DATABASE_URL)
 _is_read_sqlite = read_db_url.startswith("sqlite")
@@ -91,18 +98,16 @@ read_engine = create_engine(
     if _is_read_sqlite else {},
 )
 
+if not _is_read_sqlite:
+    @event.listens_for(read_engine, "connect")
+    def _postgres_read_session_tuning(dbapi_conn, _):
+        cur = dbapi_conn.cursor()
+        cur.execute("SET random_page_cost = 1.1")
+        cur.execute("SET work_mem = '64MB'")
+        cur.close()
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 ReadSessionLocal = sessionmaker(bind=read_engine, autoflush=False, expire_on_commit=False)
-
-if not _is_sqlite:
-    @event.listens_for(engine, "connect")
-    @event.listens_for(read_engine, "connect")
-    def _postgres_session_tuning(dbapi_conn, _):
-        cur = dbapi_conn.cursor()
-        # Tune query planner for NVMe SSD: random index lookups are as fast as sequential scans
-        cur.execute("SET random_page_cost = 1.1;")
-        cur.execute("SET work_mem = '64MB';")
-        cur.close()
 
 
 def init_db() -> None:

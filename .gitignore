@@ -69,3 +69,7 @@ Documentation/
 graphify-out/*
 !graphify-out/GRAPH_REPORT.md
 !graphify-out/.graphify_labels.json
+
+# Scratch benchmark and profile scripts
+scratch/
+

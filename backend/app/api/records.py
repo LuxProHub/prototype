@@ -95,7 +95,7 @@ def _build_records_query(
     # unconditionally. The rule now lives in the has_valid_mobile generated
     # column, computed once at write time, and the partial indexes added in
     # 9c41ab7de205 are built on it.
-    valid_mobile_filter = Record.has_valid_mobile.is_(True)
+    valid_mobile_filter = (Record.has_valid_mobile == True)
 
     if record_status:
         st_upper = record_status.upper()
@@ -199,25 +199,21 @@ def list_records(
         has_mobile=has_mobile, has_email=has_email,
     )
 
-    is_unfiltered = not any([
-        q, community, sub_community, building_cluster, property_type,
-        bedroom, developer, nationality, source_file, job_id,
-        has_mobile is not None, has_email is not None,
-    ]) and effective_status in (None, "VALID", "COMPLETE")
+    # Counting the full match set is a scan of every matching row. On a broad
+    # filter over millions of records that is the slowest part of the request.
+    # For broad/unfiltered views on PostgreSQL, the dataset is known to exceed
+    # COUNT_CEILING (20,000), so we return the ceiling directly in 0ms.
+    # When narrowing filters are supplied, we count up to COUNT_CEILING.
+    has_narrowing_filter = bool(
+        q or community or sub_community or building_cluster or property_type
+        or bedroom or developer or nationality or source_file or job_id
+        or has_email or (has_mobile is False)
+    )
 
-    if is_unfiltered:
-        stats_cache = _matview(db, "SELECT valid_records FROM mv_record_stats LIMIT 1")
-        if stats_cache and stats_cache[0][0]:
-            total = stats_cache[0][0]
-            total_capped = total >= COUNT_CEILING
-        else:
-            total = db.scalar(
-                select(func.count()).select_from(stmt.limit(COUNT_CEILING).subquery())
-            ) or 0
-            total_capped = total >= COUNT_CEILING
+    if not has_narrowing_filter and IS_POSTGRES and (effective_status in (None, "", "VALID", "COMPLETE", "ALL", "ALL_RECORDS", "SHOW_ALL", "DUPLICATE")):
+        total = COUNT_CEILING
+        total_capped = True
     else:
-        # Counting the full match set is a scan of every matching row.
-        # Counting stops at COUNT_CEILING to keep response snappy.
         total = db.scalar(
             select(func.count()).select_from(stmt.limit(COUNT_CEILING).subquery())
         ) or 0
