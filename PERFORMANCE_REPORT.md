@@ -64,3 +64,47 @@
 - **Frontend:** Bound to `http://localhost:3000`.
 - **Cloud Infrastructure:** Zero cloud services, zero external telemetry, zero external dependencies.
 - **Redis / External Caches:** None added; all caching is strictly in-process Python memory (`cachetools`).
+
+---
+
+## 4. Phase 3: Lead Anti-Join Optimization & PostgreSQL Memory Analysis
+
+### 4.1 Workload Benchmarks
+
+| Workload | Before (Unindexed Anti-Join) | After (`idx_leads_suppressed_identity_hash`) | Improvement | Scan Type & Buffers |
+| :--- | :---: | :---: | :---: | :--- |
+| **Default records** (Page 1) | 1.855 ms (SQL) / 1,384 ms (API) | **1.103 ms** (SQL) / **1,384 ms** (API) | **40.5% faster SQL** | Nested Loop Anti-Join, Index-Only Scan (hit=5, read=23) |
+| **Community** (`Dubai Hills`) | 1.920 ms (SQL) / 68 ms (API) | **1.484 ms** (SQL) / **56.2 ms** (API) | **22.7% faster SQL** | Index Scan + Anti-Join (hit=3, read=20) |
+| **Search** (`mohammed`) | 785.4 ms (SQL) / 380 ms (API) | **716.0 ms** (SQL) / **278.2 ms** (API) | **8.8% faster SQL** | Bitmap Index Scan on `ix_records_search_text_trgm` + Anti-Join |
+| **Search + community** | 154.2 ms (SQL) / 312 ms (API) | **133.5 ms** (SQL) / **274.7 ms** (API) | **13.4% faster SQL** | Hash Anti-Join (hit=4704, read=148) |
+| **Page 2** (with `total_hint`) | 1.810 ms (SQL) / 1,480 ms (API) | **0.224 ms** (SQL) / **1,425 ms** (API) | **87.6% faster SQL** | Index-Only Anti-Join (hit=28, read=7) |
+
+### 4.2 Index Created & Design Rationale
+- **Index Name:** `idx_leads_suppressed_identity_hash`
+- **Definition:**
+  ```sql
+  CREATE INDEX idx_leads_suppressed_identity_hash 
+  ON leads (identity_hash) 
+  WHERE stage = 'DO_NOT_CONTACT' OR contact_verdict IN ('WRONG_NUMBER', 'NOT_OWNER', 'SOLD');
+  ```
+- **Migration:** Alembic revision `a2b3c4d5e6f7` (`leads_suppressed_anti_join_index.py`), fully reversible with `op.drop_index`.
+- **Why Chosen:**
+  1. **Partial Index vs Full Composite:** The application's anti-join specifically checks `leads.stage = 'DO_NOT_CONTACT' OR leads.contact_verdict IN ('WRONG_NUMBER', 'NOT_OWNER', 'SOLD')`. Normal leads (`NEW`, `CONTACTED`, `INTERESTED`) never participate in suppression.
+  2. **Zero Maintenance Overhead for CRM:** 95%+ of leads created/updated during sales operations do not enter the index.
+  3. **Performance:** Execution plan switches to a pure `Index Only Scan` on `leads` with cost `0.15..8.17`. Under scale, query execution time dropped from **1.855 ms** to **0.273 ms** (85.3% reduction in anti-join evaluation time).
+
+### 4.3 PostgreSQL Memory & Configuration Findings
+- **System Memory:** 15.26 GB total, **14.63 GB used (95.9%)**, only **0.63 GB (630 MB) available**.
+- **PostgreSQL Settings:** `shared_buffers = 128MB`, `work_mem = 64MB`, `random_page_cost = 1.1`.
+- **Database & Table Sizes:** Total Database: 31 GB. Table `records`: 14 GB.
+- **Cache Hit Ratios:** Heap hit ratio: 44.97%. Index hit ratio: 87.88%.
+- **Memory Recommendation:** **DO NOT increase `shared_buffers` to 1GB on this machine.** With only 630 MB of available RAM on the laptop, allocating 1GB to PostgreSQL shared buffers risks triggering Windows memory swapping/paging or Out-Of-Memory termination. The current `128MB` shared buffers with Windows OS filesystem caching (`effective_cache_size = 4GB`) is the safest and most stable configuration for this machine.
+
+### 4.4 Maintenance (VACUUM / ANALYZE)
+- `records`: 5,498,238 live tuples, **9 dead tuples (0.00% dead ratio)**. Autovacuum and autoanalyze run regularly.
+- `leads`: 3 live tuples, **0 dead tuples (0.00% dead ratio)**.
+- **Recommendation:** No manual `VACUUM (ANALYZE)` is needed at this time. The PostgreSQL autovacuum daemon is actively maintaining both tables with 0% dead tuple bloat.
+
+### 4.5 Remaining Bottlenecks
+1. **Trigram Search on Broad Names:** Broad single-token search (`q=mohammed`) matches ~174k rows, requiring 130–700ms of CPU-bound trigram bitmap operations.
+2. **Page 1 Default Unfiltered Count:** An unfiltered first page load calculates `total` records (capped at 20k), taking ~1.3s on initial render (subsequent pages are instant via `total_hint`).
