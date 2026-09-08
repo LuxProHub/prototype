@@ -87,8 +87,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
-        "https://prototype-azure-theta.vercel.app",
-        "https://prototype-b0ejqriyk-lpj1.vercel.app",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
     ]
     DEFAULT_PAGE_SIZE: int = 50
     MAX_PAGE_SIZE: int = 500

@@ -25,5 +25,6 @@ if __name__ == "__main__":
         print("Applying database migrations...")
         upgrade_to_head()
 
-    print(f"Starting server on 0.0.0.0:{port}...")
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=port)
+    host = os.environ.get("HOST", "127.0.0.1")
+    print(f"Starting server on {host}:{port}...")
+    uvicorn.run("backend.app.main:app", host=host, port=port)
