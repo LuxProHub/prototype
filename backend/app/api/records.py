@@ -199,15 +199,29 @@ def list_records(
         has_mobile=has_mobile, has_email=has_email,
     )
 
-    # Counting the full match set is a scan of every matching row. On a broad
-    # filter over 20M records that is the slowest part of the request, and it
-    # produces a number the UI only uses to draw a page count. Counting stops at
-    # COUNT_CEILING: below it the total is exact, at it the UI shows "20,000+"
-    # and the user narrows their filter, which is what they should do anyway.
-    total = db.scalar(
-        select(func.count()).select_from(stmt.limit(COUNT_CEILING).subquery())
-    ) or 0
-    total_capped = total >= COUNT_CEILING
+    is_unfiltered = not any([
+        q, community, sub_community, building_cluster, property_type,
+        bedroom, developer, nationality, source_file, job_id,
+        has_mobile is not None, has_email is not None,
+    ]) and effective_status in (None, "VALID", "COMPLETE")
+
+    if is_unfiltered:
+        stats_cache = _matview(db, "SELECT valid_records FROM mv_record_stats LIMIT 1")
+        if stats_cache and stats_cache[0][0]:
+            total = stats_cache[0][0]
+            total_capped = total >= COUNT_CEILING
+        else:
+            total = db.scalar(
+                select(func.count()).select_from(stmt.limit(COUNT_CEILING).subquery())
+            ) or 0
+            total_capped = total >= COUNT_CEILING
+    else:
+        # Counting the full match set is a scan of every matching row.
+        # Counting stops at COUNT_CEILING to keep response snappy.
+        total = db.scalar(
+            select(func.count()).select_from(stmt.limit(COUNT_CEILING).subquery())
+        ) or 0
+        total_capped = total >= COUNT_CEILING
 
     col = SORTABLE[sort_by]
     if sort_by == "name" and sort_dir == "asc":

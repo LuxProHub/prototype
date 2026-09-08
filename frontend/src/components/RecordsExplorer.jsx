@@ -14,6 +14,7 @@ export default function RecordsExplorer({ initialQuery = '' }) {
   const [loading, setLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(null); // 'csv' | 'xlsx' | null
   const [search, setSearch] = useState(initialQuery);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialQuery);
   const [community, setCommunity] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [bedroom, setBedroom] = useState('');
@@ -59,9 +60,18 @@ export default function RecordsExplorer({ initialQuery = '' }) {
     fetchFilterOptions();
   }, []);
 
+  // Debounce search keystrokes to prevent local server queuing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     fetchRecords();
-  }, [search, community, propertyType, bedroom, status, sourceFile, sortBy, sortDir, page, limit]);
+  }, [debouncedSearch, community, propertyType, bedroom, status, sourceFile, sortBy, sortDir, page, limit]);
 
   const fetchFilterOptions = async () => {
     try {
@@ -93,7 +103,7 @@ export default function RecordsExplorer({ initialQuery = '' }) {
         sort_by: sortBy,
         sort_dir: sortDir
       });
-      if (search) params.append('q', search);
+      if (debouncedSearch) params.append('q', debouncedSearch);
       if (community) params.append('community', community);
       if (propertyType) params.append('property_type', propertyType);
       if (bedroom) params.append('bedroom', bedroom);

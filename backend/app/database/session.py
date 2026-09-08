@@ -94,6 +94,16 @@ read_engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 ReadSessionLocal = sessionmaker(bind=read_engine, autoflush=False, expire_on_commit=False)
 
+if not _is_sqlite:
+    @event.listens_for(engine, "connect")
+    @event.listens_for(read_engine, "connect")
+    def _postgres_session_tuning(dbapi_conn, _):
+        cur = dbapi_conn.cursor()
+        # Tune query planner for NVMe SSD: random index lookups are as fast as sequential scans
+        cur.execute("SET random_page_cost = 1.1;")
+        cur.execute("SET work_mem = '64MB';")
+        cur.close()
+
 
 def init_db() -> None:
     Base.metadata.create_all(engine)
