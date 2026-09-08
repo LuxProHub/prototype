@@ -51,4 +51,10 @@ def refresh_dashboard_caches(*, concurrent: bool = True) -> bool:
         except Exception as exc:
             ok = False
             log.warning("Could not refresh %s: %s", view, exc)
+    try:
+        from ..core.cache import invalidate_filters_cache
+        invalidate_filters_cache()
+    except Exception:
+        pass
     return ok
+

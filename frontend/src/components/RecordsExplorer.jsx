@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, ChevronLeft, ChevronRight, X, ArrowUpDown, ArrowUp, ArrowDown, Edit3, Save, CheckCircle2, AlertCircle, Download, FileSpreadsheet, FileText, Loader2, SlidersHorizontal, RotateCcw, Filter } from 'lucide-react';
 import CustomSelect from './CustomSelect';
 import { apiFetch } from '../lib/api';
@@ -8,6 +8,70 @@ import LeadActivityPanel from './LeadActivityPanel';
 function formatTotal(total, capped) {
   return capped ? `${total.toLocaleString()}+` : total.toLocaleString();
 }
+
+/** Memoized table row to prevent re-rendering during search typing and modal interaction */
+const RecordRow = React.memo(function RecordRow({ r, onSelect }) {
+  return (
+    <tr
+      key={r.id}
+      onClick={() => onSelect(r)}
+      className="hover:bg-[#e2e6ed] cursor-pointer transition-colors group"
+      title={`Click row to inspect full details • Status: ${r.status || 'VALID'}`}
+    >
+      <td className="px-4 py-3.5 font-black text-slate-900 group-hover:text-blue-700 transition-colors max-w-[200px] truncate" title={r.name || 'N/A'}>
+        <div className="flex items-center space-x-2.5">
+          <span
+            title={
+              r.status === 'DUPLICATE'
+                ? 'Duplicate Record (Preserved)'
+                : r.status === 'VALID'
+                  ? 'Valid Outreach Ready'
+                  : r.status === 'INCOMPLETE'
+                    ? 'Incomplete (Missing Contact/Name)'
+                    : 'Invalid / Error'
+            }
+            className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-xs ${
+              r.status === 'DUPLICATE'
+                ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse'
+                : r.status === 'VALID'
+                  ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                  : r.status === 'INCOMPLETE'
+                    ? 'bg-indigo-400 dark:bg-indigo-500'
+                    : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]'
+            }`}
+          />
+          <span className="truncate">{r.name || 'N/A'}</span>
+          {r.status === 'DUPLICATE' && (
+            <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+              DUP
+            </span>
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-3.5 text-slate-700 font-semibold max-w-[160px] truncate" title={r.developer || 'N/A'}>
+        {r.developer || 'N/A'}
+      </td>
+      <td className="px-4 py-3.5 text-slate-700 font-semibold max-w-[150px] truncate" title={r.community || 'N/A'}>
+        {r.community || 'N/A'}
+      </td>
+      <td className="px-4 py-3.5 text-slate-700 font-semibold max-w-[140px] truncate" title={r.building_cluster || r.building || 'N/A'}>
+        {r.building_cluster || r.building || 'N/A'}
+      </td>
+      <td className="px-4 py-3.5 font-mono text-blue-700 font-black whitespace-nowrap">
+        {r.unit_number || r.unit || (r.plot_number ? `Plot ${r.plot_number}` : 'N/A')}
+      </td>
+      <td className="px-4 py-3.5 font-mono text-slate-700 font-medium whitespace-nowrap">
+        {r.bedroom || r.bedroom_type || 'N/A'}
+      </td>
+      <td className="px-4 py-3.5 font-mono text-emerald-700 font-black whitespace-nowrap">
+        {r.procedure_value ? `AED ${Number(r.procedure_value).toLocaleString('en-US')}` : 'N/A'}
+      </td>
+      <td className="px-4 py-3.5 font-mono text-slate-700 font-medium whitespace-nowrap">
+        {r.mobile_1 || r.mobile || 'N/A'}
+      </td>
+    </tr>
+  );
+});
 
 export default function RecordsExplorer({ initialQuery = '' }) {
   const [records, setRecords] = useState([]);
@@ -111,6 +175,7 @@ export default function RecordsExplorer({ initialQuery = '' }) {
       if (bedroom) params.append('bedroom', bedroom);
       if (status) params.append('status', status);
       if (sourceFile) params.append('source_file', sourceFile);
+      if (page > 1 && totalRecords > 0) params.append('total_hint', totalRecords.toString());
 
       const res = await apiFetch(`/api/records?${params.toString()}`);
       if (currentReq !== activeRequestRef.current) {
@@ -162,13 +227,13 @@ export default function RecordsExplorer({ initialQuery = '' }) {
     );
   };
 
-  const openRecordModal = (record) => {
+  const openRecordModal = useCallback((record) => {
     setSelectedRecord(record);
     setEditForm({ ...record });
     setIsEditing(false);
     setSaveSuccess(false);
     setSaveError(null);
-  };
+  }, []);
 
   const handleSaveChanges = async () => {
     if (!selectedRecord) return;
@@ -503,64 +568,7 @@ export default function RecordsExplorer({ initialQuery = '' }) {
                 </tr>
               ) : records.length > 0 ? (
                 records.map((r) => (
-                  <tr
-                    key={r.id}
-                    onClick={() => openRecordModal(r)}
-                    className="hover:bg-[#e2e6ed] cursor-pointer transition-colors group"
-                    title={`Click row to inspect full details • Status: ${r.status || 'VALID'}`}
-                  >
-                    <td className="px-4 py-3.5 font-black text-slate-900 group-hover:text-blue-700 transition-colors max-w-[200px] truncate" title={r.name || 'N/A'}>
-                      <div className="flex items-center space-x-2.5">
-                        {/* Luminous Status Indicator Dot */}
-                        <span
-                          title={
-                            r.status === 'DUPLICATE'
-                              ? 'Duplicate Record (Preserved)'
-                              : r.status === 'VALID'
-                                ? 'Valid Outreach Ready'
-                                : r.status === 'INCOMPLETE'
-                                  ? 'Incomplete (Missing Contact/Name)'
-                                  : 'Invalid / Error'
-                          }
-                          className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-xs ${r.status === 'DUPLICATE'
-                            ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse'
-                            : r.status === 'VALID'
-                              ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-                              : r.status === 'INCOMPLETE'
-                                ? 'bg-indigo-400 dark:bg-indigo-500'
-                                : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]'
-                            }`}
-                        />
-                        <span className="truncate">{r.name || 'N/A'}</span>
-                        {r.status === 'DUPLICATE' && (
-                          <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                            DUP
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-700 font-semibold max-w-[160px] truncate" title={r.developer || 'N/A'}>
-                      {r.developer || 'N/A'}
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-700 font-semibold max-w-[150px] truncate" title={r.community || 'N/A'}>
-                      {r.community || 'N/A'}
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-700 font-semibold max-w-[140px] truncate" title={r.building_cluster || r.building || 'N/A'}>
-                      {r.building_cluster || r.building || 'N/A'}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-blue-700 font-black whitespace-nowrap">
-                      {r.unit_number || r.unit || (r.plot_number ? `Plot ${r.plot_number}` : 'N/A')}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-slate-700 font-medium whitespace-nowrap">
-                      {r.bedroom || r.bedroom_type || 'N/A'}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-emerald-700 font-black whitespace-nowrap">
-                      {r.procedure_value ? `AED ${Number(r.procedure_value).toLocaleString('en-US')}` : 'N/A'}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-slate-700 font-medium whitespace-nowrap">
-                      {r.mobile_1 || r.mobile || 'N/A'}
-                    </td>
-                  </tr>
+                  <RecordRow key={r.id} r={r} onSelect={openRecordModal} />
                 ))
               ) : (
                 <tr>

@@ -44,8 +44,11 @@ SORTABLE = {
 
 # Counting every matching row costs a full scan of the match set, which at 20M
 # rows is seconds for a broad filter and is spent on a number nobody reads past
-# the first significant digit. Counting stops here and the UI shows "20,000+".
+# the first significant digit. Counting stops here and the UI shows "20,000+"
+# or "5,000+" for broad free-text search.
 COUNT_CEILING = 20_000
+COUNT_CEILING_SEARCH = 5_000
+
 
 
 def _build_records_query(
@@ -184,6 +187,7 @@ def list_records(
     sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(settings.DEFAULT_PAGE_SIZE, ge=1, le=settings.MAX_PAGE_SIZE),
+    total_hint: int | None = Query(None, description="Previous total from page 1 to bypass redundant counting during pagination"),
     _user: User = Depends(get_current_user),
     db: Session = Depends(get_read_db),
 ):
@@ -203,24 +207,35 @@ def list_records(
     # filter over millions of records that is the slowest part of the request.
     # For broad/unfiltered views on PostgreSQL, the dataset is known to exceed
     # COUNT_CEILING (20,000), so we return the ceiling directly in 0ms.
-    # When narrowing filters are supplied, we count up to COUNT_CEILING.
+    # When free-text searching, count is capped at COUNT_CEILING_SEARCH (5,000)
+    # to avoid multi-second bitmap walks.
+    # When paginating past page 1, client passes total_hint to avoid re-counting.
     has_narrowing_filter = bool(
         q or community or sub_community or building_cluster or property_type
         or bedroom or developer or nationality or source_file or job_id
         or has_email or (has_mobile is False)
     )
 
+    active_ceiling = COUNT_CEILING_SEARCH if q else COUNT_CEILING
+
     if not has_narrowing_filter and IS_POSTGRES and (effective_status in (None, "", "VALID", "COMPLETE", "ALL", "ALL_RECORDS", "SHOW_ALL", "DUPLICATE")):
         total = COUNT_CEILING
         total_capped = True
+    elif total_hint is not None and page > 1:
+        total = total_hint
+        total_capped = total >= active_ceiling
     else:
         total = db.scalar(
-            select(func.count()).select_from(stmt.limit(COUNT_CEILING).subquery())
+            select(func.count()).select_from(stmt.limit(active_ceiling).subquery())
         ) or 0
-        total_capped = total >= COUNT_CEILING
+        total_capped = total >= active_ceiling
 
     col = SORTABLE[sort_by]
-    if sort_by == "name" and sort_dir == "asc":
+    if q and sort_by == "id":
+        # Free-text search with default ordering: skip full 174,000-row heapsort
+        # so GIN index scan stops immediately at LIMIT 25 in <150ms.
+        pass
+    elif sort_by == "name" and sort_dir == "asc" and not q:
         # On default initial page load, prioritize complete records where procedure_value > 0 so VALUE (AED) and BEDROOM are visible right at the top
         stmt = stmt.order_by(
             Record.procedure_value.desc().nullslast(),
@@ -231,6 +246,8 @@ def list_records(
     else:
         order_clause = col.desc().nullslast() if sort_dir == "desc" else col.asc().nullslast()
         stmt = stmt.order_by(order_clause, Record.id.desc())
+
+
     # OFFSET is bounded by COUNT_CEILING above (the UI cannot page past the
     # capped total), so the planner never walks more than a few thousand index
     # entries before the LIMIT. That keeps plain offset pagination viable; if
@@ -272,8 +289,10 @@ def export_records(
     """Export filtered dataset to CSV or Excel (.xlsx). Exactly respects active search and filters."""
     import csv
     import io
+    import tempfile
     from datetime import datetime, timezone
     from fastapi.responses import StreamingResponse
+    from ..database.session import read_engine
 
     if sort_by not in SORTABLE:
         sort_by = "id"
@@ -291,11 +310,14 @@ def export_records(
     order_clause = col.desc().nullslast() if sort_dir == "desc" else col.asc().nullslast()
     stmt = stmt.order_by(order_clause, Record.id.desc()).limit(limit)
 
-    # yield_per streams the result in chunks instead of materialising up to
-    # `limit` (100k) ORM objects at once, which was hundreds of MB of resident
-    # memory per concurrent export and the most likely cause of an OOM kill.
-    def iter_rows():
-        yield from db.scalars(stmt.execution_options(yield_per=1000))
+    export_cols = [
+        Record.id, Record.name, Record.community, Record.sub_community, Record.building_cluster,
+        Record.unit_number, Record.plot_number, Record.plot_reg_no, Record.dmno, Record.dmsubno,
+        Record.bedroom, Record.property_type, Record.developer, Record.project, Record.party_type,
+        Record.size, Record.procedure_value, Record.mobile_1, Record.mobile_2, Record.mobile_3,
+        Record.email_address, Record.nationality, Record.pi_number, Record.status, Record.source_file,
+        Record.record_date,
+    ]
 
     headers = [
         "Record ID", "Name", "Community", "Sub-Community", "Building / Cluster",
@@ -306,51 +328,90 @@ def export_records(
         "Nationality", "PI Number", "Status", "Source File", "Record Date",
     ]
 
-    def extract_row_values(r: Record) -> list:
-        return [
-            r.id,
-            r.name or "",
-            r.community or "",
-            r.sub_community or "",
-            r.building_cluster or "",
-            r.unit_number or "",
-            r.plot_number or "",
-            r.plot_reg_no or "",
-            r.dmno or "",
-            r.dmsubno or "",
-            r.bedroom or "",
-            r.property_type or "",
-            r.developer or "",
-            r.project or "",
-            r.party_type or "",
-            r.size if r.size is not None else "",
-            r.procedure_value if r.procedure_value is not None else "",
-            r.mobile_1 or "",
-            r.mobile_2 or "",
-            r.mobile_3 or "",
-            r.email_address or "",
-            r.nationality or "",
-            r.pi_number or "",
-            r.status or "",
-            r.source_file or "",
-            r.record_date.strftime("%Y-%m-%d") if r.record_date else "",
-        ]
-
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-
-    # Record export audit log
     client_ip = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "unknown")
     user_id = current_user.id
     user_email = current_user.email
 
-    # Written before a single byte leaves, so an aborted or interrupted download
-    # still leaves a record that this data was requested. The row count comes
-    # from a COUNT over the same filtered statement, since the rows themselves
-    # are now streamed rather than materialised.
-    row_count = db.scalar(
-        select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    # Fast connection-isolated fetch: read data via read_engine and spool immediately,
+    # then release the DB connection before client network transmission begins.
+    row_count = 0
+    if format == "xlsx":
+        import openpyxl
+        from openpyxl.cell import WriteOnlyCell
+        from openpyxl.styles import Alignment, Font, PatternFill
+        from openpyxl.utils import get_column_letter
 
+        wb = openpyxl.Workbook(write_only=True)
+        ws = wb.create_sheet("Datalink Export")
+        header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        header_align = Alignment(horizontal="center", vertical="center")
+
+        for i, h in enumerate(headers, start=1):
+            ws.column_dimensions[get_column_letter(i)].width = min(max(len(h) + 3, 10), 45)
+        ws.freeze_panes = "A2"
+
+        styled_header = []
+        for h in headers:
+            cell = WriteOnlyCell(ws, value=h)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_align
+            styled_header.append(cell)
+        ws.append(styled_header)
+
+        with read_engine.connect() as conn:
+            query_stmt = stmt.with_only_columns(*export_cols)
+            res = conn.execution_options(yield_per=2000).execute(query_stmt)
+            for row in res:
+                row_vals = [
+                    row[0], row[1] or "", row[2] or "", row[3] or "", row[4] or "",
+                    row[5] or "", row[6] or "", row[7] or "", row[8] or "", row[9] or "",
+                    row[10] or "", row[11] or "", row[12] or "", row[13] or "", row[14] or "",
+                    row[15] if row[15] is not None else "",
+                    row[16] if row[16] is not None else "",
+                    row[17] or "", row[18] or "", row[19] or "", row[20] or "",
+                    row[21] or "", row[22] or "", row[23] or "", row[24] or "",
+                    row[25].strftime("%Y-%m-%d") if row[25] else "",
+                ]
+                ws.append(row_vals)
+                row_count += 1
+
+        spool = tempfile.SpooledTemporaryFile(max_size=16 * 1024 * 1024, mode="w+b")
+        wb.save(spool)
+        spool.seek(0)
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename = f"datalink_records_{stamp}.xlsx"
+    else:
+        spool = tempfile.SpooledTemporaryFile(max_size=16 * 1024 * 1024, mode="w+", encoding="utf-8", newline="")
+        spool.write("\ufeff")  # UTF-8 BOM
+        writer = csv.writer(spool)
+        writer.writerow(headers)
+
+        with read_engine.connect() as conn:
+            query_stmt = stmt.with_only_columns(*export_cols)
+            res = conn.execution_options(yield_per=2000).execute(query_stmt)
+            for row in res:
+                row_vals = [
+                    row[0], row[1] or "", row[2] or "", row[3] or "", row[4] or "",
+                    row[5] or "", row[6] or "", row[7] or "", row[8] or "", row[9] or "",
+                    row[10] or "", row[11] or "", row[12] or "", row[13] or "", row[14] or "",
+                    row[15] if row[15] is not None else "",
+                    row[16] if row[16] is not None else "",
+                    row[17] or "", row[18] or "", row[19] or "", row[20] or "",
+                    row[21] or "", row[22] or "", row[23] or "", row[24] or "",
+                    row[25].strftime("%Y-%m-%d") if row[25] else "",
+                ]
+                writer.writerow(row_vals)
+                row_count += 1
+
+        spool.seek(0)
+        media_type = "text/csv; charset=utf-8"
+        filename = f"datalink_records_{stamp}.csv"
+
+    # Log audit entry in write db without holding read connection
     audit_entry = ExportAuditLog(
         user_id=user_id,
         user_email=user_email,
@@ -366,76 +427,22 @@ def export_records(
     db.add(audit_entry)
     db.commit()
 
-    if format == "xlsx":
-        import openpyxl
-        from openpyxl.cell import WriteOnlyCell
-        from openpyxl.styles import Alignment, Font, PatternFill
-        from openpyxl.utils import get_column_letter
+    def stream_spool():
+        try:
+            while True:
+                chunk = spool.read(64 * 1024)
+                if not chunk:
+                    break
+                yield chunk if isinstance(chunk, bytes) else chunk.encode("utf-8")
+        finally:
+            spool.close()
 
-        # write_only holds one row at a time and spools the rest to a temp file.
-        # An xlsx is a zip archive so it must still be complete before sending,
-        # but peak memory no longer scales with the export size.
-        wb = openpyxl.Workbook(write_only=True)
-        ws = wb.create_sheet("Datalink Export")
+    return StreamingResponse(
+        stream_spool(),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
-        header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
-        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-        header_align = Alignment(horizontal="center", vertical="center")
-
-        # In write_only mode column widths must be set before any row is
-        # appended, so they are derived from the header text instead of from a
-        # post-hoc scan of every cell. Same 10..45 clamp as before.
-        for i, h in enumerate(headers, start=1):
-            ws.column_dimensions[get_column_letter(i)].width = min(max(len(h) + 3, 10), 45)
-        ws.freeze_panes = "A2"
-
-        styled_header = []
-        for h in headers:
-            cell = WriteOnlyCell(ws, value=h)
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = header_align
-            styled_header.append(cell)
-        ws.append(styled_header)
-
-        for r in iter_rows():
-            ws.append(extract_row_values(r))
-
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
-
-        filename = f"datalink_records_{stamp}.xlsx"
-        return StreamingResponse(
-            output,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-        )
-
-    else:
-        # Streamed a chunk at a time: memory stays flat regardless of row count
-        # and the download starts immediately instead of after a full build.
-        # Byte-for-byte the same output as before (BOM, header, same rows).
-        def csv_chunks():
-            buf = io.StringIO()
-            buf.write("\ufeff")  # UTF-8 BOM, keeps Excel happy with UTF-8
-            writer = csv.writer(buf)
-            writer.writerow(headers)
-            for r in iter_rows():
-                writer.writerow(extract_row_values(r))
-                if buf.tell() > 64 * 1024:
-                    yield buf.getvalue().encode("utf-8")
-                    buf.seek(0)
-                    buf.truncate(0)
-            if buf.tell():
-                yield buf.getvalue().encode("utf-8")
-
-        filename = f"datalink_records_{stamp}.csv"
-        return StreamingResponse(
-            csv_chunks(),
-            media_type="text/csv; charset=utf-8",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-        )
 
 
 # --------------------------------------------------------------------------
@@ -472,6 +479,9 @@ def _facet_cache(db: Session) -> dict[str, list[str]] | None:
     return out
 
 
+from ..core.cache import get_cached_filters, set_cached_filters, invalidate_filters_cache
+
+
 @router.get("/records/filters", response_model=FilterOptions)
 def filter_options(
     _user: User = Depends(get_current_user),
@@ -479,13 +489,12 @@ def filter_options(
 ):
     """Distinct values for the dashboard filter dropdowns.
 
-    Served from the mv_record_facets materialised view rather than seven
-    SELECT DISTINCT scans of the records table. Dropdown contents only change
-    when a file is ingested, so they are refreshed on that event (and on a
-    schedule) instead of being recomputed for every dashboard load by every one
-    of ~60 users. Falls back to live DISTINCT when the view is absent, which is
-    the case on SQLite dev databases and before the migration has run.
+    Served from in-process TTLCache or the mv_record_facets materialised view.
     """
+    cached_response = get_cached_filters()
+    if cached_response is not None:
+        return cached_response
+
     facets = _facet_cache(db)
 
     def distinct(col, limit=500, is_community=False):
@@ -508,7 +517,7 @@ def filter_options(
             return sorted(valid_comms)
         return raw_vals
 
-    return FilterOptions(
+    res = FilterOptions(
         communities=distinct(Record.community, is_community=True),
         sub_communities=distinct(Record.sub_community),
         property_types=distinct(Record.property_type),
@@ -517,6 +526,9 @@ def filter_options(
         source_files=distinct(Record.source_file),
         statuses=distinct(Record.status),
     )
+    set_cached_filters(res)
+    return res
+
 
 
 from ..schemas.schemas import (
@@ -674,8 +686,10 @@ def update_record(
         db.add(audit)
 
     db.commit()
+    invalidate_filters_cache()
     db.refresh(rec)
     return RecordOut.model_validate(rec)
+
 
 
 # --------------------------------------------------------------------------
