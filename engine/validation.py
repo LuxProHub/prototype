@@ -41,6 +41,7 @@ def transform(fields: dict, extras: dict,
     row["community"] = C.clean_community(fields.get("Community"))
     row["sub_community"] = C.clean_text(fields.get("Sub-Community"))
     row["building_cluster"] = C.clean_text(fields.get("Building/Cluster"))
+    row["unit_number"] = C.clean_unit(fields.get("Unit Number"))
     _prn = C.clean_text(fields.get("Plot Reg. No"))
     row["plot_reg_no"] = _prn[:128] if _prn else None
     row["plot_number"] = C.clean_unit(fields.get("Plot Number"))
