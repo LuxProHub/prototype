@@ -22,6 +22,9 @@ prototype_core.db
 uploads/
 logs/
 *.log
+*.dump
+*.dump.tmp
+backups/
 
 # Node dependencies & builds
 node_modules/
