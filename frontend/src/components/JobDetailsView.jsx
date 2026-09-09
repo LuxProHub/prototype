@@ -2,12 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, RefreshCw, Activity } from 'lucide-react';
 import Tilt3DCard from './Tilt3DCard';
 import { apiFetch } from '../lib/api';
+import PageHeader from './ui/PageHeader';
+import { ErrorState, EmptyState, LoadingRows } from './ui/States';
 
 export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
   const [jobs, setJobs] = useState([]);
   const [activeJobData, setActiveJobData] = useState(null);
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState(null);
 
   useEffect(() => {
     fetchJobsList();
@@ -20,18 +24,27 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
   }, [selectedJobId]);
 
   const fetchJobsList = async () => {
+    setListLoading(true);
     try {
       const res = await apiFetch('/api/jobs');
-      if (res.ok) {
-        const data = await res.json();
-        const jobList = data.items || data.jobs || [];
-        setJobs(jobList);
-        if (jobList.length > 0 && !selectedJobId) {
-          setSelectedJobId(jobList[0].id);
-        }
+      if (!res.ok) {
+        setListError(`The server answered ${res.status}.`);
+        return;
+      }
+      const data = await res.json();
+      const jobList = data.items || data.jobs || [];
+      setJobs(jobList);
+      setListError(null);
+      if (jobList.length > 0 && !selectedJobId) {
+        setSelectedJobId(jobList[0].id);
       }
     } catch (err) {
       console.error('Error fetching jobs:', err);
+      // Without this the list renders empty, which reads as "no jobs have ever
+      // run" -- the opposite of what actually happened.
+      setListError('Could not reach the server.');
+    } finally {
+      setListLoading(false);
     }
   };
 
@@ -61,16 +74,10 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
   return (
     <div className="p-6 h-full w-full max-w-[1450px] mx-auto flex flex-col min-h-0 overflow-hidden space-y-4">
       {/* Title Header (Fixed Top) */}
-      <Tilt3DCard className="p-5 rounded-xl flex-shrink-0">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold text-[var(--text)] tracking-tight">Processing jobs</h2>
-            <p className="text-xs text-[var(--text-2)] mt-1 font-medium">
-              Detailed batch execution history and row-level validation error audit logs.
-            </p>
-          </div>
-        </div>
-      </Tilt3DCard>
+      <PageHeader
+        title="Processing jobs"
+        description="Batch execution history and the row-level validation errors each run produced."
+      />
 
       {/* Main 2-Column Dashboard Panel (Fits Viewport Height) */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden">
@@ -87,6 +94,13 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2.5 mt-3">
+            {listError ? (
+              <ErrorState dense error={listError} onRetry={fetchJobsList} title="Jobs could not be loaded" />
+            ) : listLoading && !jobs.length ? (
+              <LoadingRows rows={5} />
+            ) : !jobs.length ? (
+              <EmptyState dense title="No runs yet" body="Upload a register to start the first job." />
+            ) : null}
             {jobs.map((job) => {
               const isSelected = selectedJobId === job.id;
               return (
@@ -96,7 +110,7 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
                   className={`w-full text-left p-3.5 rounded-lg transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-[var(--surface-2)] border border-[var(--accent-ring)]'
-                      : 'bg-[var(--surface-2)] border border-[var(--edge)] hover:bg-slate-100'
+                      : 'bg-[var(--surface-2)] border border-[var(--edge)] hover:bg-[var(--surface-2)]'
                   }`}
                 >
                   <div className="flex justify-between items-start">
@@ -104,8 +118,8 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
                     <span
                       className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full uppercase border ${
                         job.status === 'COMPLETED'
-                          ? 'bg-[var(--surface-2)] text-[var(--ok)] border-emerald-300'
-                          : 'bg-[var(--surface-2)] text-[var(--warn)] border-amber-300'
+                          ? 'bg-[var(--surface-2)] text-[var(--ok)] border-[var(--ok)]/30'
+                          : 'bg-[var(--surface-2)] text-[var(--warn)] border-[var(--warn)]/30'
                       }`}
                     >
                       {job.status}
@@ -141,15 +155,15 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
                     <span className="text-[var(--text-3)] text-[10px] block font-semibold">TOTAL ROWS</span>
                     <span className="text-[var(--text)] font-semibold text-sm">{activeJobData.total_rows?.toLocaleString()}</span>
                   </div>
-                  <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-emerald-300/80">
+                  <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-[var(--ok)]/30">
                     <span className="text-[var(--ok)] text-[10px] block font-semibold">VALID ROWS</span>
                     <span className="text-[var(--ok)] font-semibold text-sm">{activeJobData.valid_rows?.toLocaleString()}</span>
                   </div>
-                  <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-amber-300/80">
+                  <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-[var(--warn)]/30">
                     <span className="text-[var(--warn)] text-[10px] block font-semibold">DUPLICATES</span>
                     <span className="text-[var(--warn)] font-semibold text-sm">{activeJobData.duplicate_rows?.toLocaleString()}</span>
                   </div>
-                  <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-rose-300/80">
+                  <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-[var(--bad)]/30">
                     <span className="text-[var(--bad)] text-[10px] block font-semibold">ERRORS LOGGED</span>
                     <span className="text-[var(--bad)] font-semibold text-sm">{activeJobData.error_rows?.toLocaleString()}</span>
                   </div>
@@ -176,7 +190,7 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
                     <tbody className="divide-y divide-[var(--edge)] font-sans">
                       {errors.length > 0 ? (
                         errors.map((errItem, idx) => (
-                          <tr key={idx} className="hover:bg-slate-100/80">
+                          <tr key={idx} className="hover:bg-[var(--surface-2)]">
                             <td className="p-2.5 font-mono text-[var(--text-2)] font-semibold">{errItem.batch || 1}</td>
                             <td className="p-2.5 font-mono text-[var(--text-2)]">{errItem.row_index || errItem.row}</td>
                             <td className="p-2.5 font-mono text-[var(--bad)] font-semibold">{errItem.field || 'General'}</td>

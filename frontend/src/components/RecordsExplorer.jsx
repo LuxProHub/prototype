@@ -21,6 +21,8 @@ import {
 import CustomSelect from './CustomSelect';
 import { apiFetch } from '../lib/api';
 import LeadActivityPanel from './LeadActivityPanel';
+import { useToast } from '../lib/toast';
+import PageHeader from './ui/PageHeader';
 
 /** Render a result count, marking it as a floor when the API capped its count. */
 function formatTotal(total, capped) {
@@ -177,6 +179,7 @@ function Field({ f, record, form, editing, onChange }) {
 const PAGE_SIZES = [25, 50, 100];
 
 export default function RecordsExplorer({ initialQuery = '' }) {
+  const { notify } = useToast();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -443,9 +446,12 @@ export default function RecordsExplorer({ initialQuery = '' }) {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+      // The browser's download shelf is easy to miss, and an export of a
+      // filtered view is worth confirming by name.
+      notify(`${format.toUpperCase()} export downloaded.`);
     } catch (err) {
       console.error('Export error:', err);
-      alert('Failed to export data: ' + err.message);
+      notify(`Export failed. ${err.message}`, { tone: 'bad' });
     } finally {
       setIsExporting(null);
     }
@@ -483,17 +489,17 @@ export default function RecordsExplorer({ initialQuery = '' }) {
   return (
     <div className="p-3 sm:p-5 h-full w-full max-w-[1500px] mx-auto flex flex-col min-h-0 overflow-hidden gap-3 sm:gap-4">
       {/* Page header */}
-      <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-lg sm:text-xl font-semibold text-[var(--text)] tracking-tight leading-tight">Records</h2>
-          <p className="text-[13px] text-[var(--text-2)] mt-0.5">
+      <PageHeader
+        title="Records"
+        description={
+          <>
             <span className="num text-[var(--text)]">{formatTotal(totalRecords, totalCapped)}</span>
             {anyFilter ? ' matching records' : ' normalized records across all registers'}
             {totalCapped && <span className="text-[var(--text-3)]"> — narrow the filter for an exact count</span>}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
+          </>
+        }
+        actions={
+          <>
           <button
             onClick={() => handleExport('xlsx')}
             disabled={isExporting !== null}
@@ -512,8 +518,9 @@ export default function RecordsExplorer({ initialQuery = '' }) {
             {isExporting === 'csv' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4 text-[var(--text-3)]" />}
             <span>{isExporting === 'csv' ? 'Exporting' : 'CSV'}</span>
           </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Search + filters */}
       <div className="flex-shrink-0 panel p-2.5 sm:p-3 space-y-2.5">

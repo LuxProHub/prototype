@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { UserPlus, KeyRound, ShieldAlert, Copy, Check, History } from 'lucide-react';
+import PageHeader from './ui/PageHeader';
 import { apiFetch } from '../lib/api';
 import { COMPANY_DOMAIN, EMAIL_PLACEHOLDER, isCompanyEmail } from '../lib/org';
 
@@ -116,18 +117,15 @@ export default function UserManagement({ currentUser }) {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-5">
-      <div>
-        <h2 className="text-2xl font-semibold text-[var(--text)]">Team Accounts</h2>
-        <p className="text-xs text-[var(--text-3)] font-medium">
-          You can manage people below your own level. Passwords are never
-          visible — a reset issues a new one-time password.
-        </p>
-      </div>
+      <PageHeader
+        title="Team accounts"
+        description="You can manage people below your own level. Passwords are never visible — a reset issues a new one-time password."
+      />
 
       {error && <p role="alert" className="text-xs font-semibold text-[var(--bad)]">{error}</p>}
 
       {tempPassword && (
-        <div className="panel rounded-lg p-4 space-y-2 border border-amber-300/70">
+        <div className="panel rounded-lg p-4 space-y-2 border border-[var(--warn)]/30">
           <span className="text-[10px] font-mono font-semibold text-[var(--warn)] flex items-center gap-1.5">
             <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" />
             SHOWN ONCE — HAND THIS TO {tempPassword.email}

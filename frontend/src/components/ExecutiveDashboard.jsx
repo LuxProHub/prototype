@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Phone, Users, AlertTriangle, ShieldCheck } from 'lucide-react';
+import PageHeader from './ui/PageHeader';
 import { apiFetch } from '../lib/api';
 
 /**
@@ -51,14 +52,11 @@ export default function ExecutiveDashboard() {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold text-[var(--text)]">Executive View</h2>
-          <p className="text-xs text-[var(--text-3)] font-medium">
-            Who is calling, what they hold, and what the calls proved.
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5">
+      <PageHeader
+        title="Executive view"
+        description="Who is calling, what they hold, and what the calls proved."
+        actions={
+          <>
           {[7, 30, 90].map((d) => (
             <button key={d} onClick={() => setDays(d)} aria-pressed={days === d}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
@@ -66,8 +64,9 @@ export default function ExecutiveDashboard() {
               {d}d
             </button>
           ))}
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {error && <p role="alert" className="text-xs font-semibold text-[var(--bad)]">{error}</p>}
 

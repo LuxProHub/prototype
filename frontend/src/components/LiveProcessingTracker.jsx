@@ -1,12 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Activity, Terminal, RefreshCw, ArrowRight } from 'lucide-react';
 import Tilt3DCard from './Tilt3DCard';
 import { apiFetch } from '../lib/api';
+import { ErrorState } from './ui/States';
 
 export default function LiveProcessingTracker({ jobId, onJobCompleted, setActiveTab }) {
   const [jobState, setJobState] = useState(null);
   const [errorLogs, setErrorLogs] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [pollError, setPollError] = useState(null);
+  // Polling retries on its own, so one blip is not worth alarming about. Only
+  // a sustained outage is, otherwise the page spins forever saying nothing.
+  const failures = useRef(0);
 
   useEffect(() => {
     if (!jobId) return;
@@ -16,6 +21,8 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
         const res = await apiFetch(`/api/jobs/${jobId}`);
         if (res.ok) {
           const data = await res.json();
+          failures.current = 0;
+          setPollError(null);
           setJobState(data);
 
           setLogs((prev) => {
@@ -35,6 +42,10 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
         }
       } catch (err) {
         console.error('Polling error:', err);
+        failures.current += 1;
+        if (failures.current >= 5) {
+          setPollError('Lost contact with the server.');
+        }
       }
     }, 700);
 
@@ -52,6 +63,18 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
       console.error('Error fetching job error log:', err);
     }
   };
+
+  if (pollError && !jobState) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <ErrorState
+          title={`Job #${jobId} could not be reached`}
+          error={pollError}
+          onRetry={() => { failures.current = 0; setPollError(null); }}
+        />
+      </div>
+    );
+  }
 
   if (!jobState) {
     return (
@@ -86,11 +109,11 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
         <span
           className={`px-3 py-1 text-xs font-semibold font-mono rounded-full border ${
             jobState.status === 'COMPLETED'
-              ? 'bg-[var(--surface-2)] text-[var(--ok)] border-emerald-300'
+              ? 'bg-[var(--surface-2)] text-[var(--ok)] border-[var(--ok)]/30'
               : jobState.status === 'COMPLETED_WITH_ERRORS'
-              ? 'bg-[var(--surface-2)] text-[var(--warn)] border-amber-300'
+              ? 'bg-[var(--surface-2)] text-[var(--warn)] border-[var(--warn)]/30'
               : jobState.status === 'FAILED'
-              ? 'bg-[var(--surface-2)] text-[var(--bad)] border-rose-300'
+              ? 'bg-[var(--surface-2)] text-[var(--bad)] border-[var(--bad)]/30'
               : 'bg-[var(--surface-2)] text-[var(--accent)] border-[var(--accent-ring)]'
           }`}
         >
@@ -101,7 +124,7 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
       {/* Engine Diagnostic Callout Banner */}
       {jobState.message && (
         <div className={`p-4 rounded-lg border text-xs font-mono space-y-1 bg-[var(--surface-2)] ${
-          jobState.status === 'FAILED' ? 'border-rose-300 text-[var(--bad)]' : 'border-[var(--accent-ring)] text-[var(--accent)]'
+          jobState.status === 'FAILED' ? 'border-[var(--bad)]/30 text-[var(--bad)]' : 'border-[var(--accent-ring)] text-[var(--accent)]'
             }`}>
           <span className="font-semibold block uppercase text-[10px] tracking-wider">
             {jobState.status === 'FAILED' ? '⚠ Engine Execution Diagnostic Error:' : 'ℹ Engine Processing Notice:'}
@@ -113,7 +136,7 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
       {/* Pipeline Stepper */}
       <Tilt3DCard className="p-6">
         <div className="flex justify-between items-center relative">
-          <div className="absolute left-0 right-0 top-1/2 h-1 bg-slate-300/80 -z-10 transform -translate-y-1/2"></div>
+          <div className="absolute left-0 right-0 top-1/2 h-1 bg-[var(--edge-strong)] -z-10 transform -translate-y-1/2"></div>
 
           {steps.map((step, idx) => {
             const status = getStepStatus(step);
@@ -122,10 +145,10 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                     status === 'completed'
-                      ? 'bg-emerald-600 text-white'
+                      ? 'bg-[var(--ok)] text-white'
                       : status === 'active'
                       ? 'bg-[var(--accent)] text-white animate-pulse'
-                      : 'bg-slate-300 text-[var(--text-2)]'
+                      : 'bg-[var(--edge-strong)] text-[var(--text-2)]'
                   }`}
                 >
                   {status === 'completed' ? '✓' : idx + 1}
@@ -162,15 +185,15 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
             <span className="text-[10px] text-[var(--text-3)] block font-semibold">TOTAL PROCESSED</span>
             <span className="text-sm font-semibold text-[var(--text)]">{jobState.processed_rows} / {jobState.total_rows}</span>
           </div>
-          <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-emerald-300/80">
+          <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-[var(--ok)]/30">
             <span className="text-[10px] text-[var(--ok)] block font-semibold">VALID RECORDS</span>
             <span className="text-sm font-semibold text-[var(--ok)]">{jobState.valid_rows}</span>
           </div>
-          <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-amber-300/80">
+          <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-[var(--warn)]/30">
             <span className="text-[10px] text-[var(--warn)] block font-semibold">DUPLICATES FLAGGED</span>
             <span className="text-sm font-semibold text-[var(--warn)]">{jobState.duplicate_rows}</span>
           </div>
-          <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-rose-300/80">
+          <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-[var(--bad)]/30">
             <span className="text-[10px] text-[var(--bad)] block font-semibold">VALIDATION ERRORS</span>
             <span className="text-sm font-semibold text-[var(--bad)]">{jobState.error_rows}</span>
           </div>

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, ShieldCheck, Plus, Trash2, Tag, Search, Sparkles } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Plus, Trash2, Tag, Search } from 'lucide-react';
 import Tilt3DCard from './Tilt3DCard';
 import { apiFetch } from '../lib/api';
+import PageHeader from './ui/PageHeader';
+import { ErrorState, LoadingRows } from './ui/States';
 
 export default function ColumnMappingInspector() {
   const [mappingData, setMappingData] = useState(null);
@@ -10,6 +12,7 @@ export default function ColumnMappingInspector() {
   const [searchField, setSearchField] = useState('');
   const [newAliasText, setNewAliasText] = useState({});
   const [isSavingAlias, setIsSavingAlias] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
     fetchMapping();
@@ -18,12 +21,17 @@ export default function ColumnMappingInspector() {
   const fetchMapping = async () => {
     try {
       const res = await apiFetch('/api/column-mappings');
-      if (res.ok) {
-        const data = await res.json();
-        setMappingData(data);
+      if (!res.ok) {
+        setLoadError(`The server answered ${res.status}.`);
+        return;
       }
+      setMappingData(await res.json());
+      setLoadError(null);
     } catch (err) {
       console.error('Error loading column mappings:', err);
+      // Without this the guard below never clears and the page shows a
+      // loading state forever, which looks like a hang rather than a failure.
+      setLoadError('Could not reach the server.');
     }
   };
 
@@ -85,11 +93,20 @@ export default function ColumnMappingInspector() {
     }
   };
 
+  if (loadError) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <PageHeader title="Column schema" description="Raw header aliases mapped to canonical database fields." />
+        <ErrorState error={loadError} onRetry={fetchMapping} title="Column schema could not be loaded" />
+      </div>
+    );
+  }
+
   if (!mappingData) {
     return (
-      <div className="p-12 text-center text-[var(--text-3)] font-mono text-xs space-y-2">
-        <Sparkles className="w-6 h-6 animate-pulse text-[var(--accent)] mx-auto" />
-        <p>Loading Neumorphic 23-Field Standard Mapping Catalog...</p>
+      <div className="p-6 max-w-7xl mx-auto space-y-4">
+        <PageHeader title="Column schema" description="Raw header aliases mapped to canonical database fields." />
+        <LoadingRows rows={6} />
       </div>
     );
   }
@@ -105,22 +122,17 @@ export default function ColumnMappingInspector() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Title Header */}
-      <Tilt3DCard className="p-6 rounded-xl">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold text-[var(--text)] tracking-tight">Column schema</h2>
-            <p className="text-xs text-[var(--text-2)] mt-1 font-medium">
-              Dynamic alias management engine. Add or remove raw header aliases permanently to standard database target fields.
-            </p>
-          </div>
-
-          <div className="flex items-center space-x-3 bg-[var(--surface-2)] px-4 py-2.5 rounded-lg border border-[var(--edge)] font-mono text-xs">
+      <PageHeader
+        title="Column schema"
+        description="Raw header aliases mapped to canonical database fields. Add an alias here and every future upload recognises it."
+        actions={
+          <div className="flex items-center gap-2 bg-[var(--surface-2)] px-3 h-9 rounded-[var(--r-md)] border border-[var(--edge)] text-[13px]">
             <Tag className="w-4 h-4 text-[var(--ok)]" />
-            <span className="text-[var(--text-2)]">Total Active Aliases:</span>
-            <span className="text-[var(--text)] font-semibold">{mappingData.alias_count?.toLocaleString()}</span>
+            <span className="text-[var(--text-2)]">Active aliases</span>
+            <span className="num text-[var(--text)] font-semibold">{mappingData.alias_count?.toLocaleString()}</span>
           </div>
-        </div>
-      </Tilt3DCard>
+        }
+      />
 
       {/* Header Matcher Tester Tool */}
       <Tilt3DCard className="p-6 space-y-4">
@@ -144,7 +156,7 @@ export default function ColumnMappingInspector() {
             <span className="text-[var(--text-2)] font-medium">Raw Input Header: "<span className="text-[var(--text)] font-semibold">{testHeader}</span>"</span>
             <div className="flex items-center space-x-2">
               <ArrowRight className="w-4 h-4 text-[var(--accent)]" />
-              <span className={`font-semibold px-3 py-1 rounded-xl text-xs ${matchedField && matchedField !== 'UNMAPPED / REQUIRES ALIAS' ? 'bg-emerald-100 text-[var(--ok)] border border-emerald-300' : 'bg-rose-100 text-[var(--bad)] border border-rose-300'}`}>
+              <span className={`font-semibold px-3 py-1 rounded-xl text-xs ${matchedField && matchedField !== 'UNMAPPED / REQUIRES ALIAS' ? 'bg-[var(--ok-soft)] text-[var(--ok)] border border-[var(--ok)]/30' : 'bg-[var(--bad-soft)] text-[var(--bad)] border border-[var(--bad)]/30'}`}>
                 {matchedField}
               </span>
             </div>
@@ -190,7 +202,7 @@ export default function ColumnMappingInspector() {
                           <span className="truncate pr-2">• {alias}</span>
                           <button
                             onClick={() => handleRemoveAlias(field, alias)}
-                            className="p-1 rounded-md text-[var(--text-3)] hover:text-[var(--bad)] hover:bg-rose-100 transition-all opacity-70 group-hover:opacity-100 cursor-pointer"
+                            className="p-1 rounded-md text-[var(--text-3)] hover:text-[var(--bad)] hover:bg-[var(--bad-soft)] transition-all opacity-70 group-hover:opacity-100 cursor-pointer"
                             title="Remove Alias"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

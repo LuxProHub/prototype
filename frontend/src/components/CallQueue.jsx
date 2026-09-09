@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { PhoneCall, CalendarClock, RefreshCw, Inbox } from 'lucide-react';
+import PageHeader from './ui/PageHeader';
 import { apiFetch } from '../lib/api';
 
 /**
@@ -78,14 +79,11 @@ export default function CallQueue() {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold text-[var(--text)]">Call Queue</h2>
-          <p className="text-xs text-[var(--text-3)] font-medium">
-            Open leads with an action due, soonest first.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Call queue"
+        description="Open leads with an action due, soonest first."
+        actions={
+          <>
           <button
             onClick={() => setMine((v) => !v)}
             aria-pressed={mine}
@@ -109,8 +107,9 @@ export default function CallQueue() {
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {error && (
         <p role="alert" className="text-xs font-semibold text-[var(--bad)]">{error}</p>

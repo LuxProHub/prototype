@@ -20,6 +20,7 @@ import {
 import Tilt3DCard from './Tilt3DCard';
 import CustomSelect from './CustomSelect';
 import { apiFetch } from '../lib/api';
+import PageHeader from './ui/PageHeader';
 
 export default function UploadSection({ onUploadComplete, activeJob }) {
   const [fileQueue, setFileQueue] = useState([]);
@@ -443,18 +444,12 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       {/* Title Header */}
-      <Tilt3DCard className="p-4 sm:p-6 rounded-lg sm:rounded-xl">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text)] tracking-tight">Upload registers</h2>
-            <p className="text-xs text-[var(--text-2)] mt-1 font-medium">
-              Upload multiple registers, inspect schema mappings with <strong>Inspect All</strong>, and execute automated batch ingestion directly into PostgreSQL.
-            </p>
-          </div>
-
-          {/* Global Action Controls */}
-          {fileQueue.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        title="Upload registers"
+        description="Drop in one or more registers, check how their headers map, then run the batch."
+        actions={
+          fileQueue.length > 0 && (
+            <>
               <button
                 onClick={clearQueue}
                 disabled={isProcessingQueue || isInspectingQueue}
@@ -502,10 +497,10 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                   </>
                 )}
               </button>
-            </div>
-          )}
-        </div>
-      </Tilt3DCard>
+            </>
+          )
+        }
+      />
 
       {/* Drag & Drop Multi-File Zone */}
       <Tilt3DCard className="p-5 sm:p-8 text-center border border-[var(--edge)]">
@@ -548,7 +543,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
       </Tilt3DCard>
 
       {globalError && (
-        <div className="p-4 rounded-lg bg-[var(--surface-2)] border border-rose-300 text-[var(--bad)] text-xs font-mono font-semibold flex items-center space-x-2">
+        <div className="p-4 rounded-lg bg-[var(--surface-2)] border border-[var(--bad)]/30 text-[var(--bad)] text-xs font-mono font-semibold flex items-center space-x-2">
           <AlertCircle className="w-4 h-4 text-[var(--bad)] flex-shrink-0" />
           <span>{globalError}</span>
         </div>
@@ -586,11 +581,11 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                   activeQueueIndex === idx || item.status === 'PROCESSING'
                     ? 'bg-[var(--surface-2)] border-[var(--accent-ring)]'
                     : item.status === 'PAUSED'
-                    ? 'bg-[var(--surface-2)] border-amber-400'
+                    ? 'bg-[var(--surface-2)] border-[var(--warn)]/30'
                     : item.status === 'COMPLETED'
-                    ? 'bg-[var(--surface-2)] border-emerald-300'
+                    ? 'bg-[var(--surface-2)] border-[var(--ok)]/30'
                     : item.status === 'FAILED' || item.status === 'CANCELLED'
-                    ? 'bg-[var(--surface-2)] border-rose-300'
+                    ? 'bg-[var(--surface-2)] border-[var(--bad)]/30'
                     : 'bg-[var(--surface-2)] border-[var(--edge)]'
                 }`}
               >
@@ -603,7 +598,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                       <div className="flex items-center space-x-2 flex-wrap">
                         <p className="font-semibold text-[var(--text)] truncate max-w-xs sm:max-w-md">{item.name}</p>
                         {item.name.toLowerCase().includes('consolidated') && (
-                          <span className="px-2 py-0.5 rounded-md bg-[var(--warn-soft)] text-[var(--warn)] text-[10px] font-semibold border border-amber-300">
+                          <span className="px-2 py-0.5 rounded-md bg-[var(--warn-soft)] text-[var(--warn)] text-[10px] font-semibold border border-[var(--warn)]/30">
                             Pre-Consolidated File
                           </span>
                         )}
@@ -638,21 +633,21 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                     )}
 
                     {item.status === 'PROCESSING' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--ok)] text-[10px] font-semibold border border-emerald-300 flex items-center space-x-1">
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--ok)] text-[10px] font-semibold border border-[var(--ok)]/30 flex items-center space-x-1">
                         <RefreshCw className="w-3 h-3 animate-spin text-[var(--ok)]" />
                         <span>PROCESSING</span>
                       </span>
                     )}
 
                     {item.status === 'PAUSED' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--warn)] text-[10px] font-semibold border border-amber-300 flex items-center space-x-1">
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--warn)] text-[10px] font-semibold border border-[var(--warn)]/30 flex items-center space-x-1">
                         <Pause className="w-3 h-3 text-[var(--warn)]" />
                         <span>PAUSED</span>
                       </span>
                     )}
 
                     {item.status === 'COMPLETED' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--ok)] text-[10px] font-semibold border border-emerald-300 flex items-center space-x-1">
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--ok)] text-[10px] font-semibold border border-[var(--ok)]/30 flex items-center space-x-1">
                         <CheckCircle2 className="w-3.5 h-3.5 text-[var(--ok)]" />
                         <span>INGESTED ({item.processedRows || item.totalRows} rows)</span>
                       </span>
@@ -666,7 +661,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                     )}
 
                     {item.status === 'FAILED' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--bad)] text-[10px] font-semibold border border-rose-300 flex items-center space-x-1">
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--bad)] text-[10px] font-semibold border border-[var(--bad)]/30 flex items-center space-x-1">
                         <AlertCircle className="w-3.5 h-3.5 text-[var(--bad)]" />
                         <span>FAILED</span>
                       </span>
@@ -781,10 +776,10 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
                           item.status === 'PAUSED'
-                            ? 'bg-amber-500'
+                            ? 'bg-[var(--warn)]'
                             : item.status === 'COMPLETED'
-                            ? 'bg-emerald-500'
-                            : 'bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500'
+                            ? 'bg-[var(--ok)]'
+                            : 'bg-[var(--accent)]'
                         }`}
                         style={{
                           width: `${

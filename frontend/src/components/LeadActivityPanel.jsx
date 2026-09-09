@@ -237,7 +237,7 @@ export default function LeadActivityPanel({ recordId }) {
                   : 'Keeps the record in the list'}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold ${
                   verdict === v.value
-                    ? (v.suppresses ? 'btn text-[var(--bad)] ring-1 ring-rose-300'
+                    ? (v.suppresses ? 'btn text-[var(--bad)] ring-1 ring-[var(--bad)]/40'
                                     : 'btn-primary')
                     : 'btn text-[var(--text-2)]'
                 }`}

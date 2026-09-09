@@ -75,7 +75,14 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
       />
       
       {/* Ambient Radial Gradient Glow */}
-      <div className={`absolute inset-0 pointer-events-none ${isDark ? 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-black/60' : 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent'}`} />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%)',
+        }}
+      />
 
       {/* Top Theme Switcher */}
       <div className="absolute top-6 right-6 z-20">
@@ -176,7 +183,7 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
 
             {/* Error Message */}
             {error && (
-              <div className="text-xs font-semibold text-[var(--bad)] bg-[var(--bad-soft)] border border-rose-500/30 py-2 px-3 rounded-xl animate-fade-in text-left">
+              <div className="text-xs font-semibold text-[var(--bad)] bg-[var(--bad-soft)] border border-[var(--bad)]/30 py-2 px-3 rounded-xl animate-fade-in text-left">
                 {error}
               </div>
             )}

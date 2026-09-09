@@ -14,6 +14,12 @@ import ColumnMappingInspector from './components/ColumnMappingInspector';
 import Spatial3DCanvas from './components/Spatial3DCanvas';
 import AuthLockScreen from './components/AuthLockScreen';
 import { apiFetch, clearSession } from './lib/api';
+import { useHashRoute } from './lib/router';
+import { navItems } from './components/Sidebar';
+
+// Every reachable view. `tracker` has no sidebar entry -- an upload hands you
+// there -- but it still deserves an address you can refresh and go back from.
+const ROUTES = [...navItems.map((i) => i.id), 'tracker'];
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -33,8 +39,9 @@ export default function App() {
     return localStorage.getItem('datalink_theme') || 'dark';
   });
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useHashRoute(ROUTES, 'overview');
   const [stats, setStats] = useState(null);
+  const [statsError, setStatsError] = useState(null);
   const [activeJobId, setActiveJobId] = useState(null);
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,12 +96,17 @@ export default function App() {
   const fetchStats = async () => {
     try {
       const res = await apiFetch('/api/dashboard/stats');
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
+      if (!res.ok) {
+        setStatsError(`The server answered ${res.status}.`);
+        return;
       }
+      setStats(await res.json());
+      setStatsError(null);
     } catch (err) {
       console.error('Failed to fetch dashboard stats:', err);
+      // Overview otherwise sits on its loading state forever when the API is
+      // down, which reads as a hang rather than a reachable failure.
+      setStatsError('Could not reach the server.');
     }
   };
 
@@ -168,6 +180,8 @@ export default function App() {
               <div className="flex-1 overflow-y-auto">
                 <OverviewDashboard
                   stats={stats}
+                  statsError={statsError}
+                  onRetry={fetchStats}
                   setActiveTab={setActiveTab}
                   setSelectedJobId={setSelectedJobId}
                 />
@@ -179,7 +193,6 @@ export default function App() {
                 <UploadSection
                   onUploadComplete={handleUploadComplete}
                   activeJob={activeJobId}
-                  theme={theme}
                 />
               </div>
             )}
@@ -190,7 +203,6 @@ export default function App() {
                   jobId={activeJobId}
                   onJobCompleted={handleJobFinished}
                   setActiveTab={setActiveTab}
-                  theme={theme}
                 />
               </div>
             )}
@@ -200,13 +212,12 @@ export default function App() {
                 <JobDetailsView
                   selectedJobId={selectedJobId}
                   setSelectedJobId={setSelectedJobId}
-                  theme={theme}
                 />
               </div>
             )}
 
             {activeTab === 'records' && (
-              <RecordsExplorer initialQuery={searchQuery} theme={theme} />
+              <RecordsExplorer initialQuery={searchQuery} />
             )}
 
             {activeTab === 'queue' && <CallQueue />}
@@ -217,7 +228,7 @@ export default function App() {
 
             {activeTab === 'mapping' && (
               <div className="flex-1 overflow-y-auto">
-                <ColumnMappingInspector theme={theme} />
+                <ColumnMappingInspector />
               </div>
             )}
           </main>

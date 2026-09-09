@@ -13,8 +13,18 @@ import {
 } from 'lucide-react';
 import Tilt3DCard from './Tilt3DCard';
 import DataLinkLogo from './DataLinkLogo';
+import { ErrorState } from './ui/States';
+import PageHeader from './ui/PageHeader';
 
-export default function OverviewDashboard({ stats, setActiveTab, setSelectedJobId }) {
+export default function OverviewDashboard({ stats, statsError, onRetry, setActiveTab, setSelectedJobId }) {
+
+  if (statsError) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <ErrorState error={statsError} onRetry={onRetry} title="Overview could not be loaded" />
+      </div>
+    );
+  }
 
   if (!stats) {
     return (
@@ -43,7 +53,7 @@ export default function OverviewDashboard({ stats, setActiveTab, setSelectedJobI
       subtitle: `${stats.total_errors} Flagged Warnings`,
       icon: TrendingUp,
       badge: 'Real Verification',
-      iconBg: 'bg-[var(--ok-soft)] text-[var(--ok)] border-emerald-500/20',
+      iconBg: 'bg-[var(--ok-soft)] text-[var(--ok)] border-[var(--ok)]/30',
     },
     {
       title: 'Duplicates Filtered',
@@ -51,7 +61,7 @@ export default function OverviewDashboard({ stats, setActiveTab, setSelectedJobI
       subtitle: 'Dedup Rules Applied',
       icon: Copy,
       badge: 'In-Engine',
-      iconBg: 'bg-[var(--warn-soft)] text-[var(--warn)] border-amber-500/20',
+      iconBg: 'bg-[var(--warn-soft)] text-[var(--warn)] border-[var(--warn)]/30',
     },
     {
       title: 'Source Files Ingested',
@@ -59,41 +69,28 @@ export default function OverviewDashboard({ stats, setActiveTab, setSelectedJobI
       subtitle: `${stats.total_jobs} Execution Runs`,
       icon: FileCheck2,
       badge: 'Multi-Format',
-      iconBg: 'bg-[var(--dup-soft)] text-[var(--dup)] border-violet-500/20',
+      iconBg: 'bg-[var(--dup-soft)] text-[var(--dup)] border-[var(--dup)]/30',
     },
   ];
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-8 relative z-10 max-w-7xl mx-auto">
-      <Tilt3DCard className="p-4 sm:p-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
-          <div className="space-y-2">
-            <h2 className="text-xl sm:text-3xl md:text-4xl font-semibold text-[var(--text)] tracking-tight leading-tight">
-              Real Estate Data Engine
-            </h2>
-            <p className="text-xs sm:text-sm text-[var(--text-2)] max-w-2xl font-medium">
-              Real-time batch ingestion, column standardization (1 sq.m = 10.7639 sq.ft), global phone cleaning, and row-level traceability on Local PostgreSQL.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:space-x-3 w-full sm:w-auto">
-            <button
-              onClick={() => setActiveTab('upload')}
-              className="btn-primary px-4 sm:px-6 py-3 text-xs font-semibold flex items-center justify-center space-x-2"
-            >
+      <PageHeader
+        title="Overview"
+        description="Ingestion, cleaning and deduplication across every register, on the local PostgreSQL database."
+        actions={
+          <>
+            <button onClick={() => setActiveTab('upload')} className="btn-primary h-9 px-3 text-[13px]">
               <Upload className="w-4 h-4" />
-              <span>Ingest Register File</span>
+              <span>Upload registers</span>
             </button>
-            <button
-              onClick={() => setActiveTab('records')}
-              className="btn px-4 sm:px-6 py-3 text-[var(--text)] font-semibold text-xs flex items-center justify-center space-x-2"
-            >
+            <button onClick={() => setActiveTab('records')} className="btn h-9 px-3 text-[13px]">
               <Search className="w-4 h-4 text-[var(--accent)]" />
-              <span>Explore Dataset</span>
+              <span>Explore records</span>
             </button>
-          </div>
-        </div>
-      </Tilt3DCard>
+          </>
+        }
+      />
 
       {/* Neumorphic KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
@@ -128,7 +125,7 @@ export default function OverviewDashboard({ stats, setActiveTab, setSelectedJobI
               <PieChart className="w-4 h-4 text-[var(--accent)]" />
               <h3 className="text-sm font-semibold text-[var(--text)] tracking-wide">Community Distribution</h3>
             </div>
-            <span className="text-[10px] font-mono text-[var(--ok)] font-semibold bg-[var(--surface)] px-2 py-0.5 rounded-full border border-emerald-500/30 field">REAL DATA</span>
+            <span className="text-[10px] font-mono text-[var(--ok)] font-semibold bg-[var(--surface)] px-2 py-0.5 rounded-full border border-[var(--ok)]/30 field">REAL DATA</span>
           </div>
 
           <div className="space-y-3 sm:space-y-4">
@@ -189,7 +186,7 @@ export default function OverviewDashboard({ stats, setActiveTab, setSelectedJobI
                   <th className="pb-3 font-semibold text-right">ACTION</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-500/10 font-sans">
+              <tbody className="divide-y divide-[var(--edge)] font-sans">
                 {(stats.recent_jobs || stats.items) && (stats.recent_jobs || stats.items).length > 0 ? (
                   (stats.recent_jobs || stats.items).map((job) => (
                     <tr key={job.id} className="hover:bg-[var(--accent-soft)] transition-colors group">
@@ -199,11 +196,11 @@ export default function OverviewDashboard({ stats, setActiveTab, setSelectedJobI
                         <span
                           className={`px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase tracking-wider border ${
                             job.status === 'COMPLETED'
-                              ? 'bg-[var(--ok-soft)] text-[var(--ok)] border-emerald-500/30'
+                              ? 'bg-[var(--ok-soft)] text-[var(--ok)] border-[var(--ok)]/30'
                               : job.status === 'COMPLETED_WITH_ERRORS'
-                              ? 'bg-[var(--warn-soft)] text-[var(--warn)] border-amber-500/30'
+                              ? 'bg-[var(--warn-soft)] text-[var(--warn)] border-[var(--warn)]/30'
                               : job.status === 'FAILED'
-                              ? 'bg-[var(--bad-soft)] text-[var(--bad)] border-rose-500/30'
+                              ? 'bg-[var(--bad-soft)] text-[var(--bad)] border-[var(--bad)]/30'
                               : 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent-ring)]'
                           }`}
                         >
