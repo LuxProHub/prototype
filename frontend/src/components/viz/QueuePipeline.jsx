@@ -49,9 +49,7 @@ export default function QueuePipeline({ stageCounts = {}, selectedStage, onSelec
                       style={{ color: `var(--color-${s.tone})` }}
                       aria-hidden="true"
                     />
-                    <span className="text-[11px] uppercase tracking-[0.08em] text-[var(--color-text-muted)] truncate">
-                      {s.label}
-                    </span>
+                    <span className="t-label truncate">{s.label}</span>
                   </div>
 
                   <div className="mt-1.5 flex items-baseline gap-1.5">

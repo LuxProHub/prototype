@@ -42,7 +42,7 @@ export default function RegisterComposition({ stats }) {
       <div>
         <div className="flex items-baseline justify-between gap-3">
           <div>
-            <div className="text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+            <div className="t-label">
               Register composition
             </div>
             <div className="num text-[30px] sm:text-[34px] font-semibold leading-none tracking-tight text-[var(--color-text-primary)] mt-1.5">
@@ -100,7 +100,7 @@ export default function RegisterComposition({ stats }) {
       {/* Concentration ---------------------------------------------------- */}
       <div className="flex-1 min-h-0 flex flex-col border-t border-[var(--color-border)] pt-4">
         <div className="flex items-baseline justify-between">
-          <div className="text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+          <div className="t-label">
             Where it sits
           </div>
           <div className="text-[10.5px] text-[var(--color-text-muted)]">

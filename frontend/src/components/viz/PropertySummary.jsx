@@ -59,9 +59,7 @@ export default function PropertySummary({ record }) {
       <div className="relative p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-              Procedure value
-            </div>
+            <div className="t-label">Procedure value</div>
             <div
               className="num text-[26px] font-semibold leading-none tracking-tight mt-1.5"
               style={{ color: value ? 'var(--color-value)' : 'var(--color-text-muted)' }}

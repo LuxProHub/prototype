@@ -14,7 +14,6 @@ import {
 import CustomSelect from './CustomSelect';
 import { apiFetch } from '../lib/api';
 import { useToast } from '../lib/toast';
-import PageHeader from './ui/PageHeader';
 import AddToQueueDialog from './AddToQueueDialog';
 import RecordInspector from './RecordInspector';
 import BulkActionBar from './BulkActionBar';
@@ -422,53 +421,61 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
 
   return (
     <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative">
-      {/* Top Controls: PageHeader + Filter Toolbar */}
-      <div className="shrink-0 p-4 sm:p-5 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-xs space-y-3">
-        <PageHeader
-          title="Records"
-          description="Master register store. Explore, inspect, and take action across every property record."
-          actions={
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleExport('csv')}
-                disabled={isExporting === 'csv'}
-                className="btn h-8 sm:h-9 px-3 text-[12.5px] flex items-center gap-1.5"
-                title="Export current view as CSV"
-              >
-                <FileText className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                <span className="hidden sm:inline">Export CSV</span>
-              </button>
-              <button
-                onClick={() => handleExport('xlsx')}
-                disabled={isExporting === 'xlsx'}
-                className="btn h-8 sm:h-9 px-3 text-[12.5px] flex items-center gap-1.5"
-                title="Export current view as XLSX"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-[var(--color-ok)]" />
-                <span className="hidden sm:inline">Export XLSX</span>
-              </button>
-            </div>
-          }
-        />
+      {/* Top band. Two rows and no more, so the table owns the viewport: the
+          title carries the live count (it is the one fact this page has to
+          state), and every control sits on a single line with search leading
+          and the filters at one consistent width beside it. */}
+      <div className="shrink-0 px-4 sm:px-5 pt-3.5 pb-3 border-b border-[var(--edge)] space-y-2.5">
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="t-title">Records</h1>
+            <p className="t-meta mt-1">
+              <span className="num text-[var(--text-2)]">{formatTotal(totalRecords, totalCapped)}</span>
+              {anyFilterActive ? ' matching' : ' in the register'}
+              {totalCapped && <span> · narrow the filter for an exact count</span>}
+            </p>
+          </div>
 
-        {/* Filter Controls Row */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Search Box */}
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+          {/* One export control, two formats. Segmented rather than two buttons
+              so it reads as a single decision. */}
+          <div className="inline-flex shrink-0 rounded-[var(--r-md)] border border-[var(--edge)] overflow-hidden">
+            <button
+              onClick={() => handleExport('csv')}
+              disabled={isExporting === 'csv'}
+              className="btn h-8 px-2.5 text-[12px] rounded-none border-0"
+              title="Export the current view as CSV"
+            >
+              <FileText className="w-3.5 h-3.5 text-[var(--text-3)]" />
+              <span className="hidden sm:inline">CSV</span>
+            </button>
+            <button
+              onClick={() => handleExport('xlsx')}
+              disabled={isExporting === 'xlsx'}
+              className="btn h-8 px-2.5 text-[12px] rounded-none border-0 border-l border-l-[var(--edge)]"
+              title="Export the current view as XLSX"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[var(--ok)]" />
+              <span className="hidden sm:inline">XLSX</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="relative flex-1 min-w-[220px] max-w-[420px]">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none" />
             <input
               ref={searchRef}
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search records (press '/' to focus)"
+              placeholder="Search name, community, unit or mobile"
               aria-label="Search records"
-              className="field w-full h-8 sm:h-9 pl-9 pr-8 text-[12.5px]"
+              className="field w-full h-8 pl-8 pr-8 text-[12.5px]"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                className="absolute right-2 top-1/2 -translate-y-1/2 btn-ghost h-5 w-5 text-[var(--text-3)]"
                 aria-label="Clear search"
               >
                 ×
@@ -476,60 +483,56 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 flex-1 justify-end">
-            <CustomSelect
-              value={community}
-              onChange={(v) => { setCommunity(v); setPage(1); }}
-              options={[{ value: '', label: 'All Communities' }, ...filterOptions.communities.map((c) => ({ value: c, label: c }))]}
-              placeholder="Community"
-              className="w-36 sm:w-40"
-            />
-            <CustomSelect
-              value={propertyType}
-              onChange={(v) => { setPropertyType(v); setPage(1); }}
-              options={[{ value: '', label: 'All Property Types' }, ...filterOptions.property_types.map((p) => ({ value: p, label: p }))]}
-              placeholder="Type"
-              className="w-32"
-            />
-            <CustomSelect
-              value={bedroom}
-              onChange={(v) => { setBedroom(v); setPage(1); }}
-              options={[{ value: '', label: 'All Bedrooms' }, ...filterOptions.bedroom_types.map((b) => ({ value: b, label: b }))]}
-              placeholder="Bedrooms"
-              className="w-28"
-            />
-            <CustomSelect
-              value={status}
-              onChange={(v) => { setStatus(v); setPage(1); }}
-              options={[{ value: '', label: 'All Statuses' }, ...filterOptions.statuses.map((s) => ({ value: s, label: s }))]}
-              placeholder="Status"
-              className="w-28"
-            />
+          <CustomSelect
+            value={community}
+            onChange={(v) => { setCommunity(v); setPage(1); }}
+            options={[{ value: '', label: 'All communities' }, ...filterOptions.communities.map((c) => ({ value: c, label: c }))]}
+            placeholder="Community"
+            className="w-[176px]"
+          />
+          <CustomSelect
+            value={propertyType}
+            onChange={(v) => { setPropertyType(v); setPage(1); }}
+            options={[{ value: '', label: 'All property types' }, ...filterOptions.property_types.map((p) => ({ value: p, label: p }))]}
+            placeholder="Type"
+            className="w-[140px]"
+          />
+          <CustomSelect
+            value={bedroom}
+            onChange={(v) => { setBedroom(v); setPage(1); }}
+            options={[{ value: '', label: 'All bedrooms' }, ...filterOptions.bedroom_types.map((b) => ({ value: b, label: b }))]}
+            placeholder="Bedrooms"
+            className="w-[140px]"
+          />
+          <CustomSelect
+            value={status}
+            onChange={(v) => { setStatus(v); setPage(1); }}
+            options={[{ value: '', label: 'All statuses' }, ...filterOptions.statuses.map((s) => ({ value: s, label: s }))]}
+            placeholder="Status"
+            className="w-[140px]"
+          />
 
-            <ColumnVisibilityMenu
-              columns={ALL_COLUMNS}
-              visibleColumns={visibleColumns}
-              onToggleColumn={handleToggleColumn}
-            />
-          </div>
+          <ColumnVisibilityMenu
+            columns={ALL_COLUMNS}
+            visibleColumns={visibleColumns}
+            onToggleColumn={handleToggleColumn}
+          />
+
+          {activeFilterChips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 sm:ml-1 sm:pl-2 sm:border-l sm:border-[var(--edge)]">
+              {activeFilterChips.map((chip, idx) => (
+                <FilterChip key={idx} label={chip.label} onRemove={chip.onRemove} />
+              ))}
+              <button
+                onClick={clearAllFilters}
+                className="btn-ghost h-6 px-2 text-[11px] hover:text-[var(--bad)]"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
+            </div>
+          )}
         </div>
-
-        {/* Active Filter Chips */}
-        {activeFilterChips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px] text-[var(--color-text-muted)] font-medium mr-1">Active filters:</span>
-            {activeFilterChips.map((chip, idx) => (
-              <FilterChip key={idx} label={chip.label} onRemove={chip.onRemove} />
-            ))}
-            <button
-              onClick={clearAllFilters}
-              className="btn-ghost h-6 px-2 text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-bad)] flex items-center gap-1 ml-1"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Reset all</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Main Split Layout: Table on Left/Center, RecordInspector on Right */}
