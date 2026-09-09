@@ -125,7 +125,7 @@ export default function UserManagement({ currentUser }) {
         actions={
           <div className="t-meta flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-            
+
             <span className="num text-[var(--text-2)]">{users.length}</span> members
           </div>
         }
