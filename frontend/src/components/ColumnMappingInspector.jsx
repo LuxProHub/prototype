@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, ShieldCheck, Plus, Trash2, Tag, Search } from 'lucide-react';
-import Tilt3DCard from './Tilt3DCard';
 import { apiFetch } from '../lib/api';
 import PageHeader from './ui/PageHeader';
 import { ErrorState, LoadingRows } from './ui/States';
@@ -29,8 +28,6 @@ export default function ColumnMappingInspector() {
       setLoadError(null);
     } catch (err) {
       console.error('Error loading column mappings:', err);
-      // Without this the guard below never clears and the page shows a
-      // loading state forever, which looks like a hang rather than a failure.
       setLoadError('Could not reach the server.');
     }
   };
@@ -95,7 +92,7 @@ export default function ColumnMappingInspector() {
 
   if (loadError) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-[1520px] mx-auto">
         <PageHeader title="Column schema" description="Raw header aliases mapped to canonical database fields." />
         <ErrorState error={loadError} onRetry={fetchMapping} title="Column schema could not be loaded" />
       </div>
@@ -104,7 +101,7 @@ export default function ColumnMappingInspector() {
 
   if (!mappingData) {
     return (
-      <div className="p-6 max-w-7xl mx-auto space-y-4">
+      <div className="p-4 sm:p-6 max-w-[1520px] mx-auto space-y-4">
         <PageHeader title="Column schema" description="Raw header aliases mapped to canonical database fields." />
         <LoadingRows rows={6} />
       </div>
@@ -114,30 +111,33 @@ export default function ColumnMappingInspector() {
   const targetFields = mappingData.target_fields || [];
   const aliases = mappingData.aliases || {};
 
-  const filteredFields = targetFields.filter((field) =>
-    field.toLowerCase().includes(searchField.toLowerCase()) ||
-    (aliases[field] && aliases[field].some((a) => a.toLowerCase().includes(searchField.toLowerCase())))
+  const filteredFields = targetFields.filter(
+    (field) =>
+      field.toLowerCase().includes(searchField.toLowerCase()) ||
+      (aliases[field] && aliases[field].some((a) => a.toLowerCase().includes(searchField.toLowerCase())))
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-[1520px] mx-auto space-y-6 animate-fade-in">
       {/* Title Header */}
       <PageHeader
         title="Column schema"
         description="Raw header aliases mapped to canonical database fields. Add an alias here and every future upload recognises it."
         actions={
-          <div className="flex items-center gap-2 bg-[var(--surface-2)] px-3 h-9 rounded-[var(--r-md)] border border-[var(--edge)] text-[13px]">
-            <Tag className="w-4 h-4 text-[var(--ok)]" />
-            <span className="text-[var(--text-2)]">Active aliases</span>
-            <span className="num text-[var(--text)] font-semibold">{mappingData.alias_count?.toLocaleString()}</span>
+          <div className="flex items-center gap-2 bg-[var(--color-surface-elevated)] px-3 h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] text-[12.5px]">
+            <Tag className="w-3.5 h-3.5 text-[var(--color-ok)]" />
+            <span className="text-[var(--color-text-secondary)]">Active aliases:</span>
+            <span className="num text-[var(--color-text-primary)] font-bold">
+              {mappingData.alias_count?.toLocaleString()}
+            </span>
           </div>
         }
       />
 
-      {/* Header Matcher Tester Tool */}
-      <Tilt3DCard className="p-6 space-y-4">
-        <div className="flex items-center space-x-2 text-xs font-semibold text-[var(--text-2)] font-mono">
-          <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />
+      {/* Header Matcher Interactive Tester Tool */}
+      <div className="bento-card p-5 sm:p-6 space-y-4">
+        <div className="flex items-center space-x-2 text-xs font-bold text-[var(--color-text-secondary)] font-mono">
+          <ShieldCheck className="w-4 h-4 text-[var(--color-accent)]" />
           <span>HEADER ALIAS MATCHER TESTER</span>
         </div>
 
@@ -147,62 +147,78 @@ export default function ColumnMappingInspector() {
             value={testHeader}
             onChange={(e) => handleTestMatch(e.target.value)}
             placeholder="Type raw header (e.g. FULL NAME, DAR UNIT_NO, REGION, MASTER DEVELOPER, PROPERTY TOWER)..."
-            className="flex-1 field text-xs text-[var(--text)] rounded-lg px-4 py-3 focus:outline-none font-mono"
+            className="flex-1 field text-xs text-[var(--color-text-primary)] rounded-[var(--radius-md)] px-4 py-2.5 focus:outline-none font-mono"
           />
         </div>
 
         {testHeader && (
-          <div className="p-4 rounded-lg bg-[var(--surface-2)] border border-[var(--edge)] text-xs font-mono flex items-center justify-between">
-            <span className="text-[var(--text-2)] font-medium">Raw Input Header: "<span className="text-[var(--text)] font-semibold">{testHeader}</span>"</span>
+          <div className="p-3.5 rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <span className="text-[var(--color-text-secondary)] font-medium">
+              Raw Input Header: "<span className="text-[var(--color-text-primary)] font-bold">{testHeader}</span>"
+            </span>
             <div className="flex items-center space-x-2">
-              <ArrowRight className="w-4 h-4 text-[var(--accent)]" />
-              <span className={`font-semibold px-3 py-1 rounded-xl text-xs ${matchedField && matchedField !== 'UNMAPPED / REQUIRES ALIAS' ? 'bg-[var(--ok-soft)] text-[var(--ok)] border border-[var(--ok)]/30' : 'bg-[var(--bad-soft)] text-[var(--bad)] border border-[var(--bad)]/30'}`}>
+              <ArrowRight className="w-4 h-4 text-[var(--color-accent)]" />
+              <span
+                className={`font-bold px-3 py-1 rounded-full text-[11px] border ${
+                  matchedField && matchedField !== 'UNMAPPED / REQUIRES ALIAS'
+                    ? 'bg-[var(--color-ok-soft,#34d39920)] text-[var(--color-ok)] border-[var(--color-ok)]/30'
+                    : 'bg-[var(--color-bad-soft,#fb718520)] text-[var(--color-bad)] border-[var(--color-bad)]/30'
+                }`}
+              >
                 {matchedField}
               </span>
             </div>
           </div>
         )}
-      </Tilt3DCard>
+      </div>
 
-      {/* Mapping Cards Grid */}
+      {/* Target Fields & Aliases Bento Grid */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-[var(--text)] flex items-center space-x-2 font-mono">
+          <h3 className="text-sm font-bold text-[var(--color-text-primary)] flex items-center space-x-2 font-mono">
             <span>Target Fields & Known Aliases ({filteredFields.length})</span>
           </h3>
           <div className="relative">
-            <Search className="w-4 h-4 text-[var(--accent)] absolute left-3.5 top-3" />
+            <Search className="w-3.5 h-3.5 text-[var(--color-accent)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchField}
               onChange={(e) => setSearchField(e.target.value)}
-              placeholder="Search target fields or aliases..."
-              className="field text-xs text-[var(--text)] rounded-lg pl-10 pr-4 py-2.5 focus:outline-none font-medium w-64"
+              placeholder="Search fields or aliases..."
+              className="field text-xs text-[var(--color-text-primary)] rounded-[var(--radius-md)] pl-8 pr-3 h-8 focus:outline-none font-medium w-64"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {filteredFields.map((field) => {
             const aliasList = aliases[field] || [];
             return (
-              <Tilt3DCard key={field} className="p-6 space-y-4 flex flex-col justify-between">
+              <div
+                key={field}
+                className="bento-card p-5 space-y-3 flex flex-col justify-between"
+              >
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center border-b border-[var(--edge)] pb-3">
-                    <h4 className="text-xs font-semibold text-[var(--text)] font-mono tracking-wide">{field}</h4>
-                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--accent)] font-semibold border border-[var(--edge)]">
+                  <div className="flex justify-between items-center border-b border-[var(--color-border)] pb-2.5">
+                    <h4 className="text-xs font-bold text-[var(--color-text-primary)] font-mono tracking-wide">
+                      {field}
+                    </h4>
+                    <span className="neo-tag">
                       {aliasList.length} Aliases
                     </span>
                   </div>
 
-                  <div className="bg-[var(--surface-2)] p-3.5 rounded-lg border border-[var(--edge)] max-h-48 overflow-y-auto font-mono text-[11px] space-y-1.5 divide-y divide-[var(--edge)]">
+                  <div className="bg-[var(--color-surface-elevated)] p-3 rounded-[var(--radius-md)] border border-[var(--color-border)] max-h-44 overflow-y-auto font-mono text-[11px] space-y-1.5 divide-y divide-[var(--color-border)]">
                     {aliasList.length > 0 ? (
                       aliasList.map((alias, idx) => (
-                        <div key={idx} className="pt-1.5 flex items-center justify-between group text-[var(--text-2)] hover:text-[var(--text)]">
+                        <div
+                          key={idx}
+                          className="pt-1.5 first:pt-0 flex items-center justify-between group text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                        >
                           <span className="truncate pr-2">• {alias}</span>
                           <button
                             onClick={() => handleRemoveAlias(field, alias)}
-                            className="p-1 rounded-md text-[var(--text-3)] hover:text-[var(--bad)] hover:bg-[var(--bad-soft)] transition-all opacity-70 group-hover:opacity-100 cursor-pointer"
+                            className="p-1 rounded text-[var(--color-text-muted)] hover:text-[var(--color-bad)] hover:bg-[var(--color-bad-soft,#fb718520)] transition-all opacity-60 group-hover:opacity-100 cursor-pointer"
                             title="Remove Alias"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -210,13 +226,15 @@ export default function ColumnMappingInspector() {
                         </div>
                       ))
                     ) : (
-                      <span className="text-[var(--text-3)] italic text-[10px]">Standard direct match</span>
+                      <span className="text-[var(--color-text-muted)] italic text-[10.5px]">
+                        Standard direct match only
+                      </span>
                     )}
                   </div>
                 </div>
 
                 {/* Add Custom Alias Form */}
-                <div className="flex items-center space-x-2 pt-2 border-t border-[var(--edge)]">
+                <div className="flex items-center space-x-2 pt-2 border-t border-[var(--color-border)]">
                   <input
                     type="text"
                     value={newAliasText[field] || ''}
@@ -224,20 +242,20 @@ export default function ColumnMappingInspector() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleAddAlias(field);
                     }}
-                    placeholder="Add new custom alias..."
-                    className="flex-1 field text-[11px] text-[var(--text)] px-3.5 py-2 rounded-xl focus:outline-none font-mono"
+                    placeholder="Add custom alias..."
+                    className="flex-1 field text-[11px] text-[var(--color-text-primary)] px-2.5 h-7 rounded-[var(--radius-sm)] focus:outline-none font-mono"
                   />
                   <button
                     onClick={() => handleAddAlias(field)}
                     disabled={isSavingAlias || !newAliasText[field]?.trim()}
-                    className="btn-primary px-3.5 py-2 text-xs font-semibold flex items-center space-x-1"
-                    title="Save Alias Permanently"
+                    className="btn-primary h-7 px-2.5 text-[11px] font-semibold flex items-center gap-1 shrink-0"
+                    title="Save Alias"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add</span>
                   </button>
                 </div>
-              </Tilt3DCard>
+              </div>
             );
           })}
         </div>

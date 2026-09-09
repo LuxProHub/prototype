@@ -48,7 +48,7 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
         setIsShaking(true);
         setTimeout(() => setIsShaking(false), 600);
       }
-    } catch (err) {
+    } catch {
       // A network failure must not grant access. The previous fallback signed
       // the user in locally as ADMIN whenever the request threw, which meant
       // anyone could reach the dashboard by taking the API offline -- and the

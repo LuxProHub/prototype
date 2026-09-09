@@ -2,18 +2,8 @@ import React from 'react';
 import { AlertCircle, RotateCcw } from 'lucide-react';
 
 /**
- * Loading, empty and error states.
- *
- * These exist as one component because the distinction between them is a
- * product rule, not a styling choice: a request that failed must never render
- * as "there is no data". Several pages used to swallow the failure in a
- * console.error and fall through to their empty state, which sends an operator
- * hunting for a filter when the real problem is that the API is unreachable.
- *
- * Pass `error` and you get the failure state with a retry. Pass nothing and you
- * get the genuine "no data" state.
+ * Loading, empty, error and skeleton states.
  */
-
 function Shell({ icon, tone = 'neutral', title, body, action, dense }) {
   const ring =
     tone === 'bad'
@@ -22,16 +12,17 @@ function Shell({ icon, tone = 'neutral', title, body, action, dense }) {
   return (
     <div
       role="status"
-      className={`flex flex-col items-center text-center gap-2 ${dense ? 'py-8' : 'py-16'}`}
+      className={`flex flex-col items-center text-center gap-2.5 ${dense ? 'py-6' : 'py-14'}`}
+
     >
       {icon && (
-        <span className={`w-10 h-10 rounded-full border flex items-center justify-center ${ring}`}>
+        <span className={`w-11 h-11 rounded-full border flex items-center justify-center shadow-xs ${ring}`}>
           {icon}
         </span>
       )}
-      <div className="text-[13px] font-medium text-[var(--text)]">{title}</div>
-      {body && <div className="text-[12px] text-[var(--text-3)] max-w-xs">{body}</div>}
-      {action}
+      <div className="text-[13.5px] font-semibold text-[var(--color-text-primary)]">{title}</div>
+      {body && <div className="text-[12px] text-[var(--color-text-muted)] max-w-sm leading-relaxed">{body}</div>}
+      {action && <div className="mt-1">{action}</div>}
     </div>
   );
 }
@@ -45,7 +36,7 @@ export function ErrorState({ title = 'Could not load this view', error, onRetry,
     <Shell
       tone="bad"
       dense={dense}
-      icon={<AlertCircle className="w-4.5 h-4.5 text-[var(--bad)]" />}
+      icon={<AlertCircle className="w-5 h-5 text-[var(--bad)]" />}
       title={title}
       body={
         <>
@@ -55,9 +46,9 @@ export function ErrorState({ title = 'Could not load this view', error, onRetry,
       }
       action={
         onRetry && (
-          <button onClick={onRetry} className="btn h-8 px-3 text-[12px] mt-1">
+          <button onClick={onRetry} className="btn h-8 px-3 text-[12px] mt-1 gap-1.5 cursor-pointer">
             <RotateCcw className="w-3.5 h-3.5" />
-            Retry
+            <span>Retry request</span>
           </button>
         )
       }
@@ -66,8 +57,7 @@ export function ErrorState({ title = 'Could not load this view', error, onRetry,
 }
 
 /**
- * Skeleton rows. Real content is replaced in place rather than swapped for a
- * spinner, so the page does not jump height while data arrives.
+ * Skeleton rows for tabular data.
  */
 export function LoadingRows({ rows = 6, className = '' }) {
   return (
@@ -75,10 +65,23 @@ export function LoadingRows({ rows = 6, className = '' }) {
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="h-9 rounded-[var(--r-md)] bg-[var(--surface-2)] animate-pulse"
-          style={{ opacity: 1 - i * 0.1 }}
+          className="h-9 rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] animate-pulse"
+          style={{ opacity: Math.max(0.2, 1 - i * 0.12) }}
         />
       ))}
     </div>
+  );
+}
+
+/**
+ * Granular Skeleton primitive.
+ */
+export function Skeleton({ className = '', variant = 'rectangular', ...props }) {
+  const variantClass = variant === 'circular' ? 'rounded-full' : 'rounded-[var(--radius-md)]';
+  return (
+    <div
+      className={`bg-[var(--color-surface-elevated)] animate-pulse ${variantClass} ${className}`}
+      {...props}
+    />
   );
 }

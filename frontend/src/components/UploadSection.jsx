@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Upload,
-  FileCheck,
   AlertCircle,
   CheckCircle2,
   RefreshCw,
@@ -17,12 +15,11 @@ import {
   ShieldCheck,
   ArrowRight,
 } from 'lucide-react';
-import Tilt3DCard from './Tilt3DCard';
 import CustomSelect from './CustomSelect';
 import { apiFetch } from '../lib/api';
 import PageHeader from './ui/PageHeader';
 
-export default function UploadSection({ onUploadComplete, activeJob }) {
+export default function UploadSection({ onUploadComplete }) {
   const [fileQueue, setFileQueue] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [batchSize, setBatchSize] = useState(500);
@@ -503,7 +500,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
       />
 
       {/* Drag & Drop Multi-File Zone */}
-      <Tilt3DCard className="p-5 sm:p-8 text-center border border-[var(--edge)]">
+      <div className={`bento-card p-6 sm:p-10 text-center transition-all ${isDragOver ? 'border-[var(--color-accent)] shadow-lg bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)]'}`}>
         <div
           onDragEnter={handleDrag}
           onDragOver={handleDrag}
@@ -520,27 +517,27 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
             className="hidden"
           />
 
-          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-lg sm:rounded-xl bg-[var(--surface)] border border-[var(--accent-ring)] flex items-center justify-center text-[var(--accent)] field ">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-accent)]/30 flex items-center justify-center text-[var(--color-accent)] shadow-sm">
             <Layers3 className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
 
           <div className="space-y-2">
-            <p className="text-base sm:text-lg font-semibold text-[var(--text)] tracking-tight">
-              Tap to choose files or drop Excel / CSV files here
+            <p className="text-base sm:text-lg font-bold text-[var(--color-text-primary)] tracking-tight">
+              Tap to choose files or drop Excel / CSV registers here
             </p>
-            <p className="text-xs text-[var(--text-3)] font-mono max-w-md mx-auto">
+            <p className="text-xs text-[var(--color-text-muted)] font-mono max-w-md mx-auto">
               Select 1 or 20+ registers simultaneously (.xlsx, .xls, .csv). Batch engine processes files sequentially.
             </p>
             <label
               htmlFor="file-upload-multi"
-              className="btn-primary inline-flex items-center space-x-2 px-5 sm:px-6 py-2.5 sm:py-3 text-xs font-semibold cursor-pointer active:scale-95"
+              className="btn-primary inline-flex items-center space-x-2 px-5 sm:px-6 py-2.5 sm:py-3 text-xs font-semibold cursor-pointer active:scale-95 shadow-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Select Multiple Files</span>
             </label>
           </div>
         </div>
-      </Tilt3DCard>
+      </div>
 
       {globalError && (
         <div className="p-4 rounded-lg bg-[var(--surface-2)] border border-[var(--bad)]/30 text-[var(--bad)] text-xs font-mono font-semibold flex items-center space-x-2">
@@ -551,7 +548,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
 
       {/* Multi-File Batch Queue List */}
       {fileQueue.length > 0 && (
-        <Tilt3DCard className="p-6 space-y-4">
+        <div className="bento-card p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-[var(--edge)] pb-3">
             <div className="flex items-center space-x-2 font-mono text-xs font-semibold text-[var(--text)]">
               <Layers className="w-4 h-4 text-[var(--accent)]" />
@@ -797,12 +794,12 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
               </div>
             ))}
           </div>
-        </Tilt3DCard>
+        </div>
       )}
 
       {/* Column Remapping Studio for Inspected File */}
       {selectedFileForRemap && selectedFileForRemap.uploadResult && (
-        <Tilt3DCard className="p-6 space-y-5">
+        <div className="bento-card p-5 sm:p-6 space-y-5">
           <div className="flex justify-between items-center border-b border-[var(--edge)] pb-3">
             <div className="flex items-center space-x-2">
               <ShieldCheck className="w-5 h-5 text-[var(--accent)]" />
@@ -862,7 +859,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
               </div>
             </div>
           )}
-        </Tilt3DCard>
+        </div>
       )}
     </div>
   );

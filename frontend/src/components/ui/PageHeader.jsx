@@ -1,31 +1,61 @@
 import React from 'react';
 
 /**
- * The one page header every view uses.
- *
- * Before this existed each page invented its own: titles ranged from `text-lg`
- * to `text-4xl` and casing drifted between "Team Accounts" and "Column schema",
- * so moving between tabs felt like moving between applications. Title casing is
- * sentence case and matches the sidebar label, so the nav item you clicked and
- * the heading you land on read as the same thing.
- *
- * `description` is where the page states what it is counting or showing --
- * it is the page's context line, not decoration, so keep it factual.
+ * Premium PageHeader Component
+ * Supports title, description, category/status badge, breadcrumb, and actions slot.
  */
-export default function PageHeader({ title, description, actions, children }) {
+export default function PageHeader({
+  title,
+  description,
+  badge,
+  breadcrumbs,
+  actions,
+  children,
+  className = '',
+}) {
   return (
-    <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-      <div className="min-w-0">
-        <h2 className="text-lg sm:text-xl font-semibold text-[var(--text)] tracking-tight leading-tight">
-          {title}
-        </h2>
-        {description && (
-          <p className="text-[13px] text-[var(--text-2)] mt-0.5">{description}</p>
+    <div className={`flex-shrink-0 flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-2 ${className}`}>
+      <div className="min-w-0 space-y-1">
+        {breadcrumbs && (
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] mb-1">
+            {breadcrumbs.map((crumb, idx) => (
+              <React.Fragment key={idx}>
+                {idx > 0 && <span className="opacity-40">/</span>}
+                {crumb.onClick ? (
+                  <button onClick={crumb.onClick} className="hover:text-[var(--color-text-primary)] transition-colors">
+                    {crumb.label}
+                  </button>
+                ) : (
+                  <span className={idx === breadcrumbs.length - 1 ? 'text-[var(--color-text-secondary)] font-medium' : ''}>
+                    {crumb.label}
+                  </span>
+                )}
+              </React.Fragment>
+            ))}
+          </nav>
         )}
+
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)] tracking-tight leading-tight">
+            {title}
+          </h1>
+          {badge && <div className="shrink-0">{badge}</div>}
+        </div>
+
+        {description && (
+          <p className="text-[12.5px] text-[var(--color-text-secondary)] max-w-2xl leading-relaxed">
+            {description}
+          </p>
+        )}
+
         {children}
       </div>
 
-      {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+      {actions && (
+        <div className="flex items-center gap-2 shrink-0 flex-wrap sm:justify-end">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

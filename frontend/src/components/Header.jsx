@@ -1,19 +1,20 @@
-/** Top bar: global search, engine status, session controls. */
 import React from 'react';
 import { Search, RefreshCw, Sun, Moon, LogOut } from 'lucide-react';
 
 function initials(name) {
-  return String(name || '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join('') || 'A';
+  return (
+    String(name || '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0].toUpperCase())
+      .join('') || 'A'
+  );
 }
 
 const ROLE_LABEL = {
   VIEWER: 'Viewer',
-  DATA_PROCESSOR: 'Data processor',
+  DATA_PROCESSOR: 'Data Processor',
   ADMIN: 'Admin',
   CCO: 'CCO',
   CEO: 'CEO',
@@ -36,10 +37,10 @@ export default function Header({
   const fullName = currentUser?.full_name || 'Admin Operator';
 
   return (
-    <header className="h-14 shrink-0 sticky top-0 z-20 glass rounded-none border-x-0 border-t-0 px-3 sm:px-5 flex items-center gap-3">
-      {/* Global search — typing jumps to Records, which owns the debounce. */}
-      <div className="relative flex-1 max-w-sm">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none" />
+    <header className="h-14 shrink-0 sticky top-0 z-30 glass-liquid rounded-none border-x-0 border-t-0 px-3 sm:px-6 flex items-center justify-between gap-3 shadow-xs">
+      {/* Global Search with '/' Keyboard Shortcut Hint */}
+      <div className="relative flex-1 max-w-md">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
         <input
           type="search"
           value={searchQuery}
@@ -49,53 +50,76 @@ export default function Header({
               setActiveTab('records');
             }
           }}
-          placeholder="Search records"
+          placeholder="Search records by name, developer, unit, phone..."
           aria-label="Search records"
-          className="field w-full h-9 pl-9 pr-3 text-[13px]"
+          className="field w-full h-9 pl-9 pr-10 text-[12.5px] rounded-[var(--radius-md)] bg-[var(--color-surface)]/70 focus:bg-[var(--color-surface)]"
         />
+        <div className="hidden sm:flex items-center absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+          <kbd className="h-5 px-1.5 rounded border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[10.5px] font-mono text-[var(--color-text-muted)] leading-5">
+            /
+          </kbd>
+        </div>
       </div>
 
-      {/* Live status — only when a job is actually running. Idle is silent. */}
+      {/* Live Processing Engine Status (when a batch job is running) */}
       {activeJob && (
-        <div className="hidden lg:flex badge badge-accent">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-          <span className="num">Job #{activeJob.id}</span>
-          <span>{activeJob.status.toLowerCase()}</span>
+        <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-accent-soft)] border border-[var(--color-accent)]/30 text-[var(--color-accent)] text-xs font-mono font-semibold animate-pulse">
+          <span className="w-2 h-2 rounded-full bg-[var(--color-accent)]" />
+          <span>Job #{activeJob.id}</span>
+          <span className="text-[11px] opacity-80 uppercase">{activeJob.status.toLowerCase()}</span>
         </div>
       )}
 
-      <div className="hidden sm:block flex-1" />
-
-      {/* Session controls */}
-      <div className="flex items-center gap-1">
-        <button onClick={onRefresh} title="Refresh stats" className="btn-ghost hidden sm:inline-flex h-9 px-2.5 text-[13px]">
-          <RefreshCw className="w-4 h-4" />
-          <span className="hidden sm:inline">Refresh</span>
+      {/* Session & Appearance Controls */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={onRefresh}
+          title="Refresh stats and pipeline"
+          aria-label="Refresh stats and pipeline"
+          className="btn-ghost hidden sm:inline-flex h-8 px-2.5 text-[12px] rounded-[var(--radius-md)] flex items-center gap-1.5"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-[var(--color-text-secondary)]" />
+          <span className="hidden lg:inline text-[var(--color-text-secondary)] font-medium">Refresh</span>
         </button>
 
+        {/* Theme Switcher Toggle */}
         <button
           onClick={toggleTheme}
           title={`Switch to ${isDark ? 'light' : 'dark'} theme`}
           aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
-          className="btn-ghost h-9 w-9"
+          className="btn-ghost h-8 w-8 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-transform active:scale-90"
         >
-          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
         </button>
 
-        <div className="hidden sm:block h-5 w-px bg-[var(--edge-strong)] mx-1.5" />
+        <div className="hidden sm:block h-5 w-px bg-[var(--color-border)] mx-1" />
 
-        <div className="hidden sm:flex items-center gap-2.5 pl-1" title={`${fullName} (${ROLE_LABEL[role] || role})`}>
-          <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-ring)] text-[var(--accent)] text-[11px] font-semibold flex items-center justify-center select-none">
+        {/* User Identity Chip */}
+        <div
+          className="hidden sm:flex items-center gap-2.5 pl-1.5 select-none"
+          title={`${fullName} (${ROLE_LABEL[role] || role})`}
+        >
+          <span className="w-8 h-8 rounded-full bg-[var(--color-accent-soft)] border border-[var(--color-accent)]/30 text-[var(--color-accent)] text-[11.5px] font-bold flex items-center justify-center font-mono">
             {initials(fullName)}
           </span>
-          <span className="hidden lg:block leading-tight">
-            <span className="block text-[13px] font-medium text-[var(--text)] max-w-[160px] truncate">{fullName}</span>
-            <span className="block text-[11px] text-[var(--text-3)]">{ROLE_LABEL[role] || role}</span>
-          </span>
+          <div className="hidden xl:block leading-tight text-left">
+            <span className="block text-[12.5px] font-semibold text-[var(--color-text-primary)] max-w-[140px] truncate">
+              {fullName}
+            </span>
+            <span className="block text-[10.5px] text-[var(--color-text-muted)] font-mono">
+              {ROLE_LABEL[role] || role}
+            </span>
+          </div>
         </div>
 
-        <button onClick={onLogout} title="Log out" aria-label="Log out" className="btn-ghost h-9 w-9 ml-1 hover:text-[var(--bad)]">
-          <LogOut className="w-4 h-4" />
+        {/* Logout Action */}
+        <button
+          onClick={onLogout}
+          title="Log out of DataLink"
+          aria-label="Log out"
+          className="btn-ghost h-8 w-8 rounded-[var(--radius-md)] hover:text-[var(--color-bad)] hover:bg-[var(--color-bad-soft,#fb718520)] transition-colors"
+        >
+          <LogOut className="w-3.5 h-3.5" />
         </button>
       </div>
     </header>

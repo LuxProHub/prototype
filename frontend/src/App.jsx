@@ -11,11 +11,11 @@ import ExecutiveDashboard from './components/ExecutiveDashboard';
 import ForcePasswordChange from './components/ForcePasswordChange';
 import JobDetailsView from './components/JobDetailsView';
 import ColumnMappingInspector from './components/ColumnMappingInspector';
-import Spatial3DCanvas from './components/Spatial3DCanvas';
+import AmbientBackdrop from './components/AmbientBackdrop';
 import AuthLockScreen from './components/AuthLockScreen';
 import { apiFetch, clearSession } from './lib/api';
 import { useHashRoute } from './lib/router';
-import { navItems } from './components/Sidebar';
+import { navItems } from './lib/nav';
 
 // Every reachable view. `tracker` has no sidebar entry -- an upload hands you
 // there -- but it still deserves an address you can refresh and go back from.
@@ -148,7 +148,7 @@ export default function App() {
 
   return (
     <div className="relative h-screen w-full text-[var(--text)] overflow-hidden">
-      <Spatial3DCanvas />
+      <AmbientBackdrop />
 
       {/* Fixed Full Screen Layout */}
       <div className="relative z-10 flex w-full h-full overflow-hidden">

@@ -1,12 +1,12 @@
 import React from 'react';
 
 /**
- * Ambient depth layer behind the shell. Pure CSS: two soft light sources and
- * a fine grid, no animation loop, no WebGL. Panels are opaque, so this only
- * shows through the page ground and behind glass surfaces — which is what
- * gives the blur something to blur.
+ * Ambient depth behind the shell: two soft light sources and a fine technical
+ * grid, painted as CSS gradients. There is no canvas and no render loop -- the
+ * atmosphere is what glass surfaces blur against, so it only needs to exist,
+ * not to animate.
  */
-export default function Spatial3DCanvas() {
+export default function AmbientBackdrop() {
   return (
     <div
       aria-hidden="true"
