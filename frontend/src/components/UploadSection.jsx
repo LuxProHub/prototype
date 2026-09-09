@@ -18,6 +18,7 @@ import {
 import CustomSelect from './CustomSelect';
 import { apiFetch } from '../lib/api';
 import PageHeader from './ui/PageHeader';
+import IngestStages from './viz/IngestStages';
 
 export default function UploadSection({ onUploadComplete }) {
   const [fileQueue, setFileQueue] = useState([]);
@@ -472,7 +473,7 @@ export default function UploadSection({ onUploadComplete }) {
                 ) : (
                   <>
                     <FileCode className="w-3.5 h-3.5 text-[var(--accent)]" />
-                    <span>Inspect All ({fileQueue.filter((f) => f.status === 'QUEUED').length})</span>
+                    <span>Inspect all ({fileQueue.filter((f) => f.status === 'QUEUED').length})</span>
                   </>
                 )}
               </button>
@@ -490,7 +491,7 @@ export default function UploadSection({ onUploadComplete }) {
                 ) : (
                   <>
                     <Play className="w-4 h-4 fill-white" />
-                    <span>Run All ({fileQueue.filter((f) => f.status !== 'COMPLETED').length} Files)</span>
+                    <span>Run all ({fileQueue.filter((f) => f.status !== 'COMPLETED').length})</span>
                   </>
                 )}
               </button>
@@ -525,7 +526,7 @@ export default function UploadSection({ onUploadComplete }) {
             <p className="text-base sm:text-lg font-bold text-[var(--color-text-primary)] tracking-tight">
               Tap to choose files or drop Excel / CSV registers here
             </p>
-            <p className="text-xs text-[var(--color-text-muted)] font-mono max-w-md mx-auto">
+            <p className="t-body max-w-md mx-auto">
               Select 1 or 20+ registers simultaneously (.xlsx, .xls, .csv). Batch engine processes files sequentially.
             </p>
             <label
@@ -533,26 +534,38 @@ export default function UploadSection({ onUploadComplete }) {
               className="btn-primary inline-flex items-center space-x-2 px-5 sm:px-6 py-2.5 sm:py-3 text-xs font-semibold cursor-pointer active:scale-95 shadow-sm"
             >
               <Plus className="w-4 h-4" />
-              <span>Select Multiple Files</span>
+              <span>Choose files</span>
             </label>
           </div>
         </div>
       </div>
 
       {globalError && (
-        <div className="p-4 rounded-lg bg-[var(--surface-2)] border border-[var(--bad)]/30 text-[var(--bad)] text-xs font-mono font-semibold flex items-center space-x-2">
+        <div className="p-4 rounded-lg bg-[var(--surface-2)] border border-[var(--bad)]/30 text-[var(--bad)] text-[12.5px] font-medium flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-[var(--bad)] flex-shrink-0" />
           <span>{globalError}</span>
         </div>
       )}
 
       {/* Multi-File Batch Queue List */}
+      {/* Where a register goes once it lands. Lit at the step in progress. */}
+      <IngestStages
+        stage={(() => {
+          const st = fileQueue.map((f) => String(f.status || '').toUpperCase());
+          if (!st.length) return 'upload';
+          if (selectedFileForRemap) return 'mapping';
+          if (st.some((x) => x.includes('PROCESS') || x === 'RUNNING')) return 'processing';
+          if (st.every((x) => x === 'COMPLETED')) return 'ready';
+          return 'validation';
+        })()}
+      />
+
       {fileQueue.length > 0 && (
         <div className="bento-card p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-[var(--edge)] pb-3">
-            <div className="flex items-center space-x-2 font-mono text-xs font-semibold text-[var(--text)]">
+            <div className="flex items-center gap-2 t-heading">
               <Layers className="w-4 h-4 text-[var(--accent)]" />
-              <span>INGESTION QUEUE PIPELINE ({fileQueue.length} FILES)</span>
+              <span>Queue · {fileQueue.length} files</span>
             </div>
 
             {/* Batch Size Selector */}
@@ -574,7 +587,7 @@ export default function UploadSection({ onUploadComplete }) {
             {fileQueue.map((item, idx) => (
               <div
                 key={item.id}
-                className={`p-4 rounded-lg border transition-all flex flex-col gap-3 text-xs font-mono ${
+                className={`p-3.5 rounded-[var(--r-md)] border transition-colors flex flex-col gap-2.5 text-[12.5px] ${
                   activeQueueIndex === idx || item.status === 'PROCESSING'
                     ? 'bg-[var(--surface-2)] border-[var(--accent-ring)]'
                     : item.status === 'PAUSED'
@@ -735,7 +748,7 @@ export default function UploadSection({ onUploadComplete }) {
                 {/* Real-Time Live Progress Bar */}
                 {(item.status === 'PROCESSING' || item.status === 'PAUSED' || (item.status === 'COMPLETED' && item.processedRows > 0)) && (
                   <div className="w-full mt-1 pt-2 border-t border-[var(--edge)] space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-mono">
+                    <div className="flex items-center justify-between t-meta">
                       <span className="flex items-center space-x-1.5 font-semibold">
                         {item.status === 'PROCESSING' && (
                           <span className="flex items-center space-x-1 text-[var(--ok)]">
@@ -805,9 +818,9 @@ export default function UploadSection({ onUploadComplete }) {
               <ShieldCheck className="w-5 h-5 text-[var(--accent)]" />
               <div>
                 <h3 className="text-sm font-semibold text-[var(--text)]">
-                  Header Remapping Studio: {selectedFileForRemap.name}
+                  Map headers for {selectedFileForRemap.name}
                 </h3>
-                <p className="text-xs text-[var(--text-2)] font-medium">Verify or override target field mappings before running.</p>
+                <p className="text-xs text-[var(--text-2)] font-medium">Check how each raw header maps before running.</p>
               </div>
             </div>
             <button
@@ -820,7 +833,7 @@ export default function UploadSection({ onUploadComplete }) {
 
           {selectedFileForRemap.uploadResult.mapped_columns_preview && (
             <div className="space-y-3">
-              <div className="flex justify-between items-center text-xs font-mono font-semibold text-[var(--text-2)]">
+              <div className="flex justify-between items-center t-label">
                 <span>DETECTED RAW COLUMNS ({selectedFileForRemap.uploadResult.header_count})</span>
                 <span className="text-[var(--accent)]">
                   {selectedFileForRemap.uploadResult.mapped_count} / {selectedFileForRemap.uploadResult.header_count} Mapped
@@ -831,7 +844,7 @@ export default function UploadSection({ onUploadComplete }) {
                 {selectedFileForRemap.uploadResult.mapped_columns_preview.map((colItem, idx) => {
                   const currentMappedField = columnOverrides[colItem.raw_header] || '';
                   return (
-                    <div key={idx} className="p-2.5 flex items-center justify-between gap-3 text-xs font-mono bg-[var(--surface-2)] rounded-xl border border-[var(--edge)]">
+                    <div key={idx} className="px-2.5 py-2 flex items-center justify-between gap-3 text-[12.5px] border-b border-[var(--edge)] last:border-b-0">
                       <div className="flex items-center space-x-2 font-semibold text-[var(--text)] max-w-[200px] truncate">
                         <Layers className="w-3.5 h-3.5 text-[var(--accent)]" />
                         <span title={colItem.raw_header}>{colItem.raw_header}</span>

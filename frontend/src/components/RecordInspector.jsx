@@ -282,7 +282,7 @@ export default function RecordInspector({
                 <section key={sec.id} className="panel p-3.5 space-y-2.5 rounded-[var(--radius-lg)]">
                   <div className="flex items-center gap-2 pb-1.5 border-b border-[var(--color-border)]">
                     <Icon className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                    <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                    <span className="t-heading">
                       {sec.label}
                     </span>
                   </div>
@@ -293,7 +293,7 @@ export default function RecordInspector({
                       const span = f.span === 2 ? 'col-span-2' : '';
                       return (
                         <div key={f.key} className={`min-w-0 ${span}`}>
-                          <div className="text-[10.5px] text-[var(--color-text-muted)] uppercase font-semibold tracking-wider mb-0.5">
+                          <div className="t-label mb-0.5">
                             {f.label}
                           </div>
                           {isEditing ? (

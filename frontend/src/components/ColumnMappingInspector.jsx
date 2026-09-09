@@ -135,10 +135,10 @@ export default function ColumnMappingInspector() {
       />
 
       {/* Header Matcher Interactive Tester Tool */}
-      <div className="bento-card p-5 sm:p-6 space-y-4">
-        <div className="flex items-center space-x-2 text-xs font-bold text-[var(--color-text-secondary)] font-mono">
+      <div className="l2 p-4 space-y-3">
+        <div className="flex items-center gap-2 t-heading">
           <ShieldCheck className="w-4 h-4 text-[var(--color-accent)]" />
-          <span>HEADER ALIAS MATCHER TESTER</span>
+          <span>Test a raw header</span>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -146,23 +146,23 @@ export default function ColumnMappingInspector() {
             type="text"
             value={testHeader}
             onChange={(e) => handleTestMatch(e.target.value)}
-            placeholder="Type raw header (e.g. FULL NAME, DAR UNIT_NO, REGION, MASTER DEVELOPER, PROPERTY TOWER)..."
-            className="flex-1 field text-xs text-[var(--color-text-primary)] rounded-[var(--radius-md)] px-4 py-2.5 focus:outline-none font-mono"
+            placeholder="Paste a raw column header, e.g. FULL NAME or DAR UNIT_NO"
+            className="flex-1 field h-9 px-3 text-[13px]"
           />
         </div>
 
         {testHeader && (
-          <div className="p-3.5 rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div className="p-3 rounded-[var(--r-md)] bg-[var(--surface-2)] text-[12.5px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <span className="text-[var(--color-text-secondary)] font-medium">
-              Raw Input Header: "<span className="text-[var(--color-text-primary)] font-bold">{testHeader}</span>"
+              Header "<span className="text-[var(--color-text-primary)] font-bold">{testHeader}</span>"
             </span>
             <div className="flex items-center space-x-2">
               <ArrowRight className="w-4 h-4 text-[var(--color-accent)]" />
               <span
-                className={`font-bold px-3 py-1 rounded-full text-[11px] border ${
+                className={`badge ${
                   matchedField && matchedField !== 'UNMAPPED / REQUIRES ALIAS'
-                    ? 'bg-[var(--color-ok-soft,#34d39920)] text-[var(--color-ok)] border-[var(--color-ok)]/30'
-                    : 'bg-[var(--color-bad-soft,#fb718520)] text-[var(--color-bad)] border-[var(--color-bad)]/30'
+                    ? 'badge-ok'
+                    : 'badge-bad'
                 }`}
               >
                 {matchedField}
@@ -175,8 +175,8 @@ export default function ColumnMappingInspector() {
       {/* Target Fields & Aliases Bento Grid */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-[var(--color-text-primary)] flex items-center space-x-2 font-mono">
-            <span>Target Fields & Known Aliases ({filteredFields.length})</span>
+          <h3 className="t-heading flex items-center gap-2">
+            <span>Fields ({filteredFields.length})</span>
           </h3>
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-[var(--color-accent)] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -184,7 +184,7 @@ export default function ColumnMappingInspector() {
               type="text"
               value={searchField}
               onChange={(e) => setSearchField(e.target.value)}
-              placeholder="Search fields or aliases..."
+              placeholder="Search fields or aliases"
               className="field text-xs text-[var(--color-text-primary)] rounded-[var(--radius-md)] pl-8 pr-3 h-8 focus:outline-none font-medium w-64"
             />
           </div>
@@ -196,30 +196,30 @@ export default function ColumnMappingInspector() {
             return (
               <div
                 key={field}
-                className="bento-card p-5 space-y-3 flex flex-col justify-between"
+                className="l2 p-4 space-y-3 flex flex-col justify-between"
               >
                 <div className="space-y-3">
                   <div className="flex justify-between items-center border-b border-[var(--color-border)] pb-2.5">
-                    <h4 className="text-xs font-bold text-[var(--color-text-primary)] font-mono tracking-wide">
+                    <h4 className="t-heading">
                       {field}
                     </h4>
                     <span className="neo-tag">
-                      {aliasList.length} Aliases
+                      {aliasList.length} aliases
                     </span>
                   </div>
 
-                  <div className="bg-[var(--color-surface-elevated)] p-3 rounded-[var(--radius-md)] border border-[var(--color-border)] max-h-44 overflow-y-auto font-mono text-[11px] space-y-1.5 divide-y divide-[var(--color-border)]">
+                  <div className="max-h-44 overflow-y-auto text-[12px] divide-y divide-[var(--edge)]">
                     {aliasList.length > 0 ? (
                       aliasList.map((alias, idx) => (
                         <div
                           key={idx}
-                          className="pt-1.5 first:pt-0 flex items-center justify-between group text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                          className="py-1.5 flex items-center justify-between group text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
                         >
-                          <span className="truncate pr-2">• {alias}</span>
+                          <span className="truncate pr-2">{alias}</span>
                           <button
                             onClick={() => handleRemoveAlias(field, alias)}
                             className="p-1 rounded text-[var(--color-text-muted)] hover:text-[var(--color-bad)] hover:bg-[var(--color-bad-soft,#fb718520)] transition-all opacity-60 group-hover:opacity-100 cursor-pointer"
-                            title="Remove Alias"
+                            title="Remove alias"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -227,7 +227,7 @@ export default function ColumnMappingInspector() {
                       ))
                     ) : (
                       <span className="text-[var(--color-text-muted)] italic text-[10.5px]">
-                        Standard direct match only
+                        No aliases yet; exact matches only
                       </span>
                     )}
                   </div>
@@ -242,7 +242,7 @@ export default function ColumnMappingInspector() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleAddAlias(field);
                     }}
-                    placeholder="Add custom alias..."
+                    placeholder="Add an alias"
                     className="flex-1 field text-[11px] text-[var(--color-text-primary)] px-2.5 h-7 rounded-[var(--radius-sm)] focus:outline-none font-mono"
                   />
                   <button

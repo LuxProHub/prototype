@@ -123,10 +123,10 @@ export default function UserManagement({ currentUser }) {
         title="Team accounts"
         description="Manage system users and access roles below your authorization level. Passwords are encrypted."
         actions={
-          <div className="flex items-center gap-2 bg-[var(--color-surface-elevated)] px-3 h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] text-xs font-mono">
+          <div className="t-meta flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-            <span className="text-[var(--color-text-secondary)]">Total Accounts:</span>
-            <span className="font-bold text-[var(--color-text-primary)]">{users.length}</span>
+            
+            <span className="num text-[var(--text-2)]">{users.length}</span> members
           </div>
         }
       />
@@ -139,13 +139,13 @@ export default function UserManagement({ currentUser }) {
 
       {/* One-Time Password Reveal Card */}
       {tempPassword && (
-        <div className="bento-card p-5 space-y-3 border-[var(--color-warn)]/40 bg-[color-mix(in_srgb,var(--color-surface)_92%,var(--color-warn)_8%)]">
-          <span className="text-[11px] font-mono font-bold text-[var(--color-warn)] flex items-center gap-1.5 uppercase tracking-wider">
+        <div className="l2 p-4 space-y-3 border-[var(--color-warn)]/40 bg-[color-mix(in_srgb,var(--color-surface)_92%,var(--color-warn)_8%)]">
+          <span className="text-[12.5px] font-medium text-[var(--warn)] flex items-center gap-1.5">
             <ShieldAlert className="w-4 h-4" />
-            SHOWN ONCE — HAND THIS ONE-TIME CREDENTIAL TO {tempPassword.email}
+            Shown once — give this to {tempPassword.email}
           </span>
           <div className="flex items-center gap-2">
-            <code className="field rounded-[var(--radius-md)] px-3.5 py-2 text-sm font-mono text-[var(--color-text-primary)] flex-1 break-all bg-[var(--color-bg)]">
+            <code className="field px-3 py-2 text-[14px] font-mono text-[var(--text)] flex-1 break-all">
               {tempPassword.password}
             </code>
             <button
@@ -168,38 +168,34 @@ export default function UserManagement({ currentUser }) {
             onClick={() => setTempPassword(null)}
             className="text-[11.5px] font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] cursor-pointer"
           >
-            Dismiss credentials banner
+            Dismiss
           </button>
         </div>
       )}
 
       {/* New User Creation Bento Card */}
       {canGrant.length > 0 && (
-        <div className="bento-card p-5 space-y-3">
+        <div className="l2 p-4 space-y-3">
           <div className="flex items-center gap-2 border-b border-[var(--color-border)] pb-2.5">
             <UserPlus className="w-4 h-4 text-[var(--color-accent)]" />
-            <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-[var(--color-text-primary)]">
-              Provision New User Account
+            <h3 className="t-heading">
+              Add a team member
             </h3>
           </div>
 
           <form onSubmit={createUser} className="grid gap-3 sm:grid-cols-5 items-end pt-1">
             <label className="sm:col-span-1">
-              <span className="text-[10.5px] font-mono text-[var(--color-text-muted)] font-bold uppercase">
-                FULL NAME
-              </span>
+              <span className="t-label">Full name</span>
               <input
                 required
                 value={form.full_name}
                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
                 className="field rounded-[var(--radius-md)] px-3 h-8 mt-1 w-full text-xs focus:outline-none"
-                placeholder="e.g. John Doe"
+                placeholder="Full name"
               />
             </label>
             <label className="sm:col-span-1">
-              <span className="text-[10.5px] font-mono text-[var(--color-text-muted)] font-bold uppercase">
-                EMAIL ADDRESS
-              </span>
+              <span className="t-label">Email</span>
               <input
                 required
                 type="email"
@@ -215,9 +211,7 @@ export default function UserManagement({ currentUser }) {
               )}
             </label>
             <label className="sm:col-span-1">
-              <span className="text-[10.5px] font-mono text-[var(--color-text-muted)] font-bold uppercase">
-                STARTING PASSWORD
-              </span>
+              <span className="t-label">Starting password</span>
               <input
                 required
                 minLength={10}
@@ -228,9 +222,7 @@ export default function UserManagement({ currentUser }) {
               />
             </label>
             <label className="sm:col-span-1">
-              <span className="text-[10.5px] font-mono text-[var(--color-text-muted)] font-bold uppercase">
-                ROLE
-              </span>
+              <span className="t-label">Role</span>
               <select
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
@@ -256,12 +248,12 @@ export default function UserManagement({ currentUser }) {
       )}
 
       {/* Users List Bento Table */}
-      <div className="bento-card p-5 space-y-3">
+      <div className="l2 p-4 space-y-3">
         <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2.5">
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4 text-[var(--color-accent)]" />
             <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-              Authorized Team Members
+              Members
             </h3>
           </div>
         </div>
@@ -276,7 +268,7 @@ export default function UserManagement({ currentUser }) {
                 className="p-3.5 rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex flex-wrap items-center justify-between gap-3 hover:border-[var(--color-border-strong)] transition-all"
               >
                 <div className="min-w-0 flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-[var(--color-accent-soft)] border border-[var(--color-accent)]/30 text-[11.5px] font-bold flex items-center justify-center text-[var(--color-accent)] font-mono shrink-0">
+                  <span className="w-8 h-8 rounded-[7px] bg-[var(--accent-soft)] border border-[var(--accent-ring)] text-[11.5px] font-semibold flex items-center justify-center text-[var(--accent)] shrink-0">
                     {u.full_name?.slice(0, 2).toUpperCase() || 'U'}
                   </span>
                   <div className="min-w-0">
@@ -289,7 +281,7 @@ export default function UserManagement({ currentUser }) {
 
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] ${
+                    className={`badge badge-neutral ${
                       ROLE_STYLE[u.role] || 'text-[var(--color-text-secondary)]'
                     }`}
                   >
@@ -297,12 +289,12 @@ export default function UserManagement({ currentUser }) {
                   </span>
 
                   {u.must_change_password && (
-                    <span className="text-[9.5px] font-mono font-bold text-[var(--color-warn)] bg-[var(--color-warn-soft,#fbbf2420)] px-2 py-0.5 rounded-full border border-[var(--color-warn)]/30">
+                    <span className="badge badge-warn">
                       PENDING PASSWORD
                     </span>
                   )}
                   {!u.is_active && (
-                    <span className="text-[9.5px] font-mono font-bold text-[var(--color-bad)] bg-[var(--color-bad-soft,#fb718520)] px-2 py-0.5 rounded-full border border-[var(--color-bad)]/30">
+                    <span className="badge badge-bad">
                       DISABLED
                     </span>
                   )}
@@ -335,7 +327,7 @@ export default function UserManagement({ currentUser }) {
 
       {/* Executive Activity Audit Trail */}
       {isExecutive && audit.length > 0 && (
-        <div className="bento-card p-5 space-y-3">
+        <div className="l2 p-4 space-y-3">
           <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2.5">
             <div className="flex items-center gap-2">
               <History className="w-4 h-4 text-[var(--color-accent)]" />
@@ -343,7 +335,7 @@ export default function UserManagement({ currentUser }) {
                 Security & Account Activity Audit Trail
               </h3>
             </div>
-            <span className="text-xs font-mono text-[var(--color-text-muted)]">Last 50 events</span>
+            <span className="t-meta">Last 50 events</span>
           </div>
 
           <ul className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] space-y-1.5 max-h-72 overflow-y-auto">

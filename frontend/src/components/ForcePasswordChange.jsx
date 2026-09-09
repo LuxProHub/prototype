@@ -45,7 +45,7 @@ export default function ForcePasswordChange({ user, onChanged, onLogout }) {
     <div className="min-h-screen w-full flex items-center justify-center bg-[var(--ink)] p-4">
       <div className="panel w-full max-w-md rounded-xl p-7 space-y-5">
         <div className="space-y-1.5">
-          <span className="text-[10px] font-mono text-[var(--accent)] font-semibold uppercase flex items-center gap-1.5">
+          <span className="t-label text-[var(--accent)] flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
             First sign-in
           </span>

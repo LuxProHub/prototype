@@ -193,8 +193,8 @@ export default function ExecutiveDashboard() {
             <div
               className={`p-2.5 rounded-[var(--radius-md)] border ${
                 overdueActions > 0
-                  ? 'bg-[var(--color-bad-soft,#fb718520)] text-[var(--color-bad)] border-[var(--color-bad)]/30'
-                  : 'bg-[var(--color-ok-soft,#34d39920)] text-[var(--color-ok)] border-[var(--color-ok)]/30'
+                  ? 'badge-bad'
+                  : 'badge-ok'
               }`}
             >
               <AlertTriangle className="w-4 h-4" />
@@ -281,7 +281,7 @@ export default function ExecutiveDashboard() {
                   <div>
                     <div className="flex items-center gap-1.5 mb-1">
                       <span className={`w-2 h-2 rounded-full ${STAGE_COLORS[stage] || 'bg-slate-400'}`} />
-                      <span className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                      <span className="t-heading">
                         {STAGE_LABELS[stage] || stage}
                       </span>
                     </div>

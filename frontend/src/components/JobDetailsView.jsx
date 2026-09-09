@@ -91,8 +91,8 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
           <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3 shrink-0">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-[var(--color-accent)]" />
-              <span className="text-xs font-semibold text-[var(--color-text-primary)]">
-                Execution Runs ({jobs.length})
+              <span className="t-heading">
+                Runs ({jobs.length})
               </span>
             </div>
             <button
@@ -104,7 +104,7 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
             </button>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 mt-3">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 divide-y divide-[var(--edge)] mt-1">
             {listError ? (
               <ErrorState dense error={listError} onRetry={fetchJobsList} title="Jobs could not be loaded" />
             ) : listLoading && !jobs.length ? (
@@ -119,32 +119,32 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
                 <button
                   key={job.id}
                   onClick={() => setSelectedJobId(job.id)}
-                  className={`w-full text-left p-3 rounded-[var(--radius-md)] transition-all cursor-pointer border ${
+                  className={`w-full text-left px-2.5 py-2.5 rounded-[var(--r-sm)] transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-[var(--color-accent-soft)] border-[var(--color-accent)] shadow-xs'
-                      : 'bg-[var(--color-surface-elevated)] border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
+                      ? 'bg-[var(--accent-soft)] text-[var(--text)]'
+                      : 'hover:bg-[var(--row-hover)]'
                   }`}
                 >
                   <div className="flex justify-between items-start">
-                    <span className="font-mono text-xs font-bold text-[var(--color-accent)] num">
+                    <span className="num text-[12px] text-[var(--text-3)]">
                       #{job.id}
                     </span>
                     <span
-                      className={`text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full uppercase border ${
+                      className={`badge ${
                         job.status === 'COMPLETED'
-                          ? 'bg-[var(--color-ok-soft,#34d39920)] text-[var(--color-ok)] border-[var(--color-ok)]/30'
+                          ? 'badge-ok'
                           : job.status === 'COMPLETED_WITH_ERRORS'
-                          ? 'bg-[var(--color-warn-soft,#fbbf2420)] text-[var(--color-warn)] border-[var(--color-warn)]/30'
-                          : 'bg-[var(--color-bad-soft,#fb718520)] text-[var(--color-bad)] border-[var(--color-bad)]/30'
+                          ? 'badge-warn'
+                          : 'badge-bad'
                       }`}
                     >
                       {job.status}
                     </span>
                   </div>
-                  <p className="text-xs text-[var(--color-text-primary)] font-semibold truncate mt-1">
+                  <p className="text-[12.5px] text-[var(--text)] truncate mt-0.5">
                     {job.filename}
                   </p>
-                  <div className="flex justify-between text-[11px] text-[var(--color-text-muted)] font-mono mt-2 pt-1.5 border-t border-[var(--color-border)]">
+                  <div className="flex justify-between t-meta num mt-1">
                     <span>Rows: {job.total_rows?.toLocaleString() || 0}</span>
                     <span className={job.error_rows > 0 ? 'text-[var(--color-bad)] font-semibold' : ''}>
                       Errors: {job.error_rows || 0}
@@ -164,47 +164,37 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
               <div className="bento-card p-4 sm:p-5 rounded-[var(--radius-lg)] space-y-3 shrink-0">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
                   <div>
-                    <span className="text-[10px] font-mono text-[var(--color-accent)] font-bold uppercase tracking-wider">
-                      Audit Scope #{activeJobData.id}
-                    </span>
-                    <h3 className="text-base font-bold text-[var(--color-text-primary)]">
+                    <span className="t-meta num">Run #{activeJobData.id}</span>
+                    <h3 className="t-heading text-[15px]">
                       {activeJobData.filename}
                     </h3>
                   </div>
-                  <span className="text-xs font-mono text-[var(--color-text-muted)] bg-[var(--color-surface-elevated)] px-2.5 py-1 rounded-[var(--radius-sm)] border border-[var(--color-border)]">
-                    Batch Size: {activeJobData.batch_size || 500}
+                  <span className="t-meta num">
+                    batch {activeJobData.batch_size || 500}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-                  <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)]">
-                    <span className="text-[var(--color-text-muted)] text-[10px] block font-semibold">
-                      TOTAL ROWS
-                    </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[var(--edge)] text-xs">
+                  <div className="px-3 py-1.5 first:pl-0">
+                    <span className="text-[var(--color-text-muted)] t-label block">Total rows</span>
                     <span className="text-[var(--color-text-primary)] font-bold text-sm num">
                       {activeJobData.total_rows?.toLocaleString()}
                     </span>
                   </div>
-                  <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] border border-[var(--color-ok)]/30">
-                    <span className="text-[var(--color-ok)] text-[10px] block font-semibold">
-                      VALID ROWS
-                    </span>
+                  <div className="px-3 py-1.5 first:pl-0">
+                    <span className="text-[var(--color-ok)] t-label block">Valid</span>
                     <span className="text-[var(--color-ok)] font-bold text-sm num">
                       {activeJobData.valid_rows?.toLocaleString()}
                     </span>
                   </div>
-                  <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] border border-[var(--color-warn)]/30">
-                    <span className="text-[var(--color-warn)] text-[10px] block font-semibold">
-                      DUPLICATES
-                    </span>
+                  <div className="px-3 py-1.5 first:pl-0">
+                    <span className="text-[var(--color-warn)] t-label block">Duplicates</span>
                     <span className="text-[var(--color-warn)] font-bold text-sm num">
                       {activeJobData.duplicate_rows?.toLocaleString()}
                     </span>
                   </div>
-                  <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] border border-[var(--color-bad)]/30">
-                    <span className="text-[var(--color-bad)] text-[10px] block font-semibold">
-                      ERRORS LOGGED
-                    </span>
+                  <div className="px-3 py-1.5 first:pl-0">
+                    <span className="text-[var(--color-bad)] t-label block">Errors</span>
                     <span className="text-[var(--color-bad)] font-bold text-sm num">
                       {activeJobData.error_rows?.toLocaleString()}
                     </span>

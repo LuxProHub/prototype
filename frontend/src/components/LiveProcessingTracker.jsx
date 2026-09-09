@@ -116,14 +116,14 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
         description={`File: ${jobState.filename || 'Register batch'}`}
         actions={
           <span
-            className={`px-3 py-1 text-xs font-bold font-mono rounded-full border uppercase ${
+            className={`badge ${
               jobState.status === 'COMPLETED'
-                ? 'bg-[var(--color-ok-soft,#34d39920)] text-[var(--color-ok)] border-[var(--color-ok)]/30'
+                ? 'badge-ok'
                 : jobState.status === 'COMPLETED_WITH_ERRORS'
-                ? 'bg-[var(--color-warn-soft,#fbbf2420)] text-[var(--color-warn)] border-[var(--color-warn)]/30'
+                ? 'badge-warn'
                 : jobState.status === 'FAILED'
-                ? 'bg-[var(--color-bad-soft,#fb718520)] text-[var(--color-bad)] border-[var(--color-bad)]/30'
-                : 'bg-[var(--color-accent-soft)] text-[var(--color-accent)] border-[var(--color-accent)]/30'
+                ? 'badge-bad'
+                : 'badge-accent'
             }`}
           >
             {jobState.status}
@@ -140,7 +140,7 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
               : 'border-[var(--color-accent)]/30 text-[var(--color-accent)]'
           }`}
         >
-          <span className="font-bold block uppercase text-[10.5px] tracking-wider">
+          <span className="t-label block">
             {jobState.status === 'FAILED' ? '⚠ Engine Error Notice:' : 'ℹ Execution Notice:'}
           </span>
           <p className="leading-relaxed font-semibold">{jobState.message}</p>
@@ -171,7 +171,7 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
                   {status === 'completed' ? '✓' : idx + 1}
                 </div>
                 <span
-                  className={`text-[9.5px] font-mono uppercase font-bold tracking-wider ${
+                  className={`t-label ${
                     status === 'completed'
                       ? 'text-[var(--color-ok)]'
                       : status === 'active'

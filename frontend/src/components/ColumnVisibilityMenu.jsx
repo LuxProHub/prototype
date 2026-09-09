@@ -45,7 +45,7 @@ export default function ColumnVisibilityMenu({
           aria-label="Column visibility options"
           className="absolute right-0 top-full mt-1.5 z-40 w-52 glass-raised rounded-[var(--radius-md)] p-2 shadow-xl border border-[var(--color-border-strong)] animate-rise-in"
         >
-          <div className="text-[11px] font-semibold text-[var(--color-text-muted)] px-2 py-1 uppercase tracking-wider border-b border-[var(--color-border)] mb-1">
+          <div className="t-label px-2 py-1 border-b border-[var(--color-border)] mb-1">
             Toggle Columns
           </div>
 
