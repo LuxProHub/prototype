@@ -311,3 +311,24 @@ def test_total_owner_details_community_cleaning():
     assert clean_community("Dubai Hills Estate") == "Dubai Hills Estate"
 
 
+
+
+def test_bulk_queue_requires_authentication():
+    """A bulk endpoint must not be an easier way in than the single one.
+
+    Everything under /api except the login route requires a Bearer token, and
+    POST /leads/bulk creates outreach state, so it is held to exactly the same
+    bar as POST /records/{id}/activity.
+    """
+    res = client.post("/api/leads/bulk", json={"record_ids": [1]})
+    assert res.status_code == 401
+
+
+def test_bulk_queue_rejects_an_oversized_batch(auth_headers):
+    """The batch runs in one transaction, so its size has to be bounded."""
+    from backend.app.api.leads import BULK_MAX
+
+    res = client.post("/api/leads/bulk",
+                      json={"record_ids": list(range(BULK_MAX + 1))},
+                      headers=auth_headers)
+    assert res.status_code == 422

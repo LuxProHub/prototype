@@ -217,7 +217,7 @@ export default function App() {
             )}
 
             {activeTab === 'records' && (
-              <RecordsExplorer initialQuery={searchQuery} />
+              <RecordsExplorer initialQuery={searchQuery} onNavigate={setActiveTab} />
             )}
 
             {activeTab === 'queue' && <CallQueue />}

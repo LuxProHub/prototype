@@ -17,12 +17,14 @@ import {
   SlidersHorizontal,
   SearchX,
   RotateCcw,
+  PhoneCall,
 } from 'lucide-react';
 import CustomSelect from './CustomSelect';
 import { apiFetch } from '../lib/api';
 import LeadActivityPanel from './LeadActivityPanel';
 import { useToast } from '../lib/toast';
 import PageHeader from './ui/PageHeader';
+import AddToQueueDialog from './AddToQueueDialog';
 
 /** Render a result count, marking it as a floor when the API capped its count. */
 function formatTotal(total, capped) {
@@ -70,8 +72,13 @@ const COLUMNS = [
   { key: 'mobile_1', label: 'Mobile', className: 'min-w-[130px]' },
 ];
 
-/** Memoized table row to prevent re-rendering during search typing and modal interaction */
-const RecordRow = React.memo(function RecordRow({ r, onSelect }) {
+/**
+ * Memoized table row to prevent re-rendering during search typing and modal
+ * interaction. `checked` is passed as a boolean rather than the selection set
+ * so a row only re-renders when its own selection actually changes -- handing
+ * the whole Set down would invalidate every row on every click.
+ */
+const RecordRow = React.memo(function RecordRow({ r, onSelect, checked, onToggle }) {
   const open = () => onSelect(r);
   return (
     <tr
@@ -84,7 +91,19 @@ const RecordRow = React.memo(function RecordRow({ r, onSelect }) {
       }}
       tabIndex={0}
       className="group"
+      data-selected={checked || undefined}
     >
+      <td className="w-9 pr-0" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => onToggle(r.id)}
+          // The row opens the inspector; the checkbox must not.
+          onKeyDown={(e) => e.stopPropagation()}
+          className="accent-[var(--accent)] w-3.5 h-3.5 align-middle cursor-pointer"
+          aria-label={`Select ${r.name || `record ${r.id}`}`}
+        />
+      </td>
       <td className="max-w-[260px]">
         <div className="flex items-center gap-2.5 min-w-0">
           <StatusDot status={r.status} />
@@ -178,12 +197,22 @@ function Field({ f, record, form, editing, onChange }) {
 
 const PAGE_SIZES = [25, 50, 100];
 
-export default function RecordsExplorer({ initialQuery = '' }) {
+export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
   const { notify } = useToast();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  // Selection is a Set of record ids and deliberately survives paging: an
+  // operator builds a call list by working through pages, and dropping it on
+  // every page change would make that impossible. The count is always on
+  // screen and one click clears it, so nothing is selected invisibly.
+  const [selected, setSelected] = useState(() => new Set());
+  const [queueOpen, setQueueOpen] = useState(false);
+  // Assignable colleagues. Only managers may list users, so a 403 here is a
+  // normal outcome for a caller who simply cannot assign -- the dialog then
+  // offers 'leave unassigned' alone rather than failing.
+  const [assignableUsers, setAssignableUsers] = useState([]);
   const [isExporting, setIsExporting] = useState(null); // 'csv' | 'xlsx' | null
   const [search, setSearch] = useState(initialQuery);
   const [debouncedSearch, setDebouncedSearch] = useState(initialQuery);
@@ -260,6 +289,10 @@ export default function RecordsExplorer({ initialQuery = '' }) {
 
   useEffect(() => {
     fetchFilterOptions();
+    apiFetch('/api/auth/users')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((list) => setAssignableUsers(Array.isArray(list) ? list : []))
+      .catch(() => setAssignableUsers([]));
   }, []);
 
   useEffect(() => {
@@ -466,6 +499,32 @@ export default function RecordsExplorer({ initialQuery = '' }) {
     setPage(1);
   };
 
+  // --- selection -----------------------------------------------------------
+  const toggleOne = useCallback((id) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const allVisibleSelected = records.length > 0 && records.every((r) => selected.has(r.id));
+  const someVisibleSelected = records.some((r) => selected.has(r.id));
+
+  const toggleAllVisible = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      // Acts on this page only. "Select all 1.2M matching records" is a
+      // different promise and would need the server to make it.
+      if (allVisibleSelected) records.forEach((r) => next.delete(r.id));
+      else records.forEach((r) => next.add(r.id));
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
   const STATUS_OPTIONS = [
     { label: 'Valid records', value: '' },
     { label: 'Duplicates only', value: 'DUPLICATE' },
@@ -638,6 +697,25 @@ export default function RecordsExplorer({ initialQuery = '' }) {
         )}
       </div>
 
+      {/* Selection action bar. Sits in the layout above the table rather than
+          floating over it, so it never covers the rows being selected. */}
+      {selected.size > 0 && (
+        <div className="flex-shrink-0 panel px-3 py-2 flex flex-wrap items-center gap-2 border-[var(--accent-ring)] bg-[var(--accent-soft)] animate-drop-in">
+          <span className="text-[13px] text-[var(--text)]" role="status">
+            <span className="num font-semibold">{selected.size}</span>
+            {selected.size === 1 ? ' record selected' : ' records selected'}
+          </span>
+          <button onClick={clearSelection} className="btn-ghost h-7 px-2 text-[12px]">
+            Clear
+          </button>
+          <div className="flex-1" />
+          <button onClick={() => setQueueOpen(true)} className="btn-primary h-8 px-3 text-[13px]">
+            <PhoneCall className="w-3.5 h-3.5" />
+            Add to call queue
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="panel overflow-hidden flex-1 flex flex-col min-h-0">
         <div className={`loading-bar ${loading ? '' : 'invisible'}`} aria-hidden="true" />
@@ -645,6 +723,20 @@ export default function RecordsExplorer({ initialQuery = '' }) {
           <table className="data-table">
             <thead>
               <tr>
+                <th scope="col" className="w-9 pr-0">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    ref={(el) => {
+                      // Indeterminate is not an attribute, only a property.
+                      if (el) el.indeterminate = someVisibleSelected && !allVisibleSelected;
+                    }}
+                    onChange={toggleAllVisible}
+                    disabled={!records.length}
+                    className="accent-[var(--accent)] w-3.5 h-3.5 align-middle cursor-pointer"
+                    aria-label={allVisibleSelected ? 'Clear selection on this page' : 'Select all records on this page'}
+                  />
+                </th>
                 {COLUMNS.map((c) => {
                   const active = sortBy === c.key;
                   return (
@@ -684,10 +776,18 @@ export default function RecordsExplorer({ initialQuery = '' }) {
                   </tr>
                 ))
               ) : records.length > 0 ? (
-                records.map((r) => <RecordRow key={r.id} r={r} onSelect={openRecordModal} />)
+                records.map((r) => (
+                  <RecordRow
+                    key={r.id}
+                    r={r}
+                    onSelect={openRecordModal}
+                    checked={selected.has(r.id)}
+                    onToggle={toggleOne}
+                  />
+                ))
               ) : loadError ? (
                 <tr className="pointer-events-none">
-                  <td colSpan={COLUMNS.length} className="py-16">
+                  <td colSpan={COLUMNS.length + 1} className="py-16">
                     <div className="flex flex-col items-center text-center gap-2">
                       <span className="w-10 h-10 rounded-full bg-[var(--bad-soft)] border border-[var(--bad)]/30 flex items-center justify-center">
                         <AlertCircle className="w-4.5 h-4.5 text-[var(--bad)]" />
@@ -705,7 +805,7 @@ export default function RecordsExplorer({ initialQuery = '' }) {
                 </tr>
               ) : (
                 <tr className="pointer-events-none">
-                  <td colSpan={COLUMNS.length} className="py-16">
+                  <td colSpan={COLUMNS.length + 1} className="py-16">
                     <div className="flex flex-col items-center text-center gap-2">
                       <span className="w-10 h-10 rounded-full bg-[var(--surface-2)] border border-[var(--edge)] flex items-center justify-center">
                         <SearchX className="w-4.5 h-4.5 text-[var(--text-3)]" />
@@ -897,6 +997,19 @@ export default function RecordsExplorer({ initialQuery = '' }) {
             </div>
           </div>
         </div>
+      )}
+
+      {queueOpen && (
+        <AddToQueueDialog
+          recordIds={[...selected]}
+          users={assignableUsers}
+          onClose={() => setQueueOpen(false)}
+          onDone={(failedIds) => setSelected(new Set(failedIds))}
+          onGoToQueue={() => {
+            setQueueOpen(false);
+            onNavigate?.('queue');
+          }}
+        />
       )}
     </div>
   );

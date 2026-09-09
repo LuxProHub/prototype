@@ -86,6 +86,39 @@ class LeadPatch(BaseModel):
     next_action_at: datetime | None = None
 
 
+# Bulk add is a deliberate operator action over a page of selected rows, not a
+# hot path, and the whole batch is held in one transaction. The cap keeps that
+# transaction bounded; the UI pages at 100, so it is well clear of normal use.
+BULK_MAX = 500
+
+
+class BulkQueueIn(BaseModel):
+    record_ids: list[int] = Field(..., min_length=1, max_length=BULK_MAX)
+    owner_user_id: int | None = None
+    next_action_at: datetime | None = None
+
+
+class BulkFailure(BaseModel):
+    record_id: int
+    reason: str
+
+
+class BulkQueueOut(BaseModel):
+    """Deliberately four buckets, not a single count.
+
+    `already_queued` and `opted_out` are both "no lead was created", but they
+    mean opposite things to a desk: one is a person someone is already working,
+    the other is a person nobody may call. Collapsing them would let an
+    operator believe an opt-out is on their call list.
+    """
+    requested: int
+    added: int
+    already_queued: int
+    opted_out: int
+    failed: list[BulkFailure]
+    lead_ids: list[int]
+
+
 # --------------------------------------------------------------------------
 # helpers
 # --------------------------------------------------------------------------
@@ -248,6 +281,94 @@ def update_lead(
     db.commit()
     db.refresh(lead)
     return lead
+
+
+@router.post("/leads/bulk", response_model=BulkQueueOut, status_code=201)
+def bulk_queue(
+    payload: BulkQueueIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Put a selection of records on the call queue.
+
+    This exists because the only other way to create a lead is to log an
+    activity against a record, and putting someone on a list is not a phone
+    call. Reusing that path would write call history that never happened, into
+    the one table whose whole design rationale is that call history cannot be
+    re-derived from a source file.
+
+    Deduplication is by identity_hash, not record_id, because that is how a
+    lead is keyed. One owner holding four units is one person to call, so
+    selecting all four rows yields one lead -- which is why the response
+    reports what happened rather than just a count of what was sent.
+
+    Existing leads are left completely untouched. Re-adding a record someone
+    else is already working must not silently reassign it or reschedule their
+    callback.
+    """
+    ids = list(dict.fromkeys(payload.record_ids))  # de-dup, keep order
+
+    # Never trust a client-supplied owner. An unchecked id here would let the
+    # caller park work on an account that does not exist.
+    if payload.owner_user_id is not None and db.get(User, payload.owner_user_id) is None:
+        raise HTTPException(422, f"User {payload.owner_user_id} not found.")
+
+    # Two queries, not two per record: the records, then the leads that already
+    # exist for their identities. Everything after this is in memory.
+    records = db.scalars(select(Record).where(Record.id.in_(ids))).all()
+    by_id = {r.id: r for r in records}
+
+    existing = {
+        lead.identity_hash: lead
+        for lead in db.scalars(
+            select(Lead).where(Lead.identity_hash.in_({r.identity_hash for r in records}))
+        )
+    } if records else {}
+
+    added, already, opted_out = 0, 0, 0
+    failed: list[BulkFailure] = []
+    lead_ids: list[int] = []
+    seen: set[str] = set()
+
+    for rid in ids:
+        record = by_id.get(rid)
+        if record is None:
+            failed.append(BulkFailure(record_id=rid, reason="Record not found."))
+            continue
+
+        prior = existing.get(record.identity_hash)
+        if prior is not None:
+            # Counted once per identity, not once per row, so the numbers add
+            # up to the selection the operator actually made.
+            if record.identity_hash not in seen:
+                seen.add(record.identity_hash)
+                if prior.stage == LeadStage.DO_NOT_CONTACT:
+                    opted_out += 1
+                else:
+                    already += 1
+                    lead_ids.append(prior.id)
+            continue
+
+        if record.identity_hash in seen:
+            continue  # a second row for an owner already handled in this batch
+
+        # _get_or_create_lead flushes, so a later row sharing this identity
+        # finds the lead instead of racing a second insert against the unique
+        # constraint on identity_hash.
+        lead = _get_or_create_lead(db, record)
+        seen.add(record.identity_hash)
+        if payload.owner_user_id is not None:
+            lead.owner_user_id = payload.owner_user_id
+        if payload.next_action_at is not None:
+            lead.next_action_at = payload.next_action_at
+        added += 1
+        lead_ids.append(lead.id)
+
+    db.commit()
+    log.info("%s queued %d record(s): %d added, %d already queued, %d opted out",
+             user.email, len(ids), added, already, opted_out)
+    return BulkQueueOut(requested=len(ids), added=added, already_queued=already,
+                        opted_out=opted_out, failed=failed, lead_ids=lead_ids)
 
 
 @router.get("/leads", response_model=list[LeadOut])

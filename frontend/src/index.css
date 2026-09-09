@@ -428,6 +428,16 @@
   background: var(--row-hover);
 }
 
+/* A selected row stays marked while hovered, so a long selection does not
+   appear to lose rows as the pointer travels across it. */
+.data-table tbody tr[data-selected] {
+  background: var(--accent-soft);
+}
+
+.data-table tbody tr[data-selected]:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
 .data-table tbody tr:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;

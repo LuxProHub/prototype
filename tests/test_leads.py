@@ -7,7 +7,7 @@ re-run; what a salesperson did on the phone exists nowhere else.
 import pytest
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import create_engine, delete, event, select
+from sqlalchemy import create_engine, delete, event, func, select
 from sqlalchemy.orm import sessionmaker
 
 from backend.app.api.leads import _get_or_create_lead, relink_leads
@@ -265,3 +265,149 @@ def test_the_opt_out_holds_while_a_lead_is_detached(db, user):
     db.refresh(lead)
     assert lead.record_id is None
     assert db.scalars(_build_records_query()).all() == []
+
+
+# ---------------------------------------------------------------------------
+# POST /leads/bulk -- putting a selection of records on the queue
+#
+# The property these tests exist for: bulk add is keyed by identity_hash, so
+# the number of leads created is the number of *people* selected, not the
+# number of rows. An operator selecting four units owned by one person must
+# end up calling them once.
+# ---------------------------------------------------------------------------
+def _bulk(db, user, ids, **kw):
+    from backend.app.api.leads import BulkQueueIn, bulk_queue
+    return bulk_queue(BulkQueueIn(record_ids=ids, **kw), user, db)
+
+
+def test_one_record_becomes_one_lead(db, user):
+    record = _record(db, identity_hash="bulk-1")
+    out = _bulk(db, user, [record.id])
+
+    assert (out.added, out.already_queued, out.opted_out) == (1, 0, 0)
+    assert out.failed == []
+    lead = db.scalar(select(Lead).where(Lead.identity_hash == "bulk-1"))
+    assert lead is not None and lead.stage == LeadStage.NEW
+
+
+def test_several_records_become_several_leads(db, user):
+    ids = [_record(db, identity_hash=f"bulk-{i}", name=f"Owner {i}").id
+           for i in range(3)]
+    out = _bulk(db, user, ids)
+
+    assert out.added == 3
+    assert db.scalar(select(func.count()).select_from(Lead)) == 3
+
+
+def test_adding_a_record_twice_is_idempotent(db, user):
+    record = _record(db, identity_hash="bulk-dup")
+    first = _bulk(db, user, [record.id])
+    second = _bulk(db, user, [record.id])
+
+    assert first.added == 1
+    assert (second.added, second.already_queued) == (0, 1)
+    assert db.scalar(select(func.count()).select_from(Lead)) == 1
+    # The second call must point at the same lead, not report a phantom one.
+    assert second.lead_ids == first.lead_ids
+
+
+def test_two_records_for_one_owner_make_one_lead(db, user):
+    # The case the whole identity_hash design exists for: one person, two
+    # units. Selecting both rows is selecting one person to call.
+    a = _record(db, identity_hash="same-owner", name="Owner A")
+    b = _record(db, identity_hash="same-owner", name="Owner A")
+    out = _bulk(db, user, [a.id, b.id])
+
+    assert out.requested == 2
+    assert out.added == 1
+    assert out.already_queued == 0
+    assert db.scalar(select(func.count()).select_from(Lead)) == 1
+
+
+def test_unknown_record_is_reported_not_swallowed(db, user):
+    record = _record(db, identity_hash="bulk-ok")
+    out = _bulk(db, user, [record.id, 999999])
+
+    assert out.added == 1
+    assert [f.record_id for f in out.failed] == [999999]
+    assert "not found" in out.failed[0].reason.lower()
+
+
+def test_mixed_new_and_existing(db, user):
+    old = _record(db, identity_hash="existing")
+    _get_or_create_lead(db, old)
+    db.commit()
+    fresh = _record(db, identity_hash="fresh", name="New Owner")
+
+    out = _bulk(db, user, [old.id, fresh.id])
+    assert (out.added, out.already_queued) == (1, 1)
+    assert len(out.lead_ids) == 2
+
+
+def test_assignment_and_scheduling_apply_to_new_leads(db, user):
+    record = _record(db, identity_hash="assign-me")
+    due = datetime.now(timezone.utc) + timedelta(days=1)
+    _bulk(db, user, [record.id], owner_user_id=user.id, next_action_at=due)
+
+    lead = db.scalar(select(Lead).where(Lead.identity_hash == "assign-me"))
+    assert lead.owner_user_id == user.id
+    assert lead.next_action_at is not None
+
+
+def test_existing_lead_is_never_reassigned(db, user):
+    # Re-adding a record somebody else is working must not quietly take it off
+    # them, nor move the callback they already scheduled.
+    other = User(email="other@example.com", full_name="Other", hashed_password="x",
+                 role=UserRole.DATA_PROCESSOR, is_active=True)
+    db.add(other)
+    db.commit()
+
+    record = _record(db, identity_hash="owned")
+    lead = _get_or_create_lead(db, record)
+    lead.owner_user_id = other.id
+    original_due = datetime.now(timezone.utc) + timedelta(days=7)
+    lead.next_action_at = original_due
+    db.commit()
+
+    out = _bulk(db, user, [record.id], owner_user_id=user.id,
+                next_action_at=datetime.now(timezone.utc))
+    db.refresh(lead)
+
+    assert out.already_queued == 1
+    assert lead.owner_user_id == other.id
+
+
+def test_an_opt_out_is_reported_separately_and_not_revived(db, user):
+    # DO_NOT_CONTACT folded into "already queued" would tell the desk an
+    # opted-out person is on their call list.
+    record = _record(db, identity_hash="do-not-call")
+    lead = _get_or_create_lead(db, record)
+    lead.stage = LeadStage.DO_NOT_CONTACT
+    db.commit()
+
+    out = _bulk(db, user, [record.id])
+    db.refresh(lead)
+
+    assert (out.added, out.already_queued, out.opted_out) == (0, 0, 1)
+    assert lead.stage == LeadStage.DO_NOT_CONTACT
+    assert out.lead_ids == []
+
+
+def test_an_unknown_owner_is_rejected_before_anything_is_written(db, user):
+    from fastapi import HTTPException
+
+    record = _record(db, identity_hash="no-owner")
+    with pytest.raises(HTTPException) as excinfo:
+        _bulk(db, user, [record.id], owner_user_id=999999)
+
+    assert excinfo.value.status_code == 422
+    # The rejection must happen before the insert, not leave a half-done batch.
+    assert db.scalar(select(func.count()).select_from(Lead)) == 0
+
+
+def test_batch_size_is_capped(db, user):
+    from backend.app.api.leads import BULK_MAX, BulkQueueIn
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        BulkQueueIn(record_ids=list(range(BULK_MAX + 1)))

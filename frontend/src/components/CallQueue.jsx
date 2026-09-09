@@ -119,11 +119,25 @@ export default function CallQueue() {
         // An empty queue is the good outcome, not a failure. Say so.
         <div className="panel rounded-lg p-10 text-center space-y-2">
           <Inbox className="w-8 h-8 mx-auto text-[var(--text-3)]" aria-hidden="true" />
-          <p className="text-sm font-semibold text-[var(--text-2)]">Nothing due</p>
-          <p className="text-xs text-[var(--text-3)]">
-            {mine ? 'No leads assigned to you are due.' : 'No leads are due.'}{' '}
-            Log a call from a record to add one.
+          <p className="text-sm font-semibold text-[var(--text-2)]">
+            {mine || onlyDue ? 'Nothing due' : 'The queue is empty'}
           </p>
+          <p className="text-xs text-[var(--text-3)]">
+            {mine || onlyDue
+              ? 'Leads added without an owner or a date are not in this view.'
+              : 'Select records in Records and add them to the queue to start one.'}
+          </p>
+          {(mine || onlyDue) && (
+            // Without this the default view is a dead end: someone who has just
+            // queued a batch with no owner and no date arrives here, is told
+            // nothing is due, and has no way to see what they added.
+            <button
+              onClick={() => { setMine(false); setOnlyDue(false); }}
+              className="btn h-8 px-3 text-[12px] mt-1"
+            >
+              Show all open leads
+            </button>
+          )}
         </div>
       )}
 
