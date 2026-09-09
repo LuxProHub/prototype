@@ -1,6 +1,6 @@
 /** Authentication Gate & Login Lockscreen */
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, KeyRound, ShieldCheck, Sun, Moon, ArrowRight, Sparkles, Mail, UserCheck } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, ShieldCheck, Sun, Moon, Mail } from 'lucide-react';
 import DataLinkLogo from './DataLinkLogo';
 import { setSession } from '../lib/api';
 import { COMPANY_DOMAIN, EMAIL_PLACEHOLDER } from '../lib/org';
@@ -64,7 +64,7 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
   const isDark = theme === 'dark';
 
   return (
-    <div className={`relative h-screen w-screen flex items-center justify-center overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#14171d] text-slate-100' : 'bg-[#eef0f4] text-slate-800'}`}>
+    <div className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-[var(--ink)] text-[var(--text)]">
       {/* Background Wallpaper with dynamic overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-700 pointer-events-none scale-105"
@@ -83,17 +83,17 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
           type="button"
           onClick={toggleTheme}
           title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
-          className="neumorph-button p-3 rounded-2xl flex items-center gap-2 text-xs font-bold transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+          className="btn p-3 rounded-lg flex items-center gap-2 text-xs font-semibold transition-transform hover:scale-105 active:scale-95 cursor-pointer"
         >
           {isDark ? (
             <>
-              <Sun className="w-4 h-4 text-amber-400 animate-spin-slow" />
-              <span className="text-slate-300">Light Mode</span>
+              <Sun className="w-4 h-4 text-[var(--warn)] animate-spin-slow" />
+              <span className="text-[var(--text-2)]">Light Mode</span>
             </>
           ) : (
             <>
-              <Moon className="w-4 h-4 text-blue-600" />
-              <span className="text-slate-700">Dark Mode</span>
+              <Moon className="w-4 h-4 text-[var(--accent)]" />
+              <span className="text-[var(--text-2)]">Dark Mode</span>
             </>
           )}
         </button>
@@ -101,31 +101,25 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
 
       {/* Central Neumorphic Lock Box */}
       <div className={`relative z-10 w-full max-w-[420px] mx-4 transition-all duration-300 ${isShaking ? 'animate-shake' : ''}`}>
-        <div className="neumorph-card p-8 sm:p-10 flex flex-col items-center text-center relative overflow-visible shadow-2xl">
+        <div className="panel p-8 sm:p-10 flex flex-col items-center text-center relative overflow-visible shadow-2xl">
           
           {/* Floating Logo Badge */}
           <div className="relative -mt-20 mb-6">
-            <div className="w-22 h-22 rounded-3xl bg-[var(--card-bg)] neumorph-inset flex items-center justify-center p-3.5 shadow-xl border border-blue-500/30">
+            <div className="w-22 h-22 rounded-xl bg-[var(--surface)] field flex items-center justify-center p-3.5 shadow-xl border border-[var(--accent-ring)]">
               <DataLinkLogo className="w-12 h-12" />
             </div>
-            <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-blue-600 text-white shadow-md">
+            <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[var(--accent)] text-white shadow-md">
               <ShieldCheck className="w-3.5 h-3.5" />
             </div>
           </div>
 
           {/* Title & Badge */}
           <div className="space-y-1 mb-6">
-            <div className="flex items-center justify-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-              <span className="text-[10px] font-mono font-black tracking-widest text-blue-600 uppercase">
-                RBAC SECURITY GATE
-              </span>
-            </div>
-            <h1 className="text-2xl font-black tracking-tight text-[#0F172A] dark:text-[#F8FAFC]">
-              DATALINK ENGINE
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)]">
+              DataLink Engine
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              Enterprise Real Estate Ingestion & Deduplication
+            <p className="text-[13px] text-[var(--text-2)]">
+              Sign in to the register workspace
             </p>
           </div>
 
@@ -133,12 +127,12 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
           <form onSubmit={handleSubmit} className="w-full space-y-3.5">
             {/* Email Input */}
             <div className="relative text-left">
-              <label className="block text-[10px] font-mono font-black text-slate-500 uppercase tracking-wider mb-1 ml-1">
-                Operator Email
+              <label className="block text-[12px] text-[var(--text-2)] mb-1.5">
+                Email
               </label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                  <Mail className="w-4 h-4 text-blue-500" />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none">
+                  <Mail className="w-4 h-4 text-[var(--accent)]" />
                 </div>
                 <input
                   type="email"
@@ -147,19 +141,19 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
                   placeholder={EMAIL_PLACEHOLDER}
                   autoFocus
                   required
-                  className="w-full neumorph-inset rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none transition-all"
+                  className="w-full field rounded-lg pl-11 pr-4 py-3 text-xs font-semibold text-[var(--text)] focus:outline-none transition-all"
                 />
               </div>
             </div>
 
             {/* Password Input */}
             <div className="relative text-left">
-              <label className="block text-[10px] font-mono font-black text-slate-500 uppercase tracking-wider mb-1 ml-1">
-                Access Password
+              <label className="block text-[12px] text-[var(--text-2)] mb-1.5">
+                Password
               </label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                  <KeyRound className="w-4 h-4 text-blue-500" />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none">
+                  <KeyRound className="w-4 h-4 text-[var(--accent)]" />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -167,13 +161,13 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
                   onChange={(e) => { setPassword(e.target.value); setError(''); }}
                   placeholder="Enter password..."
                   required
-                  className="w-full neumorph-inset rounded-2xl pl-11 pr-11 py-3 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none transition-all"
+                  className="w-full field rounded-lg pl-11 pr-11 py-3 text-xs font-semibold text-[var(--text)] focus:outline-none transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors p-1 cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-3)] hover:text-[var(--accent-hover)] transition-colors p-1 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -182,7 +176,7 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
 
             {/* Error Message */}
             {error && (
-              <div className="text-xs font-bold text-rose-500 bg-rose-500/10 border border-rose-500/30 py-2 px-3 rounded-xl animate-fade-in text-left">
+              <div className="text-xs font-semibold text-[var(--bad)] bg-[var(--bad-soft)] border border-rose-500/30 py-2 px-3 rounded-xl animate-fade-in text-left">
                 {error}
               </div>
             )}
@@ -191,15 +185,12 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full neumorph-button-primary py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 group transition-all mt-2 cursor-pointer shadow-lg"
+              className="w-full btn-primary h-11 rounded-lg text-[13px] mt-2 cursor-pointer"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <>
-                  <span>Authenticate Session</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </>
+                <span>Sign in</span>
               )}
             </button>
           </form>
@@ -220,11 +211,9 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
               being a decision anybody made. */}
           <div className="mt-5 space-y-3">
             <div className="flex items-center gap-3" aria-hidden="true">
-              <span className="h-px flex-1 bg-slate-300/70" />
-              <span className="text-[10px] font-mono text-slate-400 font-bold">
-                OR CONTINUE WITH
-              </span>
-              <span className="h-px flex-1 bg-slate-300/70" />
+              <span className="h-px flex-1 bg-[var(--edge)]" />
+              <span className="text-[12px] text-[var(--text-3)]">or</span>
+              <span className="h-px flex-1 bg-[var(--edge)]" />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -232,7 +221,7 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
                 type="button"
                 disabled
                 title="Google sign-in is not connected yet"
-                className="neumorph-button py-2.5 rounded-xl text-xs font-bold text-slate-500 flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
+                className="btn py-2.5 rounded-xl text-xs font-semibold text-[var(--text-3)] flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
                   <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"/>
@@ -251,7 +240,7 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
                 type="button"
                 disabled
                 title="Microsoft sign-in is not connected yet"
-                className="neumorph-button py-2.5 rounded-xl text-xs font-bold text-slate-500 flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
+                className="btn py-2.5 rounded-xl text-xs font-semibold text-[var(--text-3)] flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
               >
                 <svg className="w-4 h-4" viewBox="0 0 23 23" aria-hidden="true">
                   <path fill="#F25022" d="M1 1h10v10H1z"/>
@@ -263,7 +252,7 @@ export default function AuthLockScreen({ onAuthenticate, theme, toggleTheme }) {
               </button>
             </div>
 
-            <p className="text-[10px] text-slate-400 text-center">
+            <p className="text-[10px] text-[var(--text-3)] text-center">
               Single sign-on is not connected yet. Use your {COMPANY_DOMAIN} email and password.
             </p>
           </div>

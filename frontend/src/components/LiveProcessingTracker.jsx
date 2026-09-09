@@ -56,8 +56,8 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
   if (!jobState) {
     return (
       <Tilt3DCard className="p-8 max-w-4xl mx-auto text-center space-y-3">
-        <RefreshCw className="w-6 h-6 text-blue-600 animate-spin mx-auto" />
-        <p className="text-xs text-slate-600 font-mono">Connecting to Python batch execution engine for Job #{jobId}...</p>
+        <RefreshCw className="w-6 h-6 text-[var(--accent)] animate-spin mx-auto" />
+        <p className="text-xs text-[var(--text-2)] font-mono">Connecting to Python batch execution engine for Job #{jobId}...</p>
       </Tilt3DCard>
     );
   }
@@ -80,20 +80,18 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <span className="text-[10px] font-mono uppercase text-blue-700 font-bold px-3 py-1 rounded-full bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-            Execution Run #{jobId}
-          </span>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight mt-2">{jobState.filename}</h2>
+          <span className="badge badge-accent num">Run #{jobId}</span>
+          <h2 className="text-xl font-semibold text-[var(--text)] tracking-tight mt-2">{jobState.filename}</h2>
         </div>
         <span
-          className={`px-3 py-1 text-xs font-bold font-mono rounded-full border ${
+          className={`px-3 py-1 text-xs font-semibold font-mono rounded-full border ${
             jobState.status === 'COMPLETED'
-              ? 'bg-[#eef0f4] text-emerald-700 border-emerald-300 shadow-[inset_2px_2px_4px_#cbd2dc]'
+              ? 'bg-[var(--surface-2)] text-[var(--ok)] border-emerald-300'
               : jobState.status === 'COMPLETED_WITH_ERRORS'
-              ? 'bg-[#eef0f4] text-amber-700 border-amber-300 shadow-[inset_2px_2px_4px_#cbd2dc]'
+              ? 'bg-[var(--surface-2)] text-[var(--warn)] border-amber-300'
               : jobState.status === 'FAILED'
-              ? 'bg-[#eef0f4] text-rose-700 border-rose-300 shadow-[inset_2px_2px_4px_#cbd2dc]'
-              : 'bg-[#eef0f4] text-blue-700 border-blue-300 shadow-[inset_2px_2px_4px_#cbd2dc]'
+              ? 'bg-[var(--surface-2)] text-[var(--bad)] border-rose-300'
+              : 'bg-[var(--surface-2)] text-[var(--accent)] border-[var(--accent-ring)]'
           }`}
         >
           {jobState.status}
@@ -102,10 +100,10 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
 
       {/* Engine Diagnostic Callout Banner */}
       {jobState.message && (
-        <div className={`p-4 rounded-2xl border text-xs font-mono space-y-1 bg-[#eef0f4] shadow-[inset_3px_3px_6px_#cbd2dc] ${
-          jobState.status === 'FAILED' ? 'border-rose-300 text-rose-700' : 'border-blue-300 text-blue-700'
-        }`}>
-          <span className="font-bold block uppercase text-[10px] tracking-wider">
+        <div className={`p-4 rounded-lg border text-xs font-mono space-y-1 bg-[var(--surface-2)] ${
+          jobState.status === 'FAILED' ? 'border-rose-300 text-[var(--bad)]' : 'border-[var(--accent-ring)] text-[var(--accent)]'
+            }`}>
+          <span className="font-semibold block uppercase text-[10px] tracking-wider">
             {jobState.status === 'FAILED' ? '⚠ Engine Execution Diagnostic Error:' : 'ℹ Engine Processing Notice:'}
           </span>
           <p className="leading-relaxed font-semibold">{jobState.message}</p>
@@ -120,21 +118,21 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
           {steps.map((step, idx) => {
             const status = getStepStatus(step);
             return (
-              <div key={idx} className="flex flex-col items-center space-y-2 bg-[#eef0f4] px-2.5 py-1 rounded-xl border border-white/80 shadow-[3px_3px_6px_#cbd2dc]">
+              <div key={idx} className="flex flex-col items-center space-y-2 bg-[var(--surface-2)] px-2.5 py-1 rounded-xl border border-[var(--edge)]">
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                     status === 'completed'
                       ? 'bg-emerald-600 text-white'
                       : status === 'active'
-                      ? 'bg-blue-600 text-white animate-pulse'
-                      : 'bg-slate-300 text-slate-600'
+                      ? 'bg-[var(--accent)] text-white animate-pulse'
+                      : 'bg-slate-300 text-[var(--text-2)]'
                   }`}
                 >
                   {status === 'completed' ? '✓' : idx + 1}
                 </div>
-                <span className={`text-[10px] font-mono uppercase font-bold ${
-                  status === 'completed' ? 'text-emerald-700' : status === 'active' ? 'text-blue-600' : 'text-slate-500'
-                }`}>
+                <span className={`text-[10px] font-mono uppercase font-semibold ${
+                  status === 'completed' ? 'text-[var(--ok)]' : status === 'active' ? 'text-[var(--accent)]' : 'text-[var(--text-3)]'
+                    }`}>
                   {step}
                 </span>
               </div>
@@ -146,13 +144,13 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
       {/* Progress Bar & Key Metrics */}
       <Tilt3DCard className="p-6 space-y-6">
         <div className="space-y-2">
-          <div className="flex justify-between text-xs font-mono font-bold">
-            <span className="text-slate-800">BATCH PROGRESS: Batch {jobState.current_batch} / {jobState.total_batches}</span>
-            <span className="text-blue-600">{jobState.progress_pct}%</span>
+          <div className="flex justify-between text-xs font-mono font-semibold">
+            <span className="text-[var(--text)]">BATCH PROGRESS: Batch {jobState.current_batch} / {jobState.total_batches}</span>
+            <span className="text-[var(--accent)]">{jobState.progress_pct}%</span>
           </div>
-          <div className="h-3 w-full bg-[#eef0f4] rounded-full overflow-hidden p-0.5 border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc,inset_-2px_-2px_4px_#ffffff]">
+          <div className="h-3 w-full bg-[var(--surface-2)] rounded-full overflow-hidden p-0.5 border border-[var(--edge)]">
             <div
-              className="h-full bg-blue-600 rounded-full transition-all duration-300"
+              className="h-full bg-[var(--accent)] rounded-full transition-all duration-300"
               style={{ width: `${jobState.progress_pct}%` }}
             ></div>
           </div>
@@ -160,36 +158,36 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
 
         {/* Live Counters */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
-          <div className="p-3.5 rounded-2xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_3px_3px_6px_#cbd2dc]">
-            <span className="text-[10px] text-slate-500 block font-bold">TOTAL PROCESSED</span>
-            <span className="text-sm font-black text-slate-900">{jobState.processed_rows} / {jobState.total_rows}</span>
+          <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-[var(--edge)]">
+            <span className="text-[10px] text-[var(--text-3)] block font-semibold">TOTAL PROCESSED</span>
+            <span className="text-sm font-semibold text-[var(--text)]">{jobState.processed_rows} / {jobState.total_rows}</span>
           </div>
-          <div className="p-3.5 rounded-2xl bg-[#eef0f4] border border-emerald-300/80 shadow-[inset_3px_3px_6px_#cbd2dc]">
-            <span className="text-[10px] text-emerald-700 block font-bold">VALID RECORDS</span>
-            <span className="text-sm font-black text-emerald-700">{jobState.valid_rows}</span>
+          <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-emerald-300/80">
+            <span className="text-[10px] text-[var(--ok)] block font-semibold">VALID RECORDS</span>
+            <span className="text-sm font-semibold text-[var(--ok)]">{jobState.valid_rows}</span>
           </div>
-          <div className="p-3.5 rounded-2xl bg-[#eef0f4] border border-amber-300/80 shadow-[inset_3px_3px_6px_#cbd2dc]">
-            <span className="text-[10px] text-amber-700 block font-bold">DUPLICATES FLAGGED</span>
-            <span className="text-sm font-black text-amber-700">{jobState.duplicate_rows}</span>
+          <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-amber-300/80">
+            <span className="text-[10px] text-[var(--warn)] block font-semibold">DUPLICATES FLAGGED</span>
+            <span className="text-sm font-semibold text-[var(--warn)]">{jobState.duplicate_rows}</span>
           </div>
-          <div className="p-3.5 rounded-2xl bg-[#eef0f4] border border-rose-300/80 shadow-[inset_3px_3px_6px_#cbd2dc]">
-            <span className="text-[10px] text-rose-700 block font-bold">VALIDATION ERRORS</span>
-            <span className="text-sm font-black text-rose-700">{jobState.error_rows}</span>
+          <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-rose-300/80">
+            <span className="text-[10px] text-[var(--bad)] block font-semibold">VALIDATION ERRORS</span>
+            <span className="text-sm font-semibold text-[var(--bad)]">{jobState.error_rows}</span>
           </div>
         </div>
       </Tilt3DCard>
 
       {/* Terminal Stream */}
       <Tilt3DCard className="p-5 space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-300/60 pb-3">
-          <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 font-mono">
-            <Terminal className="w-4 h-4 text-blue-600" />
+        <div className="flex items-center justify-between border-b border-[var(--edge)] pb-3">
+          <div className="flex items-center space-x-2 text-xs font-semibold text-[var(--text)] font-mono">
+            <Terminal className="w-4 h-4 text-[var(--accent)]" />
             <span>BATCH ENGINE TERMINAL STREAM</span>
           </div>
-          <span className="text-[10px] font-mono text-slate-500">Socket Stream Sync</span>
+          <span className="text-[10px] font-mono text-[var(--text-3)]">Socket Stream Sync</span>
         </div>
 
-        <div className="neumorph-inset p-4 rounded-2xl font-mono text-xs text-blue-700 space-y-1.5 h-36 overflow-y-auto">
+        <div className="field p-4 rounded-lg font-mono text-xs text-[var(--accent)] space-y-1.5 h-36 overflow-y-auto">
           {logs.map((logLine, i) => (
             <p key={i} className="leading-relaxed">{logLine}</p>
           ))}
@@ -201,7 +199,7 @@ export default function LiveProcessingTracker({ jobId, onJobCompleted, setActive
         <div className="flex justify-end space-x-3">
           <button
             onClick={() => setActiveTab('records')}
-            className="neumorph-button-primary px-6 py-3 text-xs font-bold flex items-center space-x-2"
+            className="btn-primary px-6 py-3 text-xs font-semibold flex items-center space-x-2"
           >
             <span>Explore Clean Processed Records</span>
             <ArrowRight className="w-4 h-4" />

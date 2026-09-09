@@ -1,5 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ChevronLeft, ChevronRight, X, ArrowUpDown, ArrowUp, ArrowDown, Edit3, Save, CheckCircle2, AlertCircle, Download, FileSpreadsheet, FileText, Loader2, SlidersHorizontal, RotateCcw, Filter } from 'lucide-react';
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Edit3,
+  Save,
+  CheckCircle2,
+  AlertCircle,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+  SlidersHorizontal,
+  SearchX,
+  RotateCcw,
+} from 'lucide-react';
 import CustomSelect from './CustomSelect';
 import { apiFetch } from '../lib/api';
 import LeadActivityPanel from './LeadActivityPanel';
@@ -9,73 +27,160 @@ function formatTotal(total, capped) {
   return capped ? `${total.toLocaleString()}+` : total.toLocaleString();
 }
 
+function formatAed(v) {
+  return v ? `AED ${Number(v).toLocaleString('en-US')}` : null;
+}
+
+// One place for what each status means and how it looks.
+const STATUS = {
+  VALID: { tone: 'ok', label: 'Valid', hint: 'Has a verified name and a phone or email' },
+  DUPLICATE: { tone: 'dup', label: 'Duplicate', hint: 'Matches another record by identity hash; kept for audit' },
+  INCOMPLETE: { tone: 'warn', label: 'Incomplete', hint: 'Missing name or contact details' },
+  ERROR: { tone: 'bad', label: 'Error', hint: 'Failed validation' },
+  INVALID: { tone: 'bad', label: 'Invalid', hint: 'Failed validation' },
+};
+const statusOf = (s) => STATUS[s] || STATUS.VALID;
+
+function StatusDot({ status }) {
+  const { tone, label, hint } = statusOf(status);
+  return (
+    <span
+      title={`${label}: ${hint}`}
+      className="w-2 h-2 rounded-full shrink-0"
+      style={{ background: `var(--${tone})`, boxShadow: `0 0 0 3px var(--${tone}-soft)` }}
+    />
+  );
+}
+
+function StatusBadge({ status }) {
+  const { tone, label } = statusOf(status);
+  return <span className={`badge badge-${tone}`}>{label}</span>;
+}
+
+const COLUMNS = [
+  { key: 'name', label: 'Name', className: 'min-w-[220px]' },
+  { key: 'developer', label: 'Developer', className: 'min-w-[150px]' },
+  { key: 'community', label: 'Community', className: 'min-w-[140px]' },
+  { key: 'building_cluster', label: 'Building', className: 'min-w-[140px]' },
+  { key: 'unit_number', label: 'Unit', className: 'min-w-[90px]' },
+  { key: 'bedroom', label: 'Bedroom', className: 'min-w-[90px]' },
+  { key: 'procedure_value', label: 'Value (AED)', className: 'min-w-[130px] text-right', align: 'right' },
+  { key: 'mobile_1', label: 'Mobile', className: 'min-w-[130px]' },
+];
+
 /** Memoized table row to prevent re-rendering during search typing and modal interaction */
 const RecordRow = React.memo(function RecordRow({ r, onSelect }) {
+  const open = () => onSelect(r);
   return (
     <tr
-      key={r.id}
-      onClick={() => onSelect(r)}
-      className="hover:bg-[#e2e6ed] cursor-pointer transition-colors group"
-      title={`Click row to inspect full details • Status: ${r.status || 'VALID'}`}
+      onClick={open}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open();
+        }
+      }}
+      tabIndex={0}
+      className="group"
     >
-      <td className="px-4 py-3.5 font-black text-slate-900 group-hover:text-blue-700 transition-colors max-w-[200px] truncate" title={r.name || 'N/A'}>
-        <div className="flex items-center space-x-2.5">
-          <span
-            title={
-              r.status === 'DUPLICATE'
-                ? 'Duplicate Record (Preserved)'
-                : r.status === 'VALID'
-                  ? 'Valid Outreach Ready'
-                  : r.status === 'INCOMPLETE'
-                    ? 'Incomplete (Missing Contact/Name)'
-                    : 'Invalid / Error'
-            }
-            className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-xs ${
-              r.status === 'DUPLICATE'
-                ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse'
-                : r.status === 'VALID'
-                  ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-                  : r.status === 'INCOMPLETE'
-                    ? 'bg-indigo-400 dark:bg-indigo-500'
-                    : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]'
-            }`}
-          />
-          <span className="truncate">{r.name || 'N/A'}</span>
-          {r.status === 'DUPLICATE' && (
-            <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-              DUP
-            </span>
-          )}
+      <td className="max-w-[260px]">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <StatusDot status={r.status} />
+          <span className="truncate font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors" title={r.name || ''}>
+            {r.name || <span className="text-[var(--text-3)] font-normal">Unnamed</span>}
+          </span>
+          {r.status === 'DUPLICATE' && <span className="badge badge-dup">dup</span>}
         </div>
       </td>
-      <td className="px-4 py-3.5 text-slate-700 font-semibold max-w-[160px] truncate" title={r.developer || 'N/A'}>
-        {r.developer || 'N/A'}
-      </td>
-      <td className="px-4 py-3.5 text-slate-700 font-semibold max-w-[150px] truncate" title={r.community || 'N/A'}>
-        {r.community || 'N/A'}
-      </td>
-      <td className="px-4 py-3.5 text-slate-700 font-semibold max-w-[140px] truncate" title={r.building_cluster || r.building || 'N/A'}>
-        {r.building_cluster || r.building || 'N/A'}
-      </td>
-      <td className="px-4 py-3.5 font-mono text-blue-700 font-black whitespace-nowrap">
-        {r.unit_number || r.unit || (r.plot_number ? `Plot ${r.plot_number}` : 'N/A')}
-      </td>
-      <td className="px-4 py-3.5 font-mono text-slate-700 font-medium whitespace-nowrap">
-        {r.bedroom || r.bedroom_type || 'N/A'}
-      </td>
-      <td className="px-4 py-3.5 font-mono text-emerald-700 font-black whitespace-nowrap">
-        {r.procedure_value ? `AED ${Number(r.procedure_value).toLocaleString('en-US')}` : 'N/A'}
-      </td>
-      <td className="px-4 py-3.5 font-mono text-slate-700 font-medium whitespace-nowrap">
-        {r.mobile_1 || r.mobile || 'N/A'}
-      </td>
+      <td className="max-w-[180px] truncate" title={r.developer || ''}>{r.developer || '—'}</td>
+      <td className="max-w-[160px] truncate" title={r.community || ''}>{r.community || '—'}</td>
+      <td className="max-w-[160px] truncate" title={r.building_cluster || r.building || ''}>{r.building_cluster || r.building || '—'}</td>
+      <td className="val whitespace-nowrap">{r.unit_number || r.unit || (r.plot_number ? `Plot ${r.plot_number}` : '—')}</td>
+      <td className="whitespace-nowrap">{r.bedroom || r.bedroom_type || '—'}</td>
+      <td className="val whitespace-nowrap text-right">{formatAed(r.procedure_value) || <span className="text-[var(--text-3)]">—</span>}</td>
+      <td className="num whitespace-nowrap">{r.mobile_1 || r.mobile || '—'}</td>
     </tr>
   );
 });
 
+// ---------------------------------------------------------------------------
+// Record inspector schema. Each entry: key edited on the form, how it reads
+// when not editing, and which input it becomes when editing.
+// ---------------------------------------------------------------------------
+const num = (v) => (v === '' || v == null ? null : Number(v));
+
+const SECTIONS = [
+  {
+    title: 'Property',
+    cols: 'grid-cols-2 sm:grid-cols-3',
+    fields: [
+      { key: 'community', label: 'Community' },
+      { key: 'sub_community', label: 'Sub-community' },
+      { key: 'building_cluster', label: 'Building / cluster', read: (r) => r.building_cluster || r.building },
+      { key: 'unit_number', label: 'Unit', read: (r) => r.unit_number || r.unit, val: true },
+      { key: 'bedroom', label: 'Bedroom', read: (r) => r.bedroom || r.bedroom_type },
+      { key: 'size', label: 'Size', type: 'number', read: (r) => (r.size ? `${r.size} sq.ft` : null) },
+      { key: 'property_type', label: 'Property type' },
+      { key: 'developer', label: 'Developer' },
+      { key: 'project', label: 'Project' },
+    ],
+  },
+  {
+    title: 'Contact',
+    cols: 'grid-cols-2 sm:grid-cols-3',
+    fields: [
+      { key: 'name', label: 'Name', span: 2 },
+      { key: 'party_type', label: 'Party type' },
+      { key: 'mobile_1', label: 'Mobile 1', read: (r) => r.mobile_1 || r.mobile, num: true },
+      { key: 'mobile_2', label: 'Mobile 2', num: true },
+      { key: 'mobile_3', label: 'Mobile 3', num: true },
+      { key: 'email_address', label: 'Email', type: 'email', span: 2 },
+      { key: 'pi_number', label: 'PI number / ID', num: true },
+      { key: 'nationality', label: 'Nationality' },
+    ],
+  },
+  {
+    title: 'Land registry',
+    cols: 'grid-cols-2 sm:grid-cols-4',
+    fields: [
+      { key: 'plot_reg_no', label: 'Plot reg. no', val: true },
+      { key: 'plot_number', label: 'Plot number', val: true },
+      { key: 'dmno', label: 'DMNO', val: true },
+      { key: 'dmsubno', label: 'DMSUBNO', val: true },
+    ],
+  },
+];
+
+function Field({ f, record, form, editing, onChange }) {
+  const shown = f.read ? f.read(record) : record[f.key];
+  const span = f.span === 2 ? 'col-span-2' : '';
+  return (
+    <div className={`min-w-0 ${span}`}>
+      <div className="text-[11px] text-[var(--text-3)] mb-1">{f.label}</div>
+      {editing ? (
+        <input
+          type={f.type || 'text'}
+          value={form[f.key] ?? ''}
+          onChange={(e) => onChange(f.key, f.type === 'number' ? num(e.target.value) : e.target.value)}
+          aria-label={f.label}
+          className={`field w-full h-8 px-2.5 text-[13px] ${f.val || f.num ? 'num' : ''}`}
+        />
+      ) : (
+        <div className={`text-[13px] truncate ${f.val ? 'val' : f.num ? 'num text-[var(--text)]' : 'text-[var(--text)]'}`} title={shown || ''}>
+          {shown || <span className="text-[var(--text-3)]">—</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const PAGE_SIZES = [25, 50, 100];
+
 export default function RecordsExplorer({ initialQuery = '' }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [isExporting, setIsExporting] = useState(null); // 'csv' | 'xlsx' | null
   const [search, setSearch] = useState(initialQuery);
   const [debouncedSearch, setDebouncedSearch] = useState(initialQuery);
@@ -107,6 +212,13 @@ export default function RecordsExplorer({ initialQuery = '' }) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const overlayRef = useRef(null);
+  const searchRef = useRef(null);
+
+  // The header search box feeds this page. Follow it while mounted, not only
+  // on first render, so typing up top keeps working once you're already here.
+  useEffect(() => {
+    setSearch(initialQuery);
+  }, [initialQuery]);
 
   // 300ms debounce for search query to eliminate keystroke request spam
   useEffect(() => {
@@ -130,6 +242,19 @@ export default function RecordsExplorer({ initialQuery = '' }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedRecord]);
 
+  // "/" focuses search from anywhere on the page, unless already typing.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== '/' || selectedRecord) return;
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedRecord]);
+
   useEffect(() => {
     fetchFilterOptions();
   }, []);
@@ -151,7 +276,7 @@ export default function RecordsExplorer({ initialQuery = '' }) {
           property_types: data.property_types || prev.property_types,
           bedroom_types: data.bedrooms || data.bedroom_types || prev.bedroom_types,
           source_files: data.source_files || prev.source_files,
-          statuses: data.statuses || ['VALID', 'DUPLICATE', 'ERROR']
+          statuses: data.statuses || ['VALID', 'DUPLICATE', 'ERROR'],
         }));
       }
     } catch (err) {
@@ -167,7 +292,7 @@ export default function RecordsExplorer({ initialQuery = '' }) {
         page: page.toString(),
         limit: limit.toString(),
         sort_by: sortBy,
-        sort_dir: sortDir
+        sort_dir: sortDir,
       });
       if (debouncedSearch) params.append('q', debouncedSearch);
       if (community) params.append('community', community);
@@ -197,14 +322,25 @@ export default function RecordsExplorer({ initialQuery = '' }) {
             property_types: data.filter_options.property_types || [],
             bedroom_types: data.filter_options.bedrooms || data.filter_options.bedroom_types || [],
             source_files: data.filter_options.source_files || [],
-            statuses: data.filter_options.statuses || ['VALID', 'DUPLICATE', 'ERROR']
+            statuses: data.filter_options.statuses || ['VALID', 'DUPLICATE', 'ERROR'],
           });
         }
+        setLoadError(null);
+      } else {
+        setLoadError(`The server answered ${res.status}.`);
       }
     } catch (err) {
       console.error('Error fetching records:', err);
+      // A failed request is not an empty dataset. Saying "no records" here
+      // would send an operator hunting for a filter that is not the problem.
+      if (currentReq === activeRequestRef.current) {
+        setLoadError('Could not reach the server.');
+      }
     } finally {
-      setLoading(false);
+      if (currentReq === activeRequestRef.current) {
+        setLoading(false);
+        setHasLoaded(true);
+      }
     }
   };
 
@@ -219,11 +355,11 @@ export default function RecordsExplorer({ initialQuery = '' }) {
   };
 
   const renderSortIndicator = (field) => {
-    if (sortBy !== field) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40 inline" />;
+    if (sortBy !== field) return <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" />;
     return sortDir === 'asc' ? (
-      <ArrowUp className="w-3 h-3 ml-1 text-emerald-400 inline" />
+      <ArrowUp className="w-3 h-3 text-[var(--accent)]" />
     ) : (
-      <ArrowDown className="w-3 h-3 ml-1 text-emerald-400 inline" />
+      <ArrowDown className="w-3 h-3 text-[var(--accent)]" />
     );
   };
 
@@ -235,6 +371,13 @@ export default function RecordsExplorer({ initialQuery = '' }) {
     setSaveError(null);
   }, []);
 
+  const closeModal = () => {
+    setSelectedRecord(null);
+    setIsEditing(false);
+  };
+
+  const setField = (key, value) => setEditForm((f) => ({ ...f, [key]: value }));
+
   const handleSaveChanges = async () => {
     if (!selectedRecord) return;
     setIsSaving(true);
@@ -245,7 +388,7 @@ export default function RecordsExplorer({ initialQuery = '' }) {
       const res = await apiFetch(`/api/records/${selectedRecord.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify(editForm),
       });
 
       if (res.ok) {
@@ -260,11 +403,11 @@ export default function RecordsExplorer({ initialQuery = '' }) {
         setTimeout(() => setSaveSuccess(false), 4000);
       } else {
         const errData = await res.json();
-        setSaveError(errData.detail || 'Failed to update record in database.');
+        setSaveError(errData.detail || 'The record could not be saved.');
       }
     } catch (err) {
       console.error('Save error:', err);
-      setSaveError('Network error saving changes to database.');
+      setSaveError('Network error. The record was not saved.');
     } finally {
       setIsSaving(false);
     }
@@ -308,272 +451,268 @@ export default function RecordsExplorer({ initialQuery = '' }) {
     }
   };
 
+  const clearAll = () => {
+    setCommunity('');
+    setPropertyType('');
+    setBedroom('');
+    setStatus('');
+    setSearch('');
+    setPage(1);
+  };
+
+  const STATUS_OPTIONS = [
+    { label: 'Valid records', value: '' },
+    { label: 'Duplicates only', value: 'DUPLICATE' },
+    { label: 'Incomplete only', value: 'INCOMPLETE' },
+    { label: 'Errors only', value: 'INVALID' },
+    { label: 'Everything', value: 'ALL' },
+  ];
+
+  // Active filters as removable chips. Search is separate: it has its own clear.
+  const activeFilters = [
+    community && { label: community, clear: () => setCommunity('') },
+    propertyType && { label: propertyType, clear: () => setPropertyType('') },
+    bedroom && { label: bedroom, clear: () => setBedroom('') },
+    status && { label: STATUS_OPTIONS.find((o) => o.value === status)?.label || status, clear: () => setStatus('') },
+  ].filter(Boolean);
+  const anyFilter = activeFilters.length > 0 || Boolean(search);
+
+  const from = totalRecords === 0 ? 0 : (page - 1) * limit + 1;
+  const to = Math.min(page * limit, totalRecords);
+
   return (
-    <div className="p-3 sm:p-6 h-full w-full max-w-[1450px] mx-auto flex flex-col min-h-0 overflow-hidden space-y-3 sm:space-y-4">
-      {/* Top Header & Filter Controls (Fixed, non-scrolling) */}
-      <div className="flex-shrink-0 space-y-3 sm:space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div>
-            <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Processed Dataset Explorer</h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 font-medium">
-              Search, filter, and inspect normalized records across all ingested registers ({formatTotal(totalRecords, totalCapped)} records).
-            </p>
-          </div>
-
-          {/* Export Action Buttons */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <button
-              onClick={() => handleExport('xlsx')}
-              disabled={isExporting !== null}
-              className="neumorph-btn px-4 py-2.5 rounded-2xl flex items-center space-x-2 text-xs font-bold text-emerald-600 hover:text-emerald-700 active:scale-95 transition-all shadow-xs disabled:opacity-50"
-              title="Download filtered records as an Excel spreadsheet (.xlsx)"
-            >
-              {isExporting === 'xlsx' ? (
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-              ) : (
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-              )}
-              <span>{isExporting === 'xlsx' ? 'Exporting Excel...' : 'Export Excel (.xlsx)'}</span>
-            </button>
-
-            <button
-              onClick={() => handleExport('csv')}
-              disabled={isExporting !== null}
-              className="neumorph-btn px-4 py-2.5 rounded-2xl flex items-center space-x-2 text-xs font-bold text-blue-600 hover:text-blue-700 active:scale-95 transition-all shadow-xs disabled:opacity-50"
-              title="Download filtered records as a CSV file (.csv)"
-            >
-              {isExporting === 'csv' ? (
-                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-              ) : (
-                <FileText className="w-4 h-4 text-blue-600" />
-              )}
-              <span>{isExporting === 'csv' ? 'Exporting CSV...' : 'Export CSV (.csv)'}</span>
-            </button>
-          </div>
+    <div className="p-3 sm:p-5 h-full w-full max-w-[1500px] mx-auto flex flex-col min-h-0 overflow-hidden gap-3 sm:gap-4">
+      {/* Page header */}
+      <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-[var(--text)] tracking-tight leading-tight">Records</h2>
+          <p className="text-[13px] text-[var(--text-2)] mt-0.5">
+            <span className="num text-[var(--text)]">{formatTotal(totalRecords, totalCapped)}</span>
+            {anyFilter ? ' matching records' : ' normalized records across all registers'}
+            {totalCapped && <span className="text-[var(--text-3)]"> — narrow the filter for an exact count</span>}
+          </p>
         </div>
 
-        {/* Filter Bar */}
-        <div className="neumorph-card p-3 sm:p-4 space-y-3">
-          {/* Main Search Row with Mobile Filter Toggle */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3.5 top-3 text-blue-600 dark:text-blue-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search Name, Community, Unit, Mobile..."
-                className="w-full neumorph-inset text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none font-medium"
-              />
-            </div>
-
-            {/* Mobile Filter Toggle Button (< lg) */}
-            <button
-              type="button"
-              onClick={() => setShowMobileFilters((prev) => !prev)}
-              className={`lg:hidden neumorph-button px-3 py-2.5 rounded-2xl flex items-center space-x-1.5 text-xs font-bold transition-all shrink-0 cursor-pointer ${[community, propertyType, bedroom, status].some(Boolean)
-                ? 'text-blue-600 dark:text-blue-400 border border-blue-500/40 bg-blue-500/10'
-                : 'text-slate-800 dark:text-slate-200'
-                }`}
-              title="Toggle Filters"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-              <span className="text-xs">Filters</span>
-              {[community, propertyType, bedroom, status].filter(Boolean).length > 0 && (
-                <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] flex items-center justify-center font-black">
-                  {[community, propertyType, bedroom, status].filter(Boolean).length}
-                </span>
-              )}
-            </button>
-
-            {/* Reset Filters button if any filter active */}
-            {[community, propertyType, bedroom, status, search].some(Boolean) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCommunity('');
-                  setPropertyType('');
-                  setBedroom('');
-                  setStatus('');
-                  setSearch('');
-                  setPage(1);
-                }}
-                className="neumorph-button p-2.5 rounded-2xl text-rose-500 hover:text-rose-600 transition-all shrink-0 cursor-pointer"
-                title="Reset Search & Filters"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Collapsible Dropdown Filters Grid (Always visible on lg+, toggleable on mobile) */}
-          <div className={`${showMobileFilters ? 'grid' : 'hidden lg:grid'} grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1 animate-in fade-in duration-150`}>
-            {/* Community Filter */}
-            <CustomSelect
-              value={community}
-              onChange={(val) => { setCommunity(val); setPage(1); }}
-              placeholder="All Communities"
-              options={[
-                { label: 'All Communities', value: '' },
-                ...filterOptions.communities.map((c) => ({ label: c, value: c }))
-              ]}
-            />
-
-            {/* Property Type Filter */}
-            <CustomSelect
-              value={propertyType}
-              onChange={(val) => { setPropertyType(val); setPage(1); }}
-              placeholder="All Property Types"
-              options={[
-                { label: 'All Property Types', value: '' },
-                { label: 'Residential', value: 'Residential' },
-                { label: 'Commercial', value: 'Commercial' },
-                { label: 'Land', value: 'Land' },
-                ...(filterOptions.property_types || [])
-                  .filter((pt) => !['Residential', 'Commercial', 'Land', 'LAND'].includes(pt))
-                  .map((pt) => ({ label: pt, value: pt }))
-              ]}
-            />
-
-            {/* Bedroom Filter */}
-            <CustomSelect
-              value={bedroom}
-              onChange={(val) => { setBedroom(val); setPage(1); }}
-              placeholder="All Bedroom Types"
-              options={[
-                { label: 'All Bedroom Types', value: '' },
-                { label: 'Studio', value: 'Studio' },
-                { label: '1 BR (1 Bedroom)', value: '1 BR' },
-                { label: '2 BR (2 Bedroom)', value: '2 BR' },
-                { label: '3 BR (3 Bedroom)', value: '3 BR' },
-                { label: '4 BR (4 Bedroom)', value: '4 BR' },
-                { label: '5 BR (5 Bedroom)', value: '5 BR' },
-                { label: '6+ BR (Luxury Villa)', value: '6 BR' },
-                { label: 'Penthouse', value: 'PENTHOUSE' },
-                { label: 'Retail / Commercial', value: 'Retail' },
-              ]}
-            />
-
-            {/* Status Filter */}
-            <CustomSelect
-              value={status}
-              onChange={(val) => { setStatus(val); setPage(1); }}
-              placeholder="All Valid Records"
-              options={[
-                { label: 'All Valid Records (Default)', value: '' },
-                { label: 'DUPLICATE Only (Preserved Duplicates)', value: 'DUPLICATE' },
-                { label: 'INCOMPLETE (Missing Contact / Info)', value: 'INCOMPLETE' },
-                { label: 'ERROR / INVALID Only', value: 'INVALID' },
-                { label: 'Show All (Valid + Duplicates + Incomplete)', value: 'ALL' },
-              ]}
-            />
-          </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => handleExport('xlsx')}
+            disabled={isExporting !== null}
+            className="btn h-9 px-3 text-[13px]"
+            title="Download the filtered records as an Excel workbook"
+          >
+            {isExporting === 'xlsx' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 text-[var(--ok)]" />}
+            <span>{isExporting === 'xlsx' ? 'Exporting' : 'Excel'}</span>
+          </button>
+          <button
+            onClick={() => handleExport('csv')}
+            disabled={isExporting !== null}
+            className="btn h-9 px-3 text-[13px]"
+            title="Download the filtered records as CSV"
+          >
+            {isExporting === 'csv' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4 text-[var(--text-3)]" />}
+            <span>{isExporting === 'csv' ? 'Exporting' : 'CSV'}</span>
+          </button>
         </div>
       </div>
 
-      {/* Main Table Container (Fills remaining height, internal scrolling only) */}
-      <div className="neumorph-card rounded-3xl overflow-hidden p-2 flex-1 flex flex-col min-h-0">
-        <div className="overflow-auto flex-1 min-h-0">
-          <table className="w-full text-left text-xs">
+      {/* Search + filters */}
+      <div className="flex-shrink-0 panel p-2.5 sm:p-3 space-y-2.5">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none" />
+            <input
+              ref={searchRef}
+              type="search"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search name, community, unit or mobile"
+              aria-label="Search records"
+              className="field w-full h-9 pl-9 pr-16 text-[13px]"
+            />
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+              {loading && search !== debouncedSearch && <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--text-3)]" />}
+              <kbd className="hidden sm:inline-block h-5 px-1.5 rounded border border-[var(--edge)] bg-[var(--surface)] text-[10px] text-[var(--text-3)] leading-5">/</kbd>
+            </span>
+          </div>
+
+          {/* Mobile filter toggle (< lg) */}
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((prev) => !prev)}
+            aria-expanded={showMobileFilters}
+            className={`lg:hidden btn h-9 px-3 text-[13px] shrink-0 ${activeFilters.length ? 'border-[var(--accent-ring)] text-[var(--accent)]' : ''}`}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span>Filters</span>
+            {activeFilters.length > 0 && (
+              <span className="w-4.5 h-4.5 rounded-full bg-[var(--accent)] text-[var(--text-on-accent)] text-[10px] flex items-center justify-center num">
+                {activeFilters.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className={`${showMobileFilters ? 'grid' : 'hidden lg:grid'} grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2`}>
+          <CustomSelect
+            label="Community"
+            value={community}
+            onChange={(val) => { setCommunity(val); setPage(1); }}
+            placeholder="All communities"
+            options={[{ label: 'All communities', value: '' }, ...filterOptions.communities.map((c) => ({ label: c, value: c }))]}
+          />
+          <CustomSelect
+            label="Property type"
+            value={propertyType}
+            onChange={(val) => { setPropertyType(val); setPage(1); }}
+            placeholder="All property types"
+            options={[
+              { label: 'All property types', value: '' },
+              { label: 'Residential', value: 'Residential' },
+              { label: 'Commercial', value: 'Commercial' },
+              { label: 'Land', value: 'Land' },
+              ...(filterOptions.property_types || [])
+                .filter((pt) => !['Residential', 'Commercial', 'Land', 'LAND'].includes(pt))
+                .map((pt) => ({ label: pt, value: pt })),
+            ]}
+          />
+          <CustomSelect
+            label="Bedrooms"
+            value={bedroom}
+            onChange={(val) => { setBedroom(val); setPage(1); }}
+            placeholder="All bedrooms"
+            options={[
+              { label: 'All bedrooms', value: '' },
+              { label: 'Studio', value: 'Studio' },
+              { label: '1 bedroom', value: '1 BR' },
+              { label: '2 bedrooms', value: '2 BR' },
+              { label: '3 bedrooms', value: '3 BR' },
+              { label: '4 bedrooms', value: '4 BR' },
+              { label: '5 bedrooms', value: '5 BR' },
+              { label: '6+ bedrooms', value: '6 BR' },
+              { label: 'Penthouse', value: 'PENTHOUSE' },
+              { label: 'Retail / commercial', value: 'Retail' },
+            ]}
+          />
+          <CustomSelect
+            label="Status"
+            value={status}
+            onChange={(val) => { setStatus(val); setPage(1); }}
+            placeholder="Valid records"
+            options={STATUS_OPTIONS}
+          />
+        </div>
+
+        {anyFilter && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5 animate-fade-in">
+            {search && (
+              <span className="chip">
+                <span className="text-[var(--text-3)]">search</span>
+                <span className="truncate max-w-[200px]">“{search}”</span>
+                <button onClick={() => setSearch('')} aria-label="Clear search" className="btn-ghost w-5 h-5 rounded-full text-[var(--accent)]">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {activeFilters.map((f) => (
+              <span key={f.label} className="chip">
+                <span className="truncate max-w-[200px]">{f.label}</span>
+                <button onClick={() => { f.clear(); setPage(1); }} aria-label={`Remove filter ${f.label}`} className="btn-ghost w-5 h-5 rounded-full text-[var(--accent)]">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+            <button onClick={clearAll} className="btn-ghost h-[30px] px-2.5 text-[12px]">
+              Clear all
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="panel overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className={`loading-bar ${loading ? '' : 'invisible'}`} aria-hidden="true" />
+        <div className={`overflow-auto flex-1 min-h-0 transition-opacity duration-[var(--dur-2)] ${loading && hasLoaded ? 'opacity-60' : ''}`} aria-busy={loading}>
+          <table className="data-table">
             <thead>
-              <tr className="border-b border-slate-300/80 bg-[#eef0f4] text-slate-700 font-mono text-[11px] whitespace-nowrap sticky top-0 z-10 shadow-xs">
-                <th
-                  onClick={() => handleHeaderSort('name')}
-                  className="px-4 py-3.5 font-bold cursor-pointer hover:text-blue-600 transition-colors select-none group whitespace-nowrap min-w-[200px] max-w-[240px]"
-                  title="Click to sort A ➔ Z or Z ➔ A by Name"
-                >
-                  <span className="flex items-center space-x-1.5">
-                    <span>NAME</span>
-                    {renderSortIndicator('name')}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleHeaderSort('developer')}
-                  className="px-4 py-3.5 font-bold cursor-pointer hover:text-blue-600 transition-colors select-none group whitespace-nowrap min-w-[160px] max-w-[200px]"
-                  title="Click to sort A ➔ Z or Z ➔ A by Developer"
-                >
-                  <span className="flex items-center space-x-1.5">
-                    <span>DEVELOPER</span>
-                    {renderSortIndicator('developer')}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleHeaderSort('community')}
-                  className="px-4 py-3.5 font-bold cursor-pointer hover:text-blue-600 transition-colors select-none group whitespace-nowrap min-w-[140px] max-w-[180px]"
-                  title="Click to sort A ➔ Z or Z ➔ A"
-                >
-                  <span className="flex items-center space-x-1.5">
-                    <span>COMMUNITY</span>
-                    {renderSortIndicator('community')}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleHeaderSort('building_cluster')}
-                  className="px-4 py-3.5 font-bold cursor-pointer hover:text-blue-600 transition-colors select-none group whitespace-nowrap min-w-[140px] max-w-[180px]"
-                  title="Click to sort A ➔ Z or Z ➔ A"
-                >
-                  <span className="flex items-center space-x-1.5">
-                    <span>BUILDING</span>
-                    {renderSortIndicator('building_cluster')}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleHeaderSort('unit_number')}
-                  className="px-4 py-3.5 font-bold cursor-pointer hover:text-blue-600 transition-colors select-none group whitespace-nowrap min-w-[110px]"
-                  title="Click to sort Unit Numbers"
-                >
-                  <span className="flex items-center space-x-1.5">
-                    <span>UNIT</span>
-                    {renderSortIndicator('unit_number')}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleHeaderSort('bedroom')}
-                  className="px-4 py-3.5 font-bold cursor-pointer hover:text-blue-600 transition-colors select-none group whitespace-nowrap min-w-[100px]"
-                  title="Click to sort Bedroom Types"
-                >
-                  <span className="flex items-center space-x-1.5">
-                    <span>BEDROOM</span>
-                    {renderSortIndicator('bedroom')}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleHeaderSort('procedure_value')}
-                  className="px-4 py-3.5 font-bold cursor-pointer hover:text-blue-600 transition-colors select-none group whitespace-nowrap min-w-[130px]"
-                  title="Click to sort Procedure Value High ➔ Low"
-                >
-                  <span className="flex items-center space-x-1.5">
-                    <span>VALUE (AED)</span>
-                    {renderSortIndicator('procedure_value')}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleHeaderSort('mobile_1')}
-                  className="px-4 py-3.5 font-bold cursor-pointer hover:text-blue-600 transition-colors select-none group whitespace-nowrap min-w-[130px]"
-                  title="Click to sort Mobile Numbers"
-                >
-                  <span className="flex items-center space-x-1.5">
-                    <span>MOBILE</span>
-                    {renderSortIndicator('mobile_1')}
-                  </span>
-                </th>
+              <tr>
+                {COLUMNS.map((c) => {
+                  const active = sortBy === c.key;
+                  return (
+                    <th
+                      key={c.key}
+                      scope="col"
+                      aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                      onClick={() => handleHeaderSort(c.key)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleHeaderSort(c.key);
+                        }
+                      }}
+                      tabIndex={0}
+                      className={`group ${c.className || ''} ${active ? 'text-[var(--text)]' : ''}`}
+                      title={`Sort by ${c.label.toLowerCase()}`}
+                    >
+                      <span className={`inline-flex items-center gap-1.5 ${c.align === 'right' ? 'flex-row-reverse' : ''}`}>
+                        <span>{c.label}</span>
+                        {renderSortIndicator(c.key)}
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-300/60 font-sans">
-              {loading ? (
-                <tr>
-                  <td colSpan="8" className="py-10 text-center text-slate-400 font-mono whitespace-nowrap">
-                    Searching records database...
+            <tbody>
+              {!hasLoaded ? (
+                Array.from({ length: 12 }).map((_, i) => (
+                  <tr key={i} className="pointer-events-none">
+                    {COLUMNS.map((c) => (
+                      <td key={c.key}>
+                        <span className="block h-3 rounded bg-[var(--surface-3)]" style={{ width: `${45 + ((i * 17 + c.key.length * 9) % 45)}%` }} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : records.length > 0 ? (
+                records.map((r) => <RecordRow key={r.id} r={r} onSelect={openRecordModal} />)
+              ) : loadError ? (
+                <tr className="pointer-events-none">
+                  <td colSpan={COLUMNS.length} className="py-16">
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <span className="w-10 h-10 rounded-full bg-[var(--bad-soft)] border border-[var(--bad)]/30 flex items-center justify-center">
+                        <AlertCircle className="w-4.5 h-4.5 text-[var(--bad)]" />
+                      </span>
+                      <div className="text-[13px] font-medium text-[var(--text)]">Records could not be loaded</div>
+                      <div className="text-[12px] text-[var(--text-3)] max-w-xs">
+                        {loadError} Your filters are still set — retry once the connection is back.
+                      </div>
+                      <button onClick={fetchRecords} className="btn h-8 px-3 text-[12px] mt-1 pointer-events-auto">
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Retry
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ) : records.length > 0 ? (
-                records.map((r) => (
-                  <RecordRow key={r.id} r={r} onSelect={openRecordModal} />
-                ))
               ) : (
-                <tr>
-                  <td colSpan="8" className="py-10 text-center text-slate-500 font-mono">
-                    No records found matching filters.
+                <tr className="pointer-events-none">
+                  <td colSpan={COLUMNS.length} className="py-16">
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <span className="w-10 h-10 rounded-full bg-[var(--surface-2)] border border-[var(--edge)] flex items-center justify-center">
+                        <SearchX className="w-4.5 h-4.5 text-[var(--text-3)]" />
+                      </span>
+                      <div className="text-[13px] font-medium text-[var(--text)]">No records match</div>
+                      <div className="text-[12px] text-[var(--text-3)] max-w-xs">
+                        {anyFilter ? 'Try a broader search, or remove a filter.' : 'Upload a register to start populating the dataset.'}
+                      </div>
+                      {anyFilter && (
+                        <button onClick={clearAll} className="btn h-8 px-3 text-[12px] mt-1 pointer-events-auto">
+                          Clear search and filters
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}
@@ -581,61 +720,40 @@ export default function RecordsExplorer({ initialQuery = '' }) {
           </table>
         </div>
 
-        {/* Pagination Footer & Status Color Legend */}
-        <div className="p-3 px-4 border-t border-slate-300/80 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2.5 font-mono text-xs bg-[var(--card-bg)]">
-          {/* Status Color Legend (Hidden on small phones to maximize table height, visible on tablet/desktop) */}
-          <div className="hidden md:flex flex-wrap items-center gap-3 text-[11px]">
-            <span className="text-slate-900 dark:text-slate-100 font-black uppercase tracking-wider text-[10px]">
-              Status Key:
-            </span>
-            <div className="flex items-center space-x-1" title="Has verified name and contact info (phone or email)">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] shrink-0" />
-              <span className="text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
-                Valid
+        {/* Footer: legend + pagination */}
+        <div className="shrink-0 px-3 py-2 border-t border-[var(--edge)] bg-[var(--surface-2)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px]">
+          <div className="hidden md:flex items-center gap-3.5 text-[var(--text-3)]">
+            {['VALID', 'DUPLICATE', 'INCOMPLETE', 'ERROR'].map((s) => (
+              <span key={s} className="inline-flex items-center gap-1.5" title={statusOf(s).hint}>
+                <StatusDot status={s} />
+                {statusOf(s).label}
               </span>
-            </div>
-            <div className="flex items-center space-x-1" title="Matching SHA-256 identity hash across records">
-              <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)] animate-pulse shrink-0" />
-              <span className="text-amber-700 dark:text-amber-300 font-bold text-[10px]">
-                Duplicate
-              </span>
-            </div>
-            <div className="flex items-center space-x-1" title="Property/Owner details exist but phone and email were blank">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 dark:bg-indigo-400 shrink-0" />
-              <span className="text-indigo-700 dark:text-indigo-300 font-bold text-[10px]">
-                Incomplete
-              </span>
-            </div>
-            <div className="flex items-center space-x-1" title="Failed critical structural validation">
-              <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] shrink-0" />
-              <span className="text-rose-700 dark:text-rose-400 font-bold text-[10px]">
-                Invalid
-              </span>
-            </div>
+            ))}
           </div>
 
-          {/* Page Counter & Controls (Full width flex on mobile, auto on desktop) */}
-          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-3">
-            <div className="text-slate-800 dark:text-slate-200 font-bold text-[11px] sm:text-xs">
-              Page <span className="text-blue-600 dark:text-blue-400 font-black">{page}</span> of{' '}
-              <span className="text-blue-600 dark:text-blue-400 font-black">{totalPages}</span>{' '}
-              <span className="text-slate-500 dark:text-slate-400 font-normal">({formatTotal(totalRecords, totalCapped)})</span>
-            </div>
-            <div className="flex items-center space-x-1.5 shrink-0">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="neumorph-button p-2 text-slate-900 dark:text-slate-100 disabled:opacity-30 cursor-pointer font-black"
-                title="Previous Page"
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <span className="text-[var(--text-2)] num">
+              {from.toLocaleString()}–{to.toLocaleString()} of {formatTotal(totalRecords, totalCapped)}
+            </span>
+            <label className="flex items-center gap-1.5 text-[var(--text-3)]">
+              <span className="hidden sm:inline">Rows</span>
+              <select
+                value={limit}
+                onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+                aria-label="Rows per page"
+                className="field h-7 pl-2 pr-1 text-[12px] num cursor-pointer"
               >
+                {PAGE_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn h-7 w-7" aria-label="Previous page">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="neumorph-button p-2 text-slate-900 dark:text-slate-100 disabled:opacity-30 cursor-pointer font-black"
-                title="Next Page"
-              >
+              <span className="num text-[var(--text-2)] px-1 whitespace-nowrap">
+                {page} <span className="text-[var(--text-3)]">/ {totalPages}</span>
+              </span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="btn h-7 w-7" aria-label="Next page">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -643,503 +761,132 @@ export default function RecordsExplorer({ initialQuery = '' }) {
         </div>
       </div>
 
-      {/* Record Inspector Detail & Editing Modal */}
+      {/* Record inspector */}
       {selectedRecord && (
         <div
           ref={overlayRef}
           onClick={(e) => {
-            if (e.target === overlayRef.current) {
-              setSelectedRecord(null);
-              setIsEditing(false);
-            }
+            if (e.target === overlayRef.current) closeModal();
           }}
-          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-50 bg-[var(--ink-2)]/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-6 animate-fade-in"
         >
-          <div className="neumorph-card max-w-2xl w-full rounded-3xl p-6 space-y-4 border border-white/80 bg-[#eef0f4] shadow-[12px_12px_30px_#cbd2dc,-12px_-12px_30px_#ffffff] text-slate-800 animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center border-b border-slate-300/80 pb-3">
-              <div>
-                <span className="text-[10px] font-mono text-blue-600 font-bold uppercase">
-                  Record Inspector #{selectedRecord.id}
-                </span>
-                <h3 className="text-lg font-black text-slate-900">
-                  {isEditing ? (
-                    <span className="text-emerald-600 flex items-center space-x-1.5">
-                      <Edit3 className="w-4 h-4" />
-                      <span>Editing Record Data</span>
-                    </span>
-                  ) : (
-                    selectedRecord.name || selectedRecord.developer || 'Record Details'
-                  )}
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="record-title"
+            className="glass-raised w-full sm:max-w-3xl max-h-[92vh] sm:max-h-[88vh] rounded-b-none sm:rounded-b-[var(--r-xl)] flex flex-col overflow-hidden animate-rise-in"
+          >
+            {/* Header: identity + actions. Stays put while the body scrolls. */}
+            <div className="shrink-0 px-5 pt-4 pb-3.5 border-b border-[var(--edge)] flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[11px] text-[var(--text-3)] num">#{selectedRecord.id}</span>
+                  <StatusBadge status={selectedRecord.status} />
+                  {isEditing && <span className="badge badge-accent">Editing</span>}
+                </div>
+                <h3 id="record-title" className="text-base font-semibold text-[var(--text)] tracking-tight truncate">
+                  {selectedRecord.name || selectedRecord.developer || 'Record'}
                 </h3>
+                <p className="text-[12px] text-[var(--text-2)] truncate mt-0.5">
+                  {[selectedRecord.community, selectedRecord.building_cluster || selectedRecord.building].filter(Boolean).join(', ') || 'No location recorded'}
+                </p>
               </div>
 
-              {/* Action Buttons: Edit / Save / Cancel / Close */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-1.5 shrink-0">
                 {!isEditing ? (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="neumorph-button-primary px-3.5 py-1.5 text-xs font-bold flex items-center space-x-1.5"
-                  >
+                  <button onClick={() => setIsEditing(true)} className="btn h-8 px-3 text-[13px]">
                     <Edit3 className="w-3.5 h-3.5" />
-                    <span>Edit Record</span>
+                    <span>Edit</span>
                   </button>
                 ) : (
                   <>
-                    <button
-                      onClick={handleSaveChanges}
-                      disabled={isSaving}
-                      className="neumorph-button-primary px-4 py-1.5 text-xs font-bold flex items-center space-x-1.5"
-                    >
-                      {isSaving ? (
-                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <Save className="w-3.5 h-3.5" />
-                      )}
-                      <span>Save to Database</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsEditing(false);
-                        setEditForm({ ...selectedRecord });
-                      }}
-                      className="neumorph-button px-3 py-1.5 text-slate-700 text-xs font-bold"
-                    >
+                    <button onClick={() => { setIsEditing(false); setEditForm({ ...selectedRecord }); }} className="btn-ghost h-8 px-3 text-[13px]">
                       Cancel
+                    </button>
+                    <button onClick={handleSaveChanges} disabled={isSaving} className="btn-primary h-8 px-3.5 text-[13px]">
+                      {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      <span>Save changes</span>
                     </button>
                   </>
                 )}
-
-                <button
-                  onClick={() => {
-                    setSelectedRecord(null);
-                    setIsEditing(false);
-                  }}
-                  className="neumorph-button p-1.5 text-slate-600 hover:text-slate-900"
-                >
-                  <X className="w-5 h-5" />
+                <button onClick={closeModal} aria-label="Close" className="btn-ghost h-8 w-8 ml-1">
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Notification Banners */}
-            {saveSuccess && (
-              <div className="p-3 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold flex items-center space-x-2 animate-in fade-in">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>✓ Record updated and saved to SQLite database successfully!</span>
+            {(saveSuccess || saveError) && (
+              <div
+                role="status"
+                className={`shrink-0 mx-5 mt-3 px-3 py-2 rounded-lg text-[12px] flex items-center gap-2 animate-drop-in ${
+                  saveError
+                    ? 'bg-[var(--bad-soft)] text-[var(--bad)] border border-[var(--bad)]/30'
+                    : 'bg-[var(--ok-soft)] text-[var(--ok)] border border-[var(--ok)]/30'
+                }`}
+              >
+                {saveError ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                <span>{saveError || 'Changes saved.'}</span>
               </div>
             )}
 
-            {saveError && (
-              <div className="p-3 rounded-2xl bg-rose-950/80 border border-rose-800/80 text-rose-300 text-xs font-mono font-bold flex items-center space-x-2 animate-in fade-in">
-                <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
-                <span>⚠ Error: {saveError}</span>
-              </div>
-            )}
-
-            {/* Modal Body */}
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-              {/* Top Hero Banner: Property Value & Date */}
-              <div className="p-4 rounded-2xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_3px_3px_6px_#cbd2dc,inset_-3px_-3px_6px_#ffffff] flex items-center justify-between">
-                <div>
-                  <span className="text-emerald-700 text-[10px] block font-black uppercase tracking-wider">PROCEDURE VALUE (PROPERTY VALUE AED)</span>
+            {/* Body */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-5">
+              {/* The headline figure. Brass, because it's money. */}
+              <div className="well px-4 py-3 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-[11px] text-[var(--text-3)] mb-0.5">Procedure value</div>
                   {isEditing ? (
                     <input
                       type="number"
-                      value={editForm.procedure_value || ''}
-                      onChange={(e) => setEditForm({ ...editForm, procedure_value: e.target.value ? Number(e.target.value) : null })}
+                      value={editForm.procedure_value ?? ''}
+                      onChange={(e) => setField('procedure_value', num(e.target.value))}
                       placeholder="e.g. 1050000"
-                      className="neumorph-inset text-emerald-700 font-black text-sm rounded-xl px-2.5 py-1 mt-1 focus:outline-none font-mono"
+                      aria-label="Procedure value in AED"
+                      className="field h-9 px-3 text-[15px] val w-52"
                     />
                   ) : (
-                    <span className="text-emerald-700 text-lg font-black font-mono">
-                      {selectedRecord.procedure_value ? `AED ${Number(selectedRecord.procedure_value).toLocaleString('en-US')}` : 'N/A / Unspecified'}
-                    </span>
+                    <div className="val text-xl font-medium">{formatAed(selectedRecord.procedure_value) || <span className="text-[var(--text-3)] text-base">Not recorded</span>}</div>
                   )}
                 </div>
-
-                <div className="text-right">
-                  <span className="text-blue-700 text-[10px] block font-black uppercase tracking-wider">STATUS</span>
+                <div className="text-right shrink-0">
+                  <div className="text-[11px] text-[var(--text-3)] mb-1">Status</div>
                   {isEditing ? (
                     <select
                       value={editForm.status || 'VALID'}
-                      onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                      className="neumorph-inset text-slate-800 font-bold text-xs rounded-xl px-2 py-1 mt-1 focus:outline-none font-mono"
+                      onChange={(e) => setField('status', e.target.value)}
+                      aria-label="Status"
+                      className="field h-8 pl-2.5 pr-2 text-[13px] cursor-pointer"
                     >
-                      <option value="VALID">VALID</option>
-                      <option value="INCOMPLETE">INCOMPLETE</option>
-                      <option value="DUPLICATE">DUPLICATE</option>
-                      <option value="ERROR">ERROR</option>
+                      {['VALID', 'INCOMPLETE', 'DUPLICATE', 'ERROR'].map((s) => <option key={s} value={s}>{STATUS[s].label}</option>)}
                     </select>
                   ) : (
-                    <span className={`text-xs font-black font-mono px-2.5 py-1 rounded-full border inline-block ${selectedRecord.status === 'VALID'
-                      ? 'text-emerald-700 bg-emerald-500/10 border-emerald-500/30'
-                      : selectedRecord.status === 'INCOMPLETE'
-                        ? 'text-amber-700 bg-amber-500/10 border-amber-500/30'
-                        : selectedRecord.status === 'DUPLICATE'
-                          ? 'text-purple-700 bg-purple-500/10 border-purple-500/30'
-                          : 'text-rose-700 bg-rose-500/10 border-rose-500/30'
-                      }`}>
-                      {selectedRecord.status}
-                    </span>
+                    <StatusBadge status={selectedRecord.status} />
                   )}
                 </div>
               </div>
 
-              {/* Section 1: Location & Property Identity */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider block">1. Location & Property Identification</span>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
-                  {/* Community */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">COMMUNITY</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.community || ''}
-                        onChange={(e) => setEditForm({ ...editForm, community: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.community || 'N/A'}</span>
-                    )}
+              {SECTIONS.map((sec) => (
+                <section key={sec.title} aria-label={sec.title}>
+                  <h4 className="text-[12px] font-semibold text-[var(--text-2)] mb-2.5 pb-1.5 border-b border-[var(--edge)]">{sec.title}</h4>
+                  <div className={`grid ${sec.cols} gap-x-4 gap-y-3`}>
+                    {sec.fields.map((f) => (
+                      <Field key={f.key} f={f} record={selectedRecord} form={editForm} editing={isEditing} onChange={setField} />
+                    ))}
                   </div>
-
-                  {/* Sub-Community */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">SUB-COMMUNITY</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.sub_community || ''}
-                        onChange={(e) => setEditForm({ ...editForm, sub_community: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.sub_community || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Building */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">BUILDING / CLUSTER</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.building_cluster || ''}
-                        onChange={(e) => setEditForm({ ...editForm, building_cluster: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.building_cluster || selectedRecord.building || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Unit Number */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">UNIT NUMBER</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.unit_number || ''}
-                        onChange={(e) => setEditForm({ ...editForm, unit_number: e.target.value })}
-                        className="neumorph-inset text-blue-700 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-blue-700 font-black">{selectedRecord.unit_number || selectedRecord.unit || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Bedroom */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">BEDROOM</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.bedroom || ''}
-                        onChange={(e) => setEditForm({ ...editForm, bedroom: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.bedroom || selectedRecord.bedroom_type || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Size */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">SIZE (SQ.FT)</span>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        value={editForm.size || ''}
-                        onChange={(e) => setEditForm({ ...editForm, size: e.target.value ? Number(e.target.value) : null })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.size ? `${selectedRecord.size} sq.ft` : 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Property Type */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">PROPERTY TYPE</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.property_type || ''}
-                        onChange={(e) => setEditForm({ ...editForm, property_type: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.property_type || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Developer */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">DEVELOPER</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.developer || ''}
-                        onChange={(e) => setEditForm({ ...editForm, developer: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.developer || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Project */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">PROJECT</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.project || ''}
-                        onChange={(e) => setEditForm({ ...editForm, project: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.project || 'N/A'}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 2: Person & Contact Information */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider block">2. Personal Contact & Identity</span>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
-                  {/* Name */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc] col-span-2">
-                    <span className="text-slate-500 text-[10px] block font-bold">NAME</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.name || ''}
-                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-black">{selectedRecord.name || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Party Type */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">TYPE (BUYER/SELLER)</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.party_type || ''}
-                        onChange={(e) => setEditForm({ ...editForm, party_type: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.party_type || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Mobile 1 */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">MOBILE 1</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.mobile_1 || ''}
-                        onChange={(e) => setEditForm({ ...editForm, mobile_1: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.mobile_1 || selectedRecord.mobile || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Mobile 2 */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">MOBILE 2</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.mobile_2 || ''}
-                        onChange={(e) => setEditForm({ ...editForm, mobile_2: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.mobile_2 || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Mobile 3 */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">MOBILE 3</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.mobile_3 || ''}
-                        onChange={(e) => setEditForm({ ...editForm, mobile_3: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.mobile_3 || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Email Address */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc] col-span-2">
-                    <span className="text-slate-500 text-[10px] block font-bold">EMAIL ADDRESS</span>
-                    {isEditing ? (
-                      <input
-                        type="email"
-                        value={editForm.email_address || ''}
-                        onChange={(e) => setEditForm({ ...editForm, email_address: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.email_address || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* PI Number */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">PI NUMBER / ID</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.pi_number || ''}
-                        onChange={(e) => setEditForm({ ...editForm, pi_number: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.pi_number || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Nationality */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">NATIONALITY</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.nationality || ''}
-                        onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.nationality || 'N/A'}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 3: Land & Registry Metadata */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider block">3. Land & Municipality Registry</span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-mono">
-                  {/* Plot Reg No */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">PLOT REG. NO</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.plot_reg_no || ''}
-                        onChange={(e) => setEditForm({ ...editForm, plot_reg_no: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.plot_reg_no || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* Plot Number */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">PLOT NUMBER</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.plot_number || ''}
-                        onChange={(e) => setEditForm({ ...editForm, plot_number: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.plot_number || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* DMNO */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">DMNO</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.dmno || ''}
-                        onChange={(e) => setEditForm({ ...editForm, dmno: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.dmno || 'N/A'}</span>
-                    )}
-                  </div>
-
-                  {/* DMSUBNO */}
-                  <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-bold">DMSUBNO</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.dmsubno || ''}
-                        onChange={(e) => setEditForm({ ...editForm, dmsubno: e.target.value })}
-                        className="neumorph-inset text-slate-800 font-bold rounded-lg px-2 py-1 mt-1 w-full focus:outline-none"
-                      />
-                    ) : (
-                      <span className="text-slate-900 font-bold">{selectedRecord.dmsubno || 'N/A'}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
+                </section>
+              ))}
 
               {/* Outreach: log the call while looking at the person. */}
               <LeadActivityPanel recordId={selectedRecord.id} />
-
-              {/* Provenance Footer */}
-              <div className="p-2.5 rounded-xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc] font-mono text-xs">
-                <span className="text-slate-500 text-[10px] block font-bold">SOURCE FILE PROVENANCE</span>
-                <span className="text-emerald-700 font-bold">{selectedRecord.source_file} (Row #{selectedRecord.source_row})</span>
-              </div>
             </div>
 
-            <div className="pt-2 flex justify-between items-center border-t border-slate-300/80">
-              <span className="text-[10px] font-mono text-slate-500">Edit it by clicking on the edit button</span>
-              <button
-                onClick={() => {
-                  setSelectedRecord(null);
-                  setIsEditing(false);
-                }}
-                className="neumorph-button-primary px-5 py-2.5 text-xs font-bold"
-              >
-                Close Inspector
-              </button>
+            {/* Provenance. Every record traces back to a row in a file. */}
+            <div className="shrink-0 px-5 py-2.5 border-t border-[var(--edge)] bg-[var(--surface-2)]/60 text-[11px] text-[var(--text-3)] flex items-center justify-between gap-3">
+              <span className="truncate">
+                Source: <span className="text-[var(--text-2)]">{selectedRecord.source_file}</span>
+                <span className="num"> row {selectedRecord.source_row}</span>
+              </span>
+              <kbd className="hidden sm:inline-block h-5 px-1.5 rounded border border-[var(--edge)] bg-[var(--surface)] text-[10px] leading-5">Esc</kbd>
             </div>
           </div>
         </div>

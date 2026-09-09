@@ -30,7 +30,7 @@ export default function App() {
   });
 
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('datalink_theme') || 'light';
+    return localStorage.getItem('datalink_theme') || 'dark';
   });
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -108,7 +108,7 @@ export default function App() {
     fetchStats();
   };
 
-  // If not authenticated, display the Neumorphic Lock Screen
+  // If not authenticated, display the lock screen
   if (!isAuthenticated) {
     return (
       <AuthLockScreen 
@@ -135,9 +135,8 @@ export default function App() {
   }
 
   return (
-    <div className={`relative h-screen w-screen bg-[var(--bg-main)] text-[var(--text-main)] font-sans selection:bg-blue-600 selection:text-white overflow-hidden transition-colors duration-200`}>
-      {/* Dynamic 3D Spatial Canvas */}
-      <Spatial3DCanvas theme={theme} />
+    <div className="relative h-screen w-full text-[var(--text)] overflow-hidden">
+      <Spatial3DCanvas />
 
       {/* Fixed Full Screen Layout */}
       <div className="relative z-10 flex w-full h-full overflow-hidden">
@@ -146,12 +145,11 @@ export default function App() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           activeJob={activeJobId ? { id: activeJobId, status: 'RUNNING' } : null}
-          theme={theme}
           userRole={currentUser?.role}
         />
 
         {/* Fixed Content Panel */}
-        <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[var(--bg-main)]">
+        <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
           <Header
             onRefresh={fetchStats}
             activeJob={activeJobId ? { id: activeJobId, status: 'PROCESSING' } : null}
@@ -165,14 +163,13 @@ export default function App() {
           />
 
           {/* Active View Container (with bottom padding on mobile for the bottom nav) */}
-          <main className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[var(--bg-main)] pb-14 md:pb-0">
+          <main className="flex-1 flex flex-col min-h-0 overflow-hidden pb-16 md:pb-0">
             {activeTab === 'overview' && (
               <div className="flex-1 overflow-y-auto">
                 <OverviewDashboard
                   stats={stats}
                   setActiveTab={setActiveTab}
                   setSelectedJobId={setSelectedJobId}
-                  theme={theme}
                 />
               </div>
             )}

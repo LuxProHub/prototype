@@ -61,16 +61,11 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
   return (
     <div className="p-6 h-full w-full max-w-[1450px] mx-auto flex flex-col min-h-0 overflow-hidden space-y-4">
       {/* Title Header (Fixed Top) */}
-      <Tilt3DCard className="p-5 rounded-3xl flex-shrink-0">
+      <Tilt3DCard className="p-5 rounded-xl flex-shrink-0">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 rounded-full bg-[#eef0f4] text-blue-600 font-mono text-[10px] font-black tracking-wider border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc,inset_-2px_-2px_4px_#ffffff]">
-                AUDIT ENGINE LOGS
-              </span>
-            </div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight mt-2">Job Execution Audit & Errors</h2>
-            <p className="text-xs text-slate-600 mt-1 font-medium">
+            <h2 className="text-2xl font-semibold text-[var(--text)] tracking-tight">Processing jobs</h2>
+            <p className="text-xs text-[var(--text-2)] mt-1 font-medium">
               Detailed batch execution history and row-level validation error audit logs.
             </p>
           </div>
@@ -80,13 +75,13 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
       {/* Main 2-Column Dashboard Panel (Fits Viewport Height) */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden">
         {/* Left Column: History List */}
-        <Tilt3DCard className="lg:col-span-1 p-4 rounded-3xl flex flex-col min-h-0 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-300/60 pb-3 flex-shrink-0">
+        <Tilt3DCard className="lg:col-span-1 p-4 rounded-xl flex flex-col min-h-0 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--edge)] pb-3 flex-shrink-0">
             <div className="flex items-center space-x-2">
-              <Activity className="w-4 h-4 text-blue-600" />
-              <span className="text-xs font-bold text-slate-800 tracking-wide">Execution Runs</span>
+              <Activity className="w-4 h-4 text-[var(--accent)]" />
+              <span className="text-xs font-semibold text-[var(--text)] tracking-wide">Execution Runs</span>
             </div>
-            <button onClick={fetchJobsList} className="neumorph-button p-1.5 text-slate-600 hover:text-slate-900" title="Refresh list">
+            <button onClick={fetchJobsList} className="btn p-1.5 text-[var(--text-2)] hover:text-[var(--text)]" title="Refresh list">
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -98,28 +93,28 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
                 <button
                   key={job.id}
                   onClick={() => setSelectedJobId(job.id)}
-                  className={`w-full text-left p-3.5 rounded-2xl transition-all cursor-pointer ${
+                  className={`w-full text-left p-3.5 rounded-lg transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-[#eef0f4] border border-blue-300 shadow-[inset_3px_3px_6px_#cbd2dc,inset_-3px_-3px_6px_#ffffff]'
-                      : 'bg-[#eef0f4] border border-white/80 shadow-[4px_4px_10px_#cbd2dc,-4px_-4px_10px_#ffffff] hover:bg-slate-100'
+                      ? 'bg-[var(--surface-2)] border border-[var(--accent-ring)]'
+                      : 'bg-[var(--surface-2)] border border-[var(--edge)] hover:bg-slate-100'
                   }`}
                 >
                   <div className="flex justify-between items-start">
-                    <span className="font-mono text-xs font-bold text-blue-600">#{job.id}</span>
+                    <span className="font-mono text-xs font-semibold text-[var(--accent)]">#{job.id}</span>
                     <span
-                      className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full uppercase border ${
+                      className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full uppercase border ${
                         job.status === 'COMPLETED'
-                          ? 'bg-[#eef0f4] text-emerald-700 border-emerald-300 shadow-[inset_2px_2px_4px_#cbd2dc]'
-                          : 'bg-[#eef0f4] text-amber-700 border-amber-300 shadow-[inset_2px_2px_4px_#cbd2dc]'
+                          ? 'bg-[var(--surface-2)] text-[var(--ok)] border-emerald-300'
+                          : 'bg-[var(--surface-2)] text-[var(--warn)] border-amber-300'
                       }`}
                     >
                       {job.status}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-800 font-bold truncate mt-1.5">{job.filename}</p>
-                  <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-slate-300/40">
+                  <p className="text-xs text-[var(--text)] font-semibold truncate mt-1.5">{job.filename}</p>
+                  <div className="flex justify-between text-[10px] text-[var(--text-3)] font-mono mt-2 pt-2 border-t border-[var(--edge)]">
                     <span>Rows: {job.total_rows?.toLocaleString() || 0}</span>
-                    <span className="text-rose-600 font-bold">Errors: {job.error_rows || 0}</span>
+                    <span className="text-[var(--bad)] font-semibold">Errors: {job.error_rows || 0}</span>
                   </div>
                 </button>
               );
@@ -132,65 +127,65 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
           {activeJobData ? (
             <>
               {/* Summary Card */}
-              <Tilt3DCard className="p-5 rounded-3xl space-y-3 flex-shrink-0">
-                <div className="flex justify-between items-center border-b border-slate-300/60 pb-3">
+              <Tilt3DCard className="p-5 rounded-xl space-y-3 flex-shrink-0">
+                <div className="flex justify-between items-center border-b border-[var(--edge)] pb-3">
                   <div>
-                    <span className="text-[10px] font-mono text-blue-600 font-bold uppercase">Audit Scope #{activeJobData.id}</span>
-                    <h3 className="text-base font-bold text-slate-800">{activeJobData.filename}</h3>
+                    <span className="text-[10px] font-mono text-[var(--accent)] font-semibold uppercase">Audit Scope #{activeJobData.id}</span>
+                    <h3 className="text-base font-semibold text-[var(--text)]">{activeJobData.filename}</h3>
                   </div>
-                  <span className="text-xs font-mono text-slate-500 font-bold">Batch Size: {activeJobData.batch_size}</span>
+                  <span className="text-xs font-mono text-[var(--text-3)] font-semibold">Batch Size: {activeJobData.batch_size}</span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-                  <div className="p-3.5 rounded-2xl bg-[#eef0f4] border border-slate-300/80 shadow-[inset_3px_3px_6px_#cbd2dc]">
-                    <span className="text-slate-500 text-[10px] block font-semibold">TOTAL ROWS</span>
-                    <span className="text-slate-900 font-black text-sm">{activeJobData.total_rows?.toLocaleString()}</span>
+                  <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-[var(--edge)]">
+                    <span className="text-[var(--text-3)] text-[10px] block font-semibold">TOTAL ROWS</span>
+                    <span className="text-[var(--text)] font-semibold text-sm">{activeJobData.total_rows?.toLocaleString()}</span>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-[#eef0f4] border border-emerald-300/80 shadow-[inset_3px_3px_6px_#cbd2dc]">
-                    <span className="text-emerald-700 text-[10px] block font-semibold">VALID ROWS</span>
-                    <span className="text-emerald-700 font-black text-sm">{activeJobData.valid_rows?.toLocaleString()}</span>
+                  <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-emerald-300/80">
+                    <span className="text-[var(--ok)] text-[10px] block font-semibold">VALID ROWS</span>
+                    <span className="text-[var(--ok)] font-semibold text-sm">{activeJobData.valid_rows?.toLocaleString()}</span>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-[#eef0f4] border border-amber-300/80 shadow-[inset_3px_3px_6px_#cbd2dc]">
-                    <span className="text-amber-700 text-[10px] block font-semibold">DUPLICATES</span>
-                    <span className="text-amber-700 font-black text-sm">{activeJobData.duplicate_rows?.toLocaleString()}</span>
+                  <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-amber-300/80">
+                    <span className="text-[var(--warn)] text-[10px] block font-semibold">DUPLICATES</span>
+                    <span className="text-[var(--warn)] font-semibold text-sm">{activeJobData.duplicate_rows?.toLocaleString()}</span>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-[#eef0f4] border border-rose-300/80 shadow-[inset_3px_3px_6px_#cbd2dc]">
-                    <span className="text-rose-700 text-[10px] block font-semibold">ERRORS LOGGED</span>
-                    <span className="text-rose-700 font-black text-sm">{activeJobData.error_rows?.toLocaleString()}</span>
+                  <div className="p-3.5 rounded-lg bg-[var(--surface-2)] border border-rose-300/80">
+                    <span className="text-[var(--bad)] text-[10px] block font-semibold">ERRORS LOGGED</span>
+                    <span className="text-[var(--bad)] font-semibold text-sm">{activeJobData.error_rows?.toLocaleString()}</span>
                   </div>
                 </div>
               </Tilt3DCard>
 
               {/* Row Errors Table */}
-              <Tilt3DCard className="p-5 rounded-3xl flex-1 flex flex-col min-h-0 overflow-hidden space-y-3">
-                <div className="flex items-center space-x-2 border-b border-slate-300/60 pb-3 flex-shrink-0">
-                  <AlertTriangle className="w-4 h-4 text-rose-600" />
-                  <h3 className="text-sm font-bold text-slate-800">Row-Level Error Trail ({errors.length})</h3>
+              <Tilt3DCard className="p-5 rounded-xl flex-1 flex flex-col min-h-0 overflow-hidden space-y-3">
+                <div className="flex items-center space-x-2 border-b border-[var(--edge)] pb-3 flex-shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-[var(--bad)]" />
+                  <h3 className="text-sm font-semibold text-[var(--text)]">Row-Level Error Trail ({errors.length})</h3>
                 </div>
 
                 <div className="overflow-auto flex-1 min-h-0">
                   <table className="w-full text-left text-xs font-mono">
                     <thead>
-                      <tr className="border-b border-slate-300/80 text-slate-500 text-[11px] bg-[#eef0f4] sticky top-0 z-10">
-                        <th className="p-2.5 font-bold">BATCH</th>
-                        <th className="p-2.5 font-bold">ROW INDEX</th>
-                        <th className="p-2.5 font-bold">FIELD</th>
-                        <th className="p-2.5 font-bold">ERROR REASON</th>
+                      <tr className="border-b border-[var(--edge)] text-[var(--text-3)] text-[11px] bg-[var(--surface-2)] sticky top-0 z-10">
+                        <th className="p-2.5 font-semibold">BATCH</th>
+                        <th className="p-2.5 font-semibold">ROW INDEX</th>
+                        <th className="p-2.5 font-semibold">FIELD</th>
+                        <th className="p-2.5 font-semibold">ERROR REASON</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 font-sans">
+                    <tbody className="divide-y divide-[var(--edge)] font-sans">
                       {errors.length > 0 ? (
                         errors.map((errItem, idx) => (
                           <tr key={idx} className="hover:bg-slate-100/80">
-                            <td className="p-2.5 font-mono text-slate-600 font-bold">{errItem.batch || 1}</td>
-                            <td className="p-2.5 font-mono text-slate-600">{errItem.row_index || errItem.row}</td>
-                            <td className="p-2.5 font-mono text-rose-600 font-bold">{errItem.field || 'General'}</td>
-                            <td className="p-2.5 text-slate-700 font-medium">{errItem.reason || errItem.error_message}</td>
+                            <td className="p-2.5 font-mono text-[var(--text-2)] font-semibold">{errItem.batch || 1}</td>
+                            <td className="p-2.5 font-mono text-[var(--text-2)]">{errItem.row_index || errItem.row}</td>
+                            <td className="p-2.5 font-mono text-[var(--bad)] font-semibold">{errItem.field || 'General'}</td>
+                            <td className="p-2.5 text-[var(--text-2)] font-medium">{errItem.reason || errItem.error_message}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="4" className="py-10 text-center text-slate-500 font-mono text-xs">
+                          <td colSpan="4" className="py-10 text-center text-[var(--text-3)] font-mono text-xs">
                             No row-level errors recorded for this job run.
                           </td>
                         </tr>
@@ -201,7 +196,7 @@ export default function JobDetailsView({ selectedJobId, setSelectedJobId }) {
               </Tilt3DCard>
             </>
           ) : (
-            <Tilt3DCard className="p-8 text-center text-slate-500 font-mono text-xs flex-1 flex items-center justify-center">
+            <Tilt3DCard className="p-8 text-center text-[var(--text-3)] font-mono text-xs flex-1 flex items-center justify-center">
               Select an execution run from the left history panel to view detailed audit logs.
             </Tilt3DCard>
           )}

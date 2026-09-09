@@ -5,7 +5,7 @@ export default function DataLinkLogo({ className = "w-6 h-6", glow = true }) {
   return (
     <div className={`relative flex items-center justify-center ${className}`}>
       {glow && (
-        <div className="absolute inset-0 bg-blue-500/25 rounded-xl blur-xs transform scale-110 pointer-events-none" />
+        <div className="absolute inset-0 bg-[var(--accent-soft)] rounded-xl blur-xs transform scale-110 pointer-events-none" />
       )}
       <svg
         viewBox="0 0 48 48"

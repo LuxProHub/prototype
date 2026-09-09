@@ -443,16 +443,11 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       {/* Title Header */}
-      <Tilt3DCard className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl">
+      <Tilt3DCard className="p-4 sm:p-6 rounded-lg sm:rounded-xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="flex items-center space-x-2">
-              <span className="px-2.5 py-1 rounded-full bg-[var(--card-bg)] text-blue-600 dark:text-blue-400 font-mono text-[10px] font-black tracking-wider border border-blue-500/30 neumorph-inset">
-                MULTI-REGISTER BATCH STUDIO
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-2">Ingestion & Inspection Studio</h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium">
+            <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text)] tracking-tight">Upload registers</h2>
+            <p className="text-xs text-[var(--text-2)] mt-1 font-medium">
               Upload multiple registers, inspect schema mappings with <strong>Inspect All</strong>, and execute automated batch ingestion directly into PostgreSQL.
             </p>
           </div>
@@ -463,7 +458,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
               <button
                 onClick={clearQueue}
                 disabled={isProcessingQueue || isInspectingQueue}
-                className="neumorph-button px-3.5 py-2 text-slate-700 font-bold text-xs"
+                className="btn px-3.5 py-2 text-[var(--text-2)] font-semibold text-xs"
               >
                 Clear Queue
               </button>
@@ -475,16 +470,16 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                   isProcessingQueue ||
                   !fileQueue.some((f) => f.status === 'QUEUED' || f.status === 'FAILED')
                 }
-                className="neumorph-button px-4 py-2 text-blue-600 font-bold text-xs flex items-center space-x-2"
+                className="btn px-4 py-2 text-[var(--accent)] font-semibold text-xs flex items-center space-x-2"
               >
                 {isInspectingQueue ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent)]" />
                     <span>Inspecting Files...</span>
                   </>
                 ) : (
                   <>
-                    <FileCode className="w-3.5 h-3.5 text-blue-600" />
+                    <FileCode className="w-3.5 h-3.5 text-[var(--accent)]" />
                     <span>Inspect All ({fileQueue.filter((f) => f.status === 'QUEUED').length})</span>
                   </>
                 )}
@@ -493,7 +488,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
               <button
                 onClick={startBatchQueueProcessing}
                 disabled={isProcessingQueue || isInspectingQueue || fileQueue.every((f) => f.status === 'COMPLETED')}
-                className="neumorph-button-primary px-5 py-2 text-xs font-bold flex items-center space-x-2"
+                className="btn-primary px-5 py-2 text-xs font-semibold flex items-center space-x-2"
               >
                 {isProcessingQueue ? (
                   <>
@@ -513,7 +508,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
       </Tilt3DCard>
 
       {/* Drag & Drop Multi-File Zone */}
-      <Tilt3DCard className="p-5 sm:p-8 text-center border border-slate-500/20">
+      <Tilt3DCard className="p-5 sm:p-8 text-center border border-[var(--edge)]">
         <div
           onDragEnter={handleDrag}
           onDragOver={handleDrag}
@@ -530,20 +525,20 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
             className="hidden"
           />
 
-          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-2xl sm:rounded-3xl bg-[var(--card-bg)] border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 neumorph-inset shadow-inner">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-lg sm:rounded-xl bg-[var(--surface)] border border-[var(--accent-ring)] flex items-center justify-center text-[var(--accent)] field ">
             <Layers3 className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
 
           <div className="space-y-2">
-            <p className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
+            <p className="text-base sm:text-lg font-semibold text-[var(--text)] tracking-tight">
               Tap to choose files or drop Excel / CSV files here
             </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono max-w-md mx-auto">
+            <p className="text-xs text-[var(--text-3)] font-mono max-w-md mx-auto">
               Select 1 or 20+ registers simultaneously (.xlsx, .xls, .csv). Batch engine processes files sequentially.
             </p>
             <label
               htmlFor="file-upload-multi"
-              className="neumorph-button-primary inline-flex items-center space-x-2 px-5 sm:px-6 py-2.5 sm:py-3 text-xs font-black cursor-pointer active:scale-95"
+              className="btn-primary inline-flex items-center space-x-2 px-5 sm:px-6 py-2.5 sm:py-3 text-xs font-semibold cursor-pointer active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>Select Multiple Files</span>
@@ -553,8 +548,8 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
       </Tilt3DCard>
 
       {globalError && (
-        <div className="p-4 rounded-2xl bg-[#eef0f4] border border-rose-300 text-rose-700 text-xs font-mono font-bold flex items-center space-x-2 shadow-[inset_3px_3px_6px_#cbd2dc]">
-          <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+        <div className="p-4 rounded-lg bg-[var(--surface-2)] border border-rose-300 text-[var(--bad)] text-xs font-mono font-semibold flex items-center space-x-2">
+          <AlertCircle className="w-4 h-4 text-[var(--bad)] flex-shrink-0" />
           <span>{globalError}</span>
         </div>
       )}
@@ -562,15 +557,15 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
       {/* Multi-File Batch Queue List */}
       {fileQueue.length > 0 && (
         <Tilt3DCard className="p-6 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-300/60 pb-3">
-            <div className="flex items-center space-x-2 font-mono text-xs font-bold text-slate-800">
-              <Layers className="w-4 h-4 text-blue-600" />
+          <div className="flex items-center justify-between border-b border-[var(--edge)] pb-3">
+            <div className="flex items-center space-x-2 font-mono text-xs font-semibold text-[var(--text)]">
+              <Layers className="w-4 h-4 text-[var(--accent)]" />
               <span>INGESTION QUEUE PIPELINE ({fileQueue.length} FILES)</span>
             </div>
 
             {/* Batch Size Selector */}
             <div className="flex items-center space-x-2">
-              <span className="text-xs text-slate-600 font-medium">Batch Size:</span>
+              <span className="text-xs text-[var(--text-2)] font-medium">Batch Size:</span>
               <CustomSelect
                 value={batchSize}
                 onChange={(val) => setBatchSize(Number(val))}
@@ -587,34 +582,34 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
             {fileQueue.map((item, idx) => (
               <div
                 key={item.id}
-                className={`p-4 rounded-2xl border transition-all flex flex-col gap-3 text-xs font-mono ${
+                className={`p-4 rounded-lg border transition-all flex flex-col gap-3 text-xs font-mono ${
                   activeQueueIndex === idx || item.status === 'PROCESSING'
-                    ? 'bg-[#eef0f4] border-blue-400 shadow-[inset_3px_3px_6px_#cbd2dc,inset_-3px_-3px_6px_#ffffff]'
+                    ? 'bg-[var(--surface-2)] border-[var(--accent-ring)]'
                     : item.status === 'PAUSED'
-                    ? 'bg-[#eef0f4] border-amber-400 shadow-[inset_3px_3px_6px_#cbd2dc,inset_-3px_-3px_6px_#ffffff]'
+                    ? 'bg-[var(--surface-2)] border-amber-400'
                     : item.status === 'COMPLETED'
-                    ? 'bg-[#eef0f4] border-emerald-300 shadow-[4px_4px_10px_#cbd2dc,-4px_-4px_10px_#ffffff]'
+                    ? 'bg-[var(--surface-2)] border-emerald-300'
                     : item.status === 'FAILED' || item.status === 'CANCELLED'
-                    ? 'bg-[#eef0f4] border-rose-300 shadow-[4px_4px_10px_#cbd2dc,-4px_-4px_10px_#ffffff]'
-                    : 'bg-[#eef0f4] border-slate-300/80 shadow-[4px_4px_10px_#cbd2dc,-4px_-4px_10px_#ffffff]'
+                    ? 'bg-[var(--surface-2)] border-rose-300'
+                    : 'bg-[var(--surface-2)] border-[var(--edge)]'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 w-full">
                   <div className="flex items-center space-x-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-[#eef0f4] border border-slate-300/80 flex items-center justify-center text-blue-600 flex-shrink-0 shadow-[inset_2px_2px_4px_#cbd2dc]">
+                    <div className="w-9 h-9 rounded-xl bg-[var(--surface-2)] border border-[var(--edge)] flex items-center justify-center text-[var(--accent)] flex-shrink-0">
                       <FileSpreadsheet className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center space-x-2 flex-wrap">
-                        <p className="font-bold text-slate-800 truncate max-w-xs sm:max-w-md">{item.name}</p>
+                        <p className="font-semibold text-[var(--text)] truncate max-w-xs sm:max-w-md">{item.name}</p>
                         {item.name.toLowerCase().includes('consolidated') && (
-                          <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-700 text-[10px] font-bold border border-amber-300">
+                          <span className="px-2 py-0.5 rounded-md bg-[var(--warn-soft)] text-[var(--warn)] text-[10px] font-semibold border border-amber-300">
                             Pre-Consolidated File
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-500">
-                        {(item.size / 1024).toFixed(1)} KB | Status: <span className="text-slate-900 font-bold">{item.status}</span>
+                      <p className="text-[10px] text-[var(--text-3)]">
+                        {(item.size / 1024).toFixed(1)} KB | Status: <span className="text-[var(--text)] font-semibold">{item.status}</span>
                         {item.totalRows > 0 && ` | ${item.totalRows.toLocaleString()} rows`}
                       </p>
                     </div>
@@ -623,56 +618,56 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                   {/* Status Badges & Controls */}
                   <div className="flex items-center space-x-2 flex-shrink-0 self-end sm:self-center">
                     {item.status === 'QUEUED' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[#eef0f4] text-slate-700 text-[10px] font-bold border border-slate-300/80 shadow-[inset_2px_2px_4px_#cbd2dc]">
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--text-2)] text-[10px] font-semibold border border-[var(--edge)]">
                         QUEUED
                       </span>
                     )}
 
                     {item.status === 'INSPECTING' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[#eef0f4] text-blue-700 text-[10px] font-bold border border-blue-300 flex items-center space-x-1 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                        <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--accent)] text-[10px] font-semibold border border-[var(--accent-ring)] flex items-center space-x-1">
+                        <RefreshCw className="w-3 h-3 animate-spin text-[var(--accent)]" />
                         <span>INSPECTING</span>
                       </span>
                     )}
 
                     {item.status === 'INSPECTED' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[#eef0f4] text-blue-700 text-[10px] font-bold border border-blue-300 flex items-center space-x-1 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                        <FileCode className="w-3 h-3 text-blue-600" />
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--accent)] text-[10px] font-semibold border border-[var(--accent-ring)] flex items-center space-x-1">
+                        <FileCode className="w-3 h-3 text-[var(--accent)]" />
                         <span>INSPECTED ({item.uploadResult?.mapped_target_count || 0} mapped)</span>
                       </span>
                     )}
 
                     {item.status === 'PROCESSING' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[#eef0f4] text-emerald-700 text-[10px] font-bold border border-emerald-300 flex items-center space-x-1 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                        <RefreshCw className="w-3 h-3 animate-spin text-emerald-600" />
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--ok)] text-[10px] font-semibold border border-emerald-300 flex items-center space-x-1">
+                        <RefreshCw className="w-3 h-3 animate-spin text-[var(--ok)]" />
                         <span>PROCESSING</span>
                       </span>
                     )}
 
                     {item.status === 'PAUSED' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[#eef0f4] text-amber-700 text-[10px] font-bold border border-amber-300 flex items-center space-x-1 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                        <Pause className="w-3 h-3 text-amber-600" />
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--warn)] text-[10px] font-semibold border border-amber-300 flex items-center space-x-1">
+                        <Pause className="w-3 h-3 text-[var(--warn)]" />
                         <span>PAUSED</span>
                       </span>
                     )}
 
                     {item.status === 'COMPLETED' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[#eef0f4] text-emerald-700 text-[10px] font-bold border border-emerald-300 flex items-center space-x-1 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--ok)] text-[10px] font-semibold border border-emerald-300 flex items-center space-x-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[var(--ok)]" />
                         <span>INGESTED ({item.processedRows || item.totalRows} rows)</span>
                       </span>
                     )}
 
                     {item.status === 'CANCELLED' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[#eef0f4] text-slate-700 text-[10px] font-bold border border-slate-300 flex items-center space-x-1 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                        <Square className="w-3 h-3 text-slate-500" />
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--text-2)] text-[10px] font-semibold border border-[var(--edge)] flex items-center space-x-1">
+                        <Square className="w-3 h-3 text-[var(--text-3)]" />
                         <span>CANCELLED</span>
                       </span>
                     )}
 
                     {item.status === 'FAILED' && (
-                      <span className="px-2.5 py-1 rounded-lg bg-[#eef0f4] text-rose-700 text-[10px] font-bold border border-rose-300 flex items-center space-x-1 shadow-[inset_2px_2px_4px_#cbd2dc]">
-                        <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                      <span className="px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[var(--bad)] text-[10px] font-semibold border border-rose-300 flex items-center space-x-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-[var(--bad)]" />
                         <span>FAILED</span>
                       </span>
                     )}
@@ -683,16 +678,16 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                         {item.status === 'PROCESSING' ? (
                           <button
                             onClick={() => handlePauseJob(item.jobId)}
-                            className="neumorph-button px-2.5 py-1 text-amber-700 text-[10px] font-bold flex items-center space-x-1 hover:text-amber-800 shadow-xs"
+                            className="btn px-2.5 py-1 text-[var(--warn)] text-[10px] font-semibold flex items-center space-x-1 hover:text-[var(--warn)] "
                             title="Pause processing at batch boundary"
                           >
-                            <Pause className="w-3 h-3 text-amber-600" />
+                            <Pause className="w-3 h-3 text-[var(--warn)]" />
                             <span>Pause</span>
                           </button>
                         ) : (
                           <button
                             onClick={() => handleResumeJob(item.jobId)}
-                            className="neumorph-button-primary px-2.5 py-1 text-[10px] font-bold flex items-center space-x-1 shadow-xs"
+                            className="btn-primary px-2.5 py-1 text-[10px] font-semibold flex items-center space-x-1 "
                             title="Resume processing"
                           >
                             <Play className="w-3 h-3 fill-white text-white" />
@@ -701,10 +696,10 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                         )}
                         <button
                           onClick={() => handleCancelJob(item.jobId)}
-                          className="neumorph-button px-2.5 py-1 text-rose-600 text-[10px] font-bold flex items-center space-x-1 hover:text-rose-700 shadow-xs"
+                          className="btn px-2.5 py-1 text-[var(--bad)] text-[10px] font-semibold flex items-center space-x-1 hover:text-[var(--bad)] "
                           title="Stop / Cancel processing"
                         >
-                          <Square className="w-3 h-3 text-rose-600 fill-rose-600" />
+                          <Square className="w-3 h-3 text-[var(--bad)] fill-rose-600" />
                           <span>Stop</span>
                         </button>
                       </div>
@@ -715,7 +710,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                       <>
                         <button
                           onClick={() => inspectQueueFile(item)}
-                          className="neumorph-button px-2.5 py-1 text-blue-600 text-[10px] font-bold flex items-center space-x-1"
+                          className="btn px-2.5 py-1 text-[var(--accent)] text-[10px] font-semibold flex items-center space-x-1"
                           title="Inspect Column Headers"
                         >
                           <FileCode className="w-3 h-3" />
@@ -723,7 +718,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                         </button>
                         <button
                           onClick={() => processSingleFile(idx)}
-                          className="neumorph-button-primary px-2.5 py-1 text-[10px] font-bold flex items-center space-x-1"
+                          className="btn-primary px-2.5 py-1 text-[10px] font-semibold flex items-center space-x-1"
                           title="Process File Now"
                         >
                           <Play className="w-3 h-3 fill-white text-white" />
@@ -736,7 +731,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                       <button
                         onClick={() => removeFromQueue(item.id)}
                         disabled={isProcessingQueue}
-                        className="neumorph-button p-1.5 text-slate-500 hover:text-rose-600"
+                        className="btn p-1.5 text-[var(--text-3)] hover:text-[var(--bad)]"
                         title="Remove from Queue"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -747,30 +742,30 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
 
                 {/* Real-Time Live Progress Bar */}
                 {(item.status === 'PROCESSING' || item.status === 'PAUSED' || (item.status === 'COMPLETED' && item.processedRows > 0)) && (
-                  <div className="w-full mt-1 pt-2 border-t border-slate-300/60 space-y-1.5">
+                  <div className="w-full mt-1 pt-2 border-t border-[var(--edge)] space-y-1.5">
                     <div className="flex items-center justify-between text-[11px] font-mono">
-                      <span className="flex items-center space-x-1.5 font-bold">
+                      <span className="flex items-center space-x-1.5 font-semibold">
                         {item.status === 'PROCESSING' && (
-                          <span className="flex items-center space-x-1 text-emerald-600">
-                            <RefreshCw className="w-3 h-3 animate-spin text-emerald-600" />
+                          <span className="flex items-center space-x-1 text-[var(--ok)]">
+                            <RefreshCw className="w-3 h-3 animate-spin text-[var(--ok)]" />
                             <span>Streaming rows ({item.currentSheet || 'Sheet 1'})...</span>
                           </span>
                         )}
                         {item.status === 'PAUSED' && (
-                          <span className="text-amber-600 font-bold flex items-center space-x-1">
-                            <Pause className="w-3 h-3 text-amber-600" />
+                          <span className="text-[var(--warn)] font-semibold flex items-center space-x-1">
+                            <Pause className="w-3 h-3 text-[var(--warn)]" />
                             <span>Paused at batch boundary</span>
                           </span>
                         )}
                         {item.status === 'COMPLETED' && (
-                          <span className="text-emerald-700 font-bold flex items-center space-x-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span className="text-[var(--ok)] font-semibold flex items-center space-x-1">
+                            <CheckCircle2 className="w-3 h-3 text-[var(--ok)]" />
                             <span>Processing complete</span>
                           </span>
                         )}
                       </span>
 
-                      <span className="font-bold text-slate-800">
+                      <span className="font-semibold text-[var(--text)]">
                         {(item.processedRows || 0).toLocaleString()} / {(item.totalRows || 0).toLocaleString()} rows (
                         {item.status === 'COMPLETED'
                           ? 100
@@ -782,7 +777,7 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
                     </div>
 
                     {/* Bar */}
-                    <div className="w-full h-2.5 rounded-full bg-[#cbd2dc] overflow-hidden shadow-[inset_1px_1px_3px_#94a3b8] p-0.5">
+                    <div className="w-full h-2.5 rounded-full bg-[var(--surface-3)] overflow-hidden p-0.5">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
                           item.status === 'PAUSED'
@@ -813,19 +808,19 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
       {/* Column Remapping Studio for Inspected File */}
       {selectedFileForRemap && selectedFileForRemap.uploadResult && (
         <Tilt3DCard className="p-6 space-y-5">
-          <div className="flex justify-between items-center border-b border-slate-300/60 pb-3">
+          <div className="flex justify-between items-center border-b border-[var(--edge)] pb-3">
             <div className="flex items-center space-x-2">
-              <ShieldCheck className="w-5 h-5 text-blue-600" />
+              <ShieldCheck className="w-5 h-5 text-[var(--accent)]" />
               <div>
-                <h3 className="text-sm font-bold text-slate-800">
+                <h3 className="text-sm font-semibold text-[var(--text)]">
                   Header Remapping Studio: {selectedFileForRemap.name}
                 </h3>
-                <p className="text-xs text-slate-600 font-medium">Verify or override target field mappings before running.</p>
+                <p className="text-xs text-[var(--text-2)] font-medium">Verify or override target field mappings before running.</p>
               </div>
             </div>
             <button
               onClick={() => setSelectedFileForRemap(null)}
-              className="neumorph-button px-3 py-1.5 text-xs text-slate-700 font-bold"
+              className="btn px-3 py-1.5 text-xs text-[var(--text-2)] font-semibold"
             >
               Close Studio
             </button>
@@ -833,24 +828,24 @@ export default function UploadSection({ onUploadComplete, activeJob }) {
 
           {selectedFileForRemap.uploadResult.mapped_columns_preview && (
             <div className="space-y-3">
-              <div className="flex justify-between items-center text-xs font-mono font-bold text-slate-700">
+              <div className="flex justify-between items-center text-xs font-mono font-semibold text-[var(--text-2)]">
                 <span>DETECTED RAW COLUMNS ({selectedFileForRemap.uploadResult.header_count})</span>
-                <span className="text-blue-600">
+                <span className="text-[var(--accent)]">
                   {selectedFileForRemap.uploadResult.mapped_count} / {selectedFileForRemap.uploadResult.header_count} Mapped
                 </span>
               </div>
 
-              <div className="max-h-60 overflow-y-auto rounded-2xl border border-slate-300/80 bg-[#eef0f4] p-2 space-y-2 shadow-[inset_3px_3px_6px_#cbd2dc]">
+              <div className="max-h-60 overflow-y-auto rounded-lg border border-[var(--edge)] bg-[var(--surface-2)] p-2 space-y-2">
                 {selectedFileForRemap.uploadResult.mapped_columns_preview.map((colItem, idx) => {
                   const currentMappedField = columnOverrides[colItem.raw_header] || '';
                   return (
-                    <div key={idx} className="p-2.5 flex items-center justify-between gap-3 text-xs font-mono bg-[#eef0f4] rounded-xl border border-white/80 shadow-[3px_3px_6px_#cbd2dc]">
-                      <div className="flex items-center space-x-2 font-bold text-slate-900 max-w-[200px] truncate">
-                        <Layers className="w-3.5 h-3.5 text-blue-600" />
+                    <div key={idx} className="p-2.5 flex items-center justify-between gap-3 text-xs font-mono bg-[var(--surface-2)] rounded-xl border border-[var(--edge)]">
+                      <div className="flex items-center space-x-2 font-semibold text-[var(--text)] max-w-[200px] truncate">
+                        <Layers className="w-3.5 h-3.5 text-[var(--accent)]" />
                         <span title={colItem.raw_header}>{colItem.raw_header}</span>
                       </div>
 
-                      <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <ArrowRight className="w-4 h-4 text-[var(--text-3)] flex-shrink-0" />
 
                       <CustomSelect
                         value={currentMappedField}
