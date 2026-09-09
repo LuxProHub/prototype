@@ -80,7 +80,7 @@ export default function OverviewDashboard({ stats, statsError, onRetry, setActiv
   return (
     <div className="p-4 sm:p-5 max-w-[1520px] mx-auto space-y-4">
       {/* Title row. Context is a fact, not a slogan. */}
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="t-title">Overview</h1>
           <p className="t-meta mt-1">

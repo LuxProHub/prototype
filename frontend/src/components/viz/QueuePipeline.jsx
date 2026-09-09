@@ -25,7 +25,7 @@ export default function QueuePipeline({ stageCounts = {}, selectedStage, onSelec
 
   return (
     <div className="panel rounded-[var(--radius-lg)] p-1.5">
-      <ol className="flex items-stretch gap-1" aria-label="Call pipeline stages">
+      <ol className="grid grid-cols-2 gap-1.5 sm:flex sm:items-stretch sm:gap-1" aria-label="Call pipeline stages">
         {STAGES.map((s, i) => {
           const count = stageCounts[s.key] || 0;
           const active = selectedStage === s.key;

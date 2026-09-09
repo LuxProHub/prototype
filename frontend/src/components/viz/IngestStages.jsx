@@ -22,14 +22,14 @@ export default function IngestStages({ stage = 'upload' }) {
   const activeIndex = Math.max(0, STAGES.findIndex((s) => s.key === stage));
 
   return (
-    <ol className="flex items-stretch gap-1 sm:gap-1.5 overflow-x-auto" aria-label="Ingestion stages">
+    <ol className="grid grid-cols-2 gap-1.5 sm:flex sm:items-stretch" aria-label="Ingestion stages">
       {STAGES.map((s, i) => {
         const done = i < activeIndex;
         const active = i === activeIndex;
         return (
           <React.Fragment key={s.key}>
             <li
-              className={`flex-1 min-w-[7.5rem] rounded-[var(--r-md)] px-3 py-2.5 border transition-colors ${
+              className={`sm:flex-1 min-w-0 rounded-[var(--r-md)] px-3 py-2.5 border transition-colors ${
                 active
                   ? 'bg-[var(--surface)] border-[var(--accent-ring)] shadow-[var(--shadow-1)]'
                   : 'bg-transparent border-transparent'

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { PhoneCall, RefreshCw, Inbox, AlertCircle, Search, ChevronRight } from 'lucide-react';
-import PageHeader from './ui/PageHeader';
 import { apiFetch } from '../lib/api';
 import QueuePipeline from './viz/QueuePipeline';
 import SidePanel from './ui/SidePanel';
@@ -130,7 +129,7 @@ export default function CallQueue() {
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 max-w-[1520px] mx-auto">
       {/* Title band. The count line answers the desk's first question. */}
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="t-title">Call queue</h1>
           <p className="t-meta mt-1">

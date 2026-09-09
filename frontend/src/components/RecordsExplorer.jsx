@@ -10,6 +10,7 @@ import {
   FileText,
   RotateCcw,
   SearchX,
+  SlidersHorizontal,
 } from 'lucide-react';
 import CustomSelect from './CustomSelect';
 import { apiFetch } from '../lib/api';
@@ -148,6 +149,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
   const [loadError, setLoadError] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
   const [queueOpen, setQueueOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [assignableUsers, setAssignableUsers] = useState([]);
   const [isExporting, setIsExporting] = useState(null); // 'csv' | 'xlsx' | null
   const [search, setSearch] = useState(initialQuery);
@@ -426,7 +428,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
           state), and every control sits on a single line with search leading
           and the filters at one consistent width beside it. */}
       <div className="shrink-0 px-4 sm:px-5 pt-3.5 pb-3 border-b border-[var(--edge)] space-y-2.5">
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
             <h1 className="t-title">Records</h1>
             <p className="t-meta mt-1">
@@ -482,7 +484,18 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
               </button>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            aria-expanded={showFilters}
+            aria-controls="records-filters"
+            className={`btn h-8 w-8 lg:hidden ${showFilters || anyFilterActive ? 'border-[var(--accent-ring)] bg-[var(--accent-soft)]' : ''}`}
+            title="Filters"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+          </button>
 
+          <div id="records-filters" className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-wrap items-center gap-1.5 w-full lg:w-auto`}>
           <CustomSelect
             value={community}
             onChange={(v) => { setCommunity(v); setPage(1); }}
@@ -517,6 +530,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
             visibleColumns={visibleColumns}
             onToggleColumn={handleToggleColumn}
           />
+          </div>
 
           {activeFilterChips.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 sm:ml-1 sm:pl-2 sm:border-l sm:border-[var(--edge)]">
