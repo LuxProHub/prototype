@@ -1,17 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  PhoneCall,
-  CalendarClock,
-  RefreshCw,
-  Inbox,
-  AlertCircle,
-  Clock,
-  CheckCircle2,
-  Building2,
-  User,
-  Search,
-  ChevronRight,
-} from 'lucide-react';
+import { PhoneCall, RefreshCw, Inbox, AlertCircle, Search, ChevronRight } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import { apiFetch } from '../lib/api';
 import QueuePipeline from './viz/QueuePipeline';
@@ -140,281 +128,194 @@ export default function CallQueue() {
   });
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 max-w-7xl mx-auto">
-      {/* Top Header */}
-      <PageHeader
-        title="Call queue"
-        description="Operational sales command center. Priority leads with scheduled actions, soonest first."
-        actions={
-          <div className="flex items-center gap-2">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 max-w-[1520px] mx-auto">
+      {/* Title band. The count line answers the desk's first question. */}
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="t-title">Call queue</h1>
+          <p className="t-meta mt-1">
+            <span className="num text-[var(--text-2)]">{leads.length}</span> open
+            {' · '}
+            <span className="num text-[var(--text-2)]">{dueTodayCount}</span> due today
+            {' · '}
+            <span className="num" style={{ color: overdueCount ? 'var(--bad)' : 'var(--text-2)' }}>{overdueCount}</span> overdue
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="inline-flex rounded-[var(--r-md)] border border-[var(--edge)] overflow-hidden" role="group" aria-label="Whose queue">
             <button
-              onClick={() => setMine((v) => !v)}
-              className={`h-8 sm:h-9 px-3 rounded-[var(--radius-md)] text-[12.5px] font-semibold transition-all cursor-pointer ${
-                mine ? 'btn-primary' : 'btn text-[var(--color-text-secondary)]'
-              }`}
+              onClick={() => setMine(true)}
+              aria-pressed={mine}
+              className={`h-8 px-2.5 text-[12px] cursor-pointer transition-colors ${mine ? 'bg-[var(--accent-soft)] text-[var(--text)]' : 'text-[var(--text-2)] hover:bg-[var(--surface-2)]'}`}
             >
-              {mine ? 'My Queue' : 'All Callers'}
+              Mine
             </button>
             <button
-              onClick={() => setOnlyDue((v) => !v)}
-              className={`h-8 sm:h-9 px-3 rounded-[var(--radius-md)] text-[12.5px] font-semibold transition-all cursor-pointer ${
-                onlyDue ? 'btn-primary' : 'btn text-[var(--color-text-secondary)]'
-              }`}
+              onClick={() => setMine(false)}
+              aria-pressed={!mine}
+              className={`h-8 px-2.5 text-[12px] cursor-pointer border-l border-[var(--edge)] transition-colors ${!mine ? 'bg-[var(--accent-soft)] text-[var(--text)]' : 'text-[var(--text-2)] hover:bg-[var(--surface-2)]'}`}
             >
-              Due Only
-            </button>
-            <button
-              onClick={load}
-              aria-label="Refresh queue"
-              className="btn h-8 sm:h-9 w-8 sm:w-9 p-0 flex items-center justify-center cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Everyone
             </button>
           </div>
-        }
-      />
-
-      {/* Pipeline strip: READY -> CALLING -> FOLLOW-UP -> COMPLETED */}
-      <QueuePipeline
-        stageCounts={stageCounts}
-        selectedStage={selectedStage}
-        onSelectStage={setSelectedStage}
-      />
-
-      {/* Operational KPI Cards Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="panel p-3.5 rounded-[var(--radius-lg)]">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
-              Due Today
-            </span>
-            <Clock className="w-4 h-4 text-[var(--color-accent)]" />
-          </div>
-          <div className="text-xl sm:text-2xl font-bold num mt-1 text-[var(--color-text-primary)]">
-            {dueTodayCount}
-          </div>
-          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Scheduled for today</p>
-        </div>
-
-        <div
-          onClick={() => setOnlyOverdue((v) => !v)}
-          className={`panel p-3.5 rounded-[var(--radius-lg)] cursor-pointer transition-all ${
-            onlyOverdue ? 'border-[var(--color-bad)] shadow-md' : 'hover:border-[var(--color-border-strong)]'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-bad)]">
-              Overdue
-            </span>
-            <AlertCircle className="w-4 h-4 text-[var(--color-bad)]" />
-          </div>
-          <div className="text-xl sm:text-2xl font-bold num mt-1 text-[var(--color-bad)]">
-            {overdueCount}
-          </div>
-          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Needs immediate call</p>
-        </div>
-
-        <div className="panel p-3.5 rounded-[var(--radius-lg)]">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
-              Assigned to You
-            </span>
-            <User className="w-4 h-4 text-[var(--color-ok)]" />
-          </div>
-          <div className="text-xl sm:text-2xl font-bold num mt-1 text-[var(--color-text-primary)]">
-            {leads.length}
-          </div>
-          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Active assigned leads</p>
-        </div>
-
-        <div className="panel p-3.5 rounded-[var(--radius-lg)]">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
-              Completed Deals
-            </span>
-            <CheckCircle2 className="w-4 h-4 text-[var(--color-ok)]" />
-          </div>
-          <div className="text-xl sm:text-2xl font-bold num mt-1 text-[var(--color-ok)]">
-            {stageCounts.WON}
-          </div>
-          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Successfully closed</p>
+          <button
+            onClick={() => setOnlyDue((v) => !v)}
+            aria-pressed={onlyDue}
+            className={`btn h-8 px-2.5 text-[12px] ${onlyDue ? 'border-[var(--accent-ring)] bg-[var(--accent-soft)]' : ''}`}
+          >
+            Due only
+          </button>
+          <button onClick={load} aria-label="Refresh queue" className="btn-ghost h-8 w-8">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="flex flex-wrap items-center gap-2.5 bg-[var(--color-surface)] p-2.5 rounded-[var(--radius-md)] border border-[var(--color-border)]">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+      <QueuePipeline stageCounts={stageCounts} selectedStage={selectedStage} onSelectStage={setSelectedStage} />
+
+      {/* Narrowing: search, plus the active filters as chips beside it. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="relative flex-1 min-w-[220px] max-w-[420px]">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none" />
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Filter queue by lead name, phone, or community..."
-            className="field w-full h-8 pl-9 pr-3 text-[12.5px]"
+            placeholder="Search by name, phone or community"
+            aria-label="Search the queue"
+            className="field w-full h-8 pl-8 pr-3 text-[12.5px]"
           />
         </div>
-
+        <button
+          onClick={() => setOnlyOverdue((v) => !v)}
+          aria-pressed={onlyOverdue}
+          className={`btn h-8 px-2.5 text-[12px] ${onlyOverdue ? 'border-[var(--bad)]/40 bg-[var(--bad-soft)] text-[var(--bad)]' : ''}`}
+        >
+          Overdue{overdueCount > 0 && <span className="num ml-1 text-[11px]">{overdueCount}</span>}
+        </button>
         {selectedStage && (
-          <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-accent)] bg-[var(--color-accent-soft)] px-2.5 py-1 rounded-full font-medium">
-            <span>Filtered stage: {STAGE_CONFIG[selectedStage]?.label}</span>
-            <button onClick={() => setSelectedStage(null)} className="hover:opacity-75 cursor-pointer">×</button>
-          </div>
-        )}
-        {onlyOverdue && (
-          <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-bad)] bg-[var(--color-bad-soft,#fb718520)] px-2.5 py-1 rounded-full font-medium">
-            <span>Only Overdue</span>
-            <button onClick={() => setOnlyOverdue(false)} className="hover:opacity-75 cursor-pointer">×</button>
-          </div>
+          <span className="chip">
+            {STAGE_CONFIG[selectedStage]?.label}
+            <button onClick={() => setSelectedStage(null)} aria-label="Clear stage filter" className="btn-ghost w-5 h-5 rounded-full">
+              ×
+            </button>
+          </span>
         )}
       </div>
 
       {error && (
-        <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-bad-soft,#fb718520)] text-[var(--color-bad)] text-[12px] flex items-center gap-2 border border-[var(--color-bad)]/30">
+        <div role="alert" className="flex items-center gap-2 text-[12.5px] text-[var(--bad)]">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Empty State */}
-      {!loading && !filteredLeads.length && !error && (
-        <div className="panel rounded-[var(--radius-lg)] p-12 text-center space-y-2.5">
-          <div className="w-12 h-12 mx-auto rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center">
-            <Inbox className="w-6 h-6 text-[var(--color-text-muted)]" />
-          </div>
-          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">No leads in this queue</h3>
-          <p className="text-[12px] text-[var(--color-text-muted)] max-w-sm mx-auto">
-            {mine ? 'No leads matching your current criteria are assigned to you.' : 'The queue is completely clear.'}{' '}
-            Explore records to queue new leads.
-          </p>
-        </div>
-      )}
-
-      {/* Queue Items List (Who / Why / When / What Happened) */}
-      <div className="space-y-2.5">
-        {filteredLeads.map((lead) => {
-          const record = records[lead.record_id];
-          const due = dueInfo(lead.next_action_at);
-          const stageCfg = STAGE_CONFIG[lead.stage] || { label: lead.stage, tone: 'neutral' };
-
-          return (
-            <div
-              key={lead.id}
-              className={`panel p-3.5 sm:p-4 rounded-[var(--radius-lg)] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 transition-all hover:border-[var(--color-border-strong)] ${
-                due.isOverdue ? 'border-l-4 border-l-[var(--color-bad)]' : 'border-l-4 border-l-[var(--color-accent)]'
-              }`}
-            >
-              {/* WHO: Lead Contact & Identity */}
-              <div className="min-w-0 md:w-56 shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-[13.5px] text-[var(--color-text-primary)] truncate" title={record?.name || ''}>
-                    {record?.name || (
-                      // record_id is ON DELETE SET NULL: reprocessing a job
-                      // detaches a lead until relink_leads() reattaches it by
-                      // identity_hash. The call history is intact -- say that,
-                      // rather than rendering "Record #" with nothing after it.
-                      <span className="text-[var(--color-text-muted)] font-normal">
-                        {lead.record_id ? `Record #${lead.record_id}` : 'Awaiting relink'}
-                      </span>
-                    )}
-                  </span>
-                  {record?.status && <StatusBadge status={record.status} />}
-                </div>
-
-                <div className="text-[11.5px] text-[var(--color-text-muted)] mt-0.5 truncate">
-                  {record
-                    ? `${record.nationality ? `${record.nationality} · ` : ''}${record.party_type || 'Individual owner'}`
-                    : 'Record rewritten by a reprocess; history preserved'}
-                </div>
-              </div>
-
-              {/* WHY: Property & Unit Context */}
-              <div className="min-w-0 md:w-56 shrink-0 text-[12px]">
-                <div className="flex items-center gap-1.5 text-[var(--color-text-primary)] font-medium truncate">
-                  <Building2 className="w-3.5 h-3.5 text-[var(--color-accent)] shrink-0" />
-                  <span className="truncate">
-                    {[record?.building_cluster || record?.building, record?.unit_number ? `Unit ${record.unit_number}` : '']
-                      .filter(Boolean).join(' · ') || record?.community || (record ? 'Property not recorded' : '—')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)] mt-0.5">
-                  <span className="truncate">{record?.community || '—'}</span>
-                  {record?.procedure_value && (
-                    <>
-                      <span>·</span>
-                      <span className="val font-semibold">AED {Number(record.procedure_value).toLocaleString('en-US')}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* WHEN: Due Time & Overdue Flag */}
-              <div className="min-w-0 md:w-44 shrink-0 text-[12px]">
-                <div className="flex items-center gap-1.5">
-                  <CalendarClock className={`w-3.5 h-3.5 shrink-0 ${due.isOverdue ? 'text-[var(--color-bad)]' : 'text-[var(--color-text-muted)]'}`} />
-                  <span className={`font-semibold ${due.isOverdue ? 'text-[var(--color-bad)]' : 'text-[var(--color-text-primary)]'}`}>
-                    {due.label}
-                  </span>
-                </div>
-                {due.isOverdue && (
-                  <span className="inline-block text-[10px] uppercase font-bold text-[var(--color-bad)] bg-[var(--color-bad-soft,#fb718520)] px-1.5 py-0.2 rounded mt-0.5">
-                    Overdue Callback
-                  </span>
-                )}
-              </div>
-
-              {/* WHAT HAPPENED: Stage Badge & Last Notes */}
-              <div className="min-w-0 flex-1 text-[12px]">
-                <div className="flex items-center gap-2">
-                  <span className={`badge badge-${stageCfg.tone}`}>
-                    {stageCfg.label}
-                  </span>
-                  <span className="text-[11px] text-[var(--color-text-muted)]">
-                    {lead.activity_count ? `${lead.activity_count} calls logged` : 'First touch'}
-                  </span>
-                </div>
-                {lead.last_notes && (
-                  <p className="text-[11.5px] text-[var(--color-text-secondary)] italic truncate mt-1">
-                    "{lead.last_notes}"
-                  </p>
-                )}
-              </div>
-
-              {/* OPERATIONAL ACTIONS */}
-              <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 w-full md:w-auto justify-end border-t md:border-t-0 border-[var(--color-border)]">
-                {record?.mobile_1 && (
-                  <a
-                    href={`tel:${record.mobile_1}`}
-                    onClick={() => setActiveActivityLead(lead)}
-                    className="btn-primary h-8 px-3 text-[12px] flex items-center gap-1.5 shadow-sm"
-                    title={`Call ${record.mobile_1}`}
-                  >
-                    <PhoneCall className="w-3.5 h-3.5" />
-                    <span>Start Call</span>
-                  </a>
-                )}
-
-                <button
-                  onClick={() => setActiveActivityLead(lead)}
-                  className="btn h-8 px-2.5 text-[12px]"
-                  title="Log call activity and update stage"
-                >
-                  Log
-                </button>
-
-                {record && (
-                  <button
-                    onClick={() => setInspectingRecord(record)}
-                    className="btn-ghost h-8 w-8 rounded-[var(--radius-sm)]"
-                    title="View property record details"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+      {/* The list. One surface, hairline rows: a lead is a line item, not a card.
+          Columns answer who, why, when, what happened, then the actions. */}
+      <section className="l2" aria-label="Leads">
+        {!loading && !filteredLeads.length && !error ? (
+          <div className="p-12 text-center">
+            <Inbox className="w-7 h-7 mx-auto text-[var(--text-3)]" aria-hidden="true" />
+            <div className="text-[13px] font-medium text-[var(--text)] mt-2.5">
+              {mine ? 'Nothing in your queue' : 'The queue is empty'}
             </div>
-          );
-        })}
-      </div>
+            <p className="t-meta mt-1 max-w-sm mx-auto">Select records in Records and add them to the queue to start one.</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-[var(--edge)]">
+            {filteredLeads.map((lead) => {
+              const record = records[lead.record_id];
+              const due = dueInfo(lead.next_action_at);
+              const stageCfg = STAGE_CONFIG[lead.stage] || { label: lead.stage, tone: 'neutral' };
+              const where =
+                [record?.building_cluster || record?.building, record?.unit_number ? `Unit ${record.unit_number}` : '']
+                  .filter(Boolean)
+                  .join(' · ') || record?.community || (record ? 'Property not recorded' : '—');
+              return (
+                <li
+                  key={lead.id}
+                  className="grid grid-cols-1 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1.2fr)_9.5rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3 hover:bg-[var(--row-hover)] transition-colors"
+                >
+                  {/* who */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[13px] font-medium text-[var(--text)] truncate">
+                        {record?.name || (
+                          <span className="text-[var(--text-3)] font-normal">
+                            {lead.record_id ? `Record #${lead.record_id}` : 'Awaiting relink'}
+                          </span>
+                        )}
+                      </span>
+                      {record?.status && <StatusBadge status={record.status} />}
+                    </div>
+                    <div className="t-meta truncate">
+                      {record
+                        ? `${record.nationality ? `${record.nationality} · ` : ''}${record.party_type || 'Individual owner'}`
+                        : 'Record rewritten by a reprocess; history preserved'}
+                    </div>
+                  </div>
+
+                  {/* why */}
+                  <div className="min-w-0 text-[12.5px]">
+                    <div className="text-[var(--text)] truncate">{where}</div>
+                    <div className="t-meta truncate">
+                      {record?.community || '—'}
+                      {record?.procedure_value && (
+                        <>
+                          {' · '}
+                          <span className="val">AED {Number(record.procedure_value).toLocaleString('en-US')}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* when */}
+                  <div className="text-[12.5px] flex items-center gap-1.5">
+                    {due.isOverdue && <span className="w-1.5 h-1.5 rounded-full bg-[var(--bad)] shrink-0" aria-hidden="true" />}
+                    <span className={due.isOverdue ? 'text-[var(--bad)] font-medium' : lead.next_action_at ? 'text-[var(--text)]' : 't-meta'}>
+                      {due.isOverdue ? `Overdue · ${due.label}` : due.label}
+                    </span>
+                  </div>
+
+                  {/* what happened */}
+                  <div className="min-w-0 flex items-center gap-2 text-[12px]">
+                    <span className={`badge badge-${stageCfg.tone}`}>{stageCfg.label}</span>
+                    <span className="t-meta truncate">{lead.activity_count ? `${lead.activity_count} calls` : 'First touch'}</span>
+                  </div>
+
+                  {/* actions: starting the call is the one primary thing here */}
+                  <div className="flex items-center gap-1.5 justify-end">
+                    {record?.mobile_1 && (
+                      <a
+                        href={`tel:${record.mobile_1}`}
+                        onClick={() => setActiveActivityLead(lead)}
+                        className="btn-primary h-8 px-3 text-[12px]"
+                        title={`Call ${record.mobile_1}`}
+                      >
+                        <PhoneCall className="w-3.5 h-3.5" />
+                        <span>Start call</span>
+                      </a>
+                    )}
+                    <button onClick={() => setActiveActivityLead(lead)} className="btn h-8 px-2.5 text-[12px]" title="Log the outcome">
+                      Log
+                    </button>
+                    {record && (
+                      <button
+                        onClick={() => setInspectingRecord(record)}
+                        className="btn-ghost h-8 w-8"
+                        title="Open the record"
+                        aria-label="Open the record"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       {/* Drawer: Record Inspector */}
       {inspectingRecord && (
@@ -450,7 +351,7 @@ export default function CallQueue() {
             {records[activeActivityLead.record_id]?.mobile_1 && (
               <div className="panel p-3 bg-[var(--color-surface-elevated)] flex items-center justify-between">
                 <div>
-                  <div className="text-[11px] text-[var(--color-text-muted)] uppercase font-semibold">Phone Number</div>
+                  <div className="t-label">Phone</div>
                   <div className="num font-bold text-[14px] text-[var(--color-text-primary)]">
                     {records[activeActivityLead.record_id].mobile_1}
                   </div>
