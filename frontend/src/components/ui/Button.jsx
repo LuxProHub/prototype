@@ -32,8 +32,8 @@ export default function Button({
     primary: 'btn-primary',
     secondary: 'btn',
     ghost: 'btn-ghost',
-    danger: 'bg-[var(--color-bad-soft,#fb718520)] text-[var(--color-bad,#fb7185)] border border-[var(--color-bad,#fb7185)]/30 hover:bg-[var(--color-bad,#fb7185)] hover:text-white transition-colors',
-    liquid: 'glass-liquid text-[var(--color-text-primary)] hover:border-[var(--color-accent)] font-medium',
+    danger: 'bg-[var(--bad-soft)] text-[var(--bad)] border border-[var(--bad)]/30 hover:bg-[var(--bad)] hover:text-white transition-colors',
+    liquid: 'glass-liquid text-[var(--text)] hover:border-[var(--accent)] font-medium',
   }[variant] || 'btn';
 
   return (
@@ -41,7 +41,7 @@ export default function Button({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center font-medium rounded-[var(--radius-md)] cursor-pointer select-none transition-all duration-[var(--dur-1)] ${sizeClasses} ${variantClasses} ${className}`}
+      className={`inline-flex items-center justify-center font-medium rounded-[var(--r-md)] cursor-pointer select-none transition-all duration-[var(--dur-1)] ${sizeClasses} ${variantClasses} ${className}`}
       {...props}
     >
       {loading ? (

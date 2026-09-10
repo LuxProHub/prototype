@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, RefreshCw, Sun, Moon, LogOut } from 'lucide-react';
+import { ROLE_LABEL } from '../lib/labels';
 
 function initials(name) {
   return (
@@ -11,15 +12,6 @@ function initials(name) {
       .join('') || 'A'
   );
 }
-
-const ROLE_LABEL = {
-  VIEWER: 'Viewer',
-  DATA_PROCESSOR: 'Data processor',
-  ADMIN: 'Admin',
-  CCO: 'CCO',
-  CEO: 'CEO',
-  DEVELOPER: 'Developer',
-};
 
 /**
  * The top bar. 48px, glass, and quiet: it holds search, a running-job pill
@@ -42,7 +34,7 @@ export default function Header({
   const fullName = currentUser?.full_name || 'Admin Operator';
 
   return (
-    <header className="h-12 shrink-0 sticky top-0 z-30 glass rounded-none border-x-0 border-t-0 px-3 sm:px-4 flex items-center gap-3">
+    <header className="command-bar h-12 shrink-0 sticky top-0 z-30 glass rounded-none border-x-0 border-t-0 px-3 sm:px-4 flex items-center gap-3">
       {/* Search: a command-style field, not a hero input. */}
       <div className="relative flex-1 max-w-[440px]">
         <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none" />

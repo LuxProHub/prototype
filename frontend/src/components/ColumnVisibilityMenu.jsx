@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SlidersHorizontal, Check } from 'lucide-react';
+import { Columns3, Check } from 'lucide-react';
 
 /**
  * ColumnVisibilityMenu Component
@@ -35,17 +35,17 @@ export default function ColumnVisibilityMenu({
         className="btn h-8 sm:h-9 px-2.5 text-[12.5px] flex items-center gap-1.5"
         title="Toggle visible columns"
       >
-        <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-        <span className="hidden sm:inline">Columns</span>
+        <Columns3 className="w-3.5 h-3.5 text-[var(--text-3)]" />
+        <span>Columns</span>
       </button>
 
       {isOpen && (
         <div
           role="menu"
           aria-label="Column visibility options"
-          className="absolute right-0 top-full mt-1.5 z-40 w-52 glass-raised rounded-[var(--radius-md)] p-2 shadow-xl border border-[var(--color-border-strong)] animate-rise-in"
+          className="absolute right-0 top-full mt-1.5 z-40 w-52 glass-raised rounded-[var(--r-md)] p-2 shadow-xl border border-[var(--edge-strong)] animate-rise-in"
         >
-          <div className="t-label px-2 py-1 border-b border-[var(--color-border)] mb-1">
+          <div className="t-label px-2 py-1 border-b border-[var(--edge)] mb-1">
             Toggle Columns
           </div>
 
@@ -59,16 +59,16 @@ export default function ColumnVisibilityMenu({
                   role="menuitemcheckbox"
                   aria-checked={isVisible}
                   onClick={() => onToggleColumn?.(col.key)}
-                  className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] flex items-center justify-between text-[12px] hover:bg-[var(--color-surface-elevated)] cursor-pointer text-left transition-colors"
+                  className="w-full px-2 py-1.5 rounded-[var(--r-sm)] flex items-center justify-between text-[12px] hover:bg-[var(--surface-2)] cursor-pointer text-left transition-colors"
                 >
-                  <span className={isVisible ? 'text-[var(--color-text-primary)] font-medium' : 'text-[var(--color-text-muted)]'}>
+                  <span className={isVisible ? 'text-[var(--text)] font-medium' : 'text-[var(--text-3)]'}>
                     {col.label}
                   </span>
                   <span
-                    className={`w-4 h-4 rounded-[var(--radius-sm)] flex items-center justify-center border ${
+                    className={`w-4 h-4 rounded-[var(--r-sm)] flex items-center justify-center border ${
                       isVisible
-                        ? 'bg-[var(--color-accent)] border-[var(--color-accent)] text-white'
-                        : 'border-[var(--color-border)]'
+                        ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
+                        : 'border-[var(--edge)]'
                     }`}
                   >
                     {isVisible && <Check className="w-3 h-3" strokeWidth={2.5} />}

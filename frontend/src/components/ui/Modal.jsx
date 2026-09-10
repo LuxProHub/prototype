@@ -34,22 +34,22 @@ export default function Modal({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}
-      className="fixed inset-0 z-50 bg-[var(--color-bg)]/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 z-50 bg-[var(--ink)]/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
     >
       <div
         ref={modalRef}
-        className={`w-full ${maxWidth} glass-raised rounded-[var(--radius-xl)] flex flex-col overflow-hidden shadow-2xl animate-rise-in ${className}`}
+        className={`w-full ${maxWidth} glass-raised rounded-[var(--r-xl)] flex flex-col overflow-hidden shadow-2xl animate-rise-in ${className}`}
       >
         {(title || onClose) && (
-          <div className="shrink-0 px-5 py-4 border-b border-[var(--color-border)] flex items-start justify-between gap-3 bg-[var(--color-surface-elevated)]/60">
+          <div className="shrink-0 px-5 py-4 border-b border-[var(--edge)] flex items-start justify-between gap-3 bg-[var(--surface-2)]/60">
             <div className="min-w-0">
               {title && (
-                <h3 className="text-base font-semibold text-[var(--color-text-primary)] tracking-tight truncate">
+                <h3 className="text-base font-semibold text-[var(--text)] tracking-tight truncate">
                   {title}
                 </h3>
               )}
               {subtitle && (
-                <p className="text-[12px] text-[var(--color-text-secondary)] truncate mt-0.5">
+                <p className="text-[12px] text-[var(--text-2)] truncate mt-0.5">
                   {subtitle}
                 </p>
               )}
@@ -58,7 +58,7 @@ export default function Modal({
               <button
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="btn-ghost h-8 w-8 rounded-[var(--radius-sm)]"
+                className="btn-ghost h-8 w-8 rounded-[var(--r-sm)]"
               >
                 <X className="w-4 h-4" />
               </button>

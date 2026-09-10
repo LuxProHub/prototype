@@ -124,10 +124,10 @@ export default function ColumnMappingInspector() {
         title="Column schema"
         description="Raw header aliases mapped to canonical database fields. Add an alias here and every future upload recognises it."
         actions={
-          <div className="flex items-center gap-2 bg-[var(--color-surface-elevated)] px-3 h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] text-[12.5px]">
-            <Tag className="w-3.5 h-3.5 text-[var(--color-ok)]" />
-            <span className="text-[var(--color-text-secondary)]">Active aliases:</span>
-            <span className="num text-[var(--color-text-primary)] font-bold">
+          <div className="flex items-center gap-2 bg-[var(--surface-2)] px-3 h-9 rounded-[var(--r-md)] border border-[var(--edge)] text-[12.5px]">
+            <Tag className="w-3.5 h-3.5 text-[var(--ok)]" />
+            <span className="text-[var(--text-2)]">Active aliases:</span>
+            <span className="num text-[var(--text)] font-bold">
               {mappingData.alias_count?.toLocaleString()}
             </span>
           </div>
@@ -137,7 +137,7 @@ export default function ColumnMappingInspector() {
       {/* Header Matcher Interactive Tester Tool */}
       <div className="l2 p-4 space-y-3">
         <div className="flex items-center gap-2 t-heading">
-          <ShieldCheck className="w-4 h-4 text-[var(--color-accent)]" />
+          <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />
           <span>Test a raw header</span>
         </div>
 
@@ -153,11 +153,11 @@ export default function ColumnMappingInspector() {
 
         {testHeader && (
           <div className="p-3 rounded-[var(--r-md)] bg-[var(--surface-2)] text-[12.5px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <span className="text-[var(--color-text-secondary)] font-medium">
-              Header "<span className="text-[var(--color-text-primary)] font-bold">{testHeader}</span>"
+            <span className="text-[var(--text-2)] font-medium">
+              Header "<span className="text-[var(--text)] font-bold">{testHeader}</span>"
             </span>
             <div className="flex items-center space-x-2">
-              <ArrowRight className="w-4 h-4 text-[var(--color-accent)]" />
+              <ArrowRight className="w-4 h-4 text-[var(--accent)]" />
               <span
                 className={`badge ${
                   matchedField && matchedField !== 'UNMAPPED / REQUIRES ALIAS'
@@ -179,13 +179,13 @@ export default function ColumnMappingInspector() {
             <span>Fields ({filteredFields.length})</span>
           </h3>
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-[var(--color-accent)] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-[var(--accent)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchField}
               onChange={(e) => setSearchField(e.target.value)}
               placeholder="Search fields or aliases"
-              className="field text-xs text-[var(--color-text-primary)] rounded-[var(--radius-md)] pl-8 pr-3 h-8 focus:outline-none font-medium w-64"
+              className="field text-xs text-[var(--text)] rounded-[var(--r-md)] pl-8 pr-3 h-8 focus:outline-none font-medium w-64"
             />
           </div>
         </div>
@@ -199,7 +199,7 @@ export default function ColumnMappingInspector() {
                 className="l2 p-4 space-y-3 flex flex-col justify-between"
               >
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center border-b border-[var(--color-border)] pb-2.5">
+                  <div className="flex justify-between items-center border-b border-[var(--edge)] pb-2.5">
                     <h4 className="t-heading">
                       {field}
                     </h4>
@@ -213,12 +213,12 @@ export default function ColumnMappingInspector() {
                       aliasList.map((alias, idx) => (
                         <div
                           key={idx}
-                          className="py-1.5 flex items-center justify-between group text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                          className="py-1.5 flex items-center justify-between group text-[var(--text-2)] hover:text-[var(--text)]"
                         >
                           <span className="truncate pr-2">{alias}</span>
                           <button
                             onClick={() => handleRemoveAlias(field, alias)}
-                            className="p-1 rounded text-[var(--color-text-muted)] hover:text-[var(--color-bad)] hover:bg-[var(--color-bad-soft,#fb718520)] transition-all opacity-60 group-hover:opacity-100 cursor-pointer"
+                            className="p-1 rounded text-[var(--text-3)] hover:text-[var(--bad)] hover:bg-[var(--bad-soft)] transition-all opacity-60 group-hover:opacity-100 cursor-pointer"
                             title="Remove alias"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -226,7 +226,7 @@ export default function ColumnMappingInspector() {
                         </div>
                       ))
                     ) : (
-                      <span className="text-[var(--color-text-muted)] italic text-[10.5px]">
+                      <span className="text-[var(--text-3)] italic text-[10.5px]">
                         No aliases yet; exact matches only
                       </span>
                     )}
@@ -234,7 +234,7 @@ export default function ColumnMappingInspector() {
                 </div>
 
                 {/* Add Custom Alias Form */}
-                <div className="flex items-center space-x-2 pt-2 border-t border-[var(--color-border)]">
+                <div className="flex items-center space-x-2 pt-2 border-t border-[var(--edge)]">
                   <input
                     type="text"
                     value={newAliasText[field] || ''}
@@ -243,7 +243,7 @@ export default function ColumnMappingInspector() {
                       if (e.key === 'Enter') handleAddAlias(field);
                     }}
                     placeholder="Add an alias"
-                    className="flex-1 field text-[11px] text-[var(--color-text-primary)] px-2.5 h-7 rounded-[var(--radius-sm)] focus:outline-none font-mono"
+                    className="flex-1 field text-[11px] text-[var(--text)] px-2.5 h-7 rounded-[var(--r-sm)] focus:outline-none font-mono"
                   />
                   <button
                     onClick={() => handleAddAlias(field)}

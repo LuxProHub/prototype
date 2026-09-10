@@ -17,21 +17,21 @@ export default function Field({
       {label && (
         <label
           htmlFor={id}
-          className="text-[11px] font-medium text-[var(--color-text-muted)] tracking-wide flex items-center gap-1 select-none"
+          className="text-[11px] font-medium text-[var(--text-3)] tracking-wide flex items-center gap-1 select-none"
         >
           <span>{label}</span>
-          {required && <span className="text-[var(--color-bad)]">*</span>}
+          {required && <span className="text-[var(--bad)]">*</span>}
         </label>
       )}
 
       {children}
 
       {error ? (
-        <p className="text-[11px] text-[var(--color-bad)] font-medium mt-0.5 leading-tight animate-drop-in">
+        <p className="text-[11px] text-[var(--bad)] font-medium mt-0.5 leading-tight animate-drop-in">
           {error}
         </p>
       ) : hint ? (
-        <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 leading-tight">
+        <p className="text-[11px] text-[var(--text-3)] mt-0.5 leading-tight">
           {hint}
         </p>
       ) : null}
@@ -52,7 +52,7 @@ export function Input({
   ...props
 }) {
   const fontClass = isValue ? 'val' : isNumeric ? 'num' : '';
-  const errorBorder = error ? 'border-[var(--color-bad)] focus:border-[var(--color-bad)]' : '';
+  const errorBorder = error ? 'border-[var(--bad)] focus:border-[var(--bad)]' : '';
 
   return (
     <input

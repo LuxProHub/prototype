@@ -11,7 +11,7 @@ const TONES = {
   bad: 'badge-bad',
   neutral: 'badge-neutral',
   accent: 'badge-accent',
-  value: 'text-[var(--color-value)] bg-[color-mix(in_srgb,var(--color-value)_12%,transparent)] border-[color-mix(in_srgb,var(--color-value)_30%,transparent)]',
+  value: 'text-[var(--value)] bg-[color-mix(in_srgb,var(--value)_12%,transparent)] border-[color-mix(in_srgb,var(--value)_30%,transparent)]',
 };
 
 export function Badge({ children, tone = 'neutral', icon, className = '', ...props }) {

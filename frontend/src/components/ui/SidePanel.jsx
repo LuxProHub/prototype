@@ -35,18 +35,18 @@ export default function SidePanel({
     return (
       <aside
         ref={panelRef}
-        className={`w-full lg:w-[460px] xl:w-[500px] shrink-0 h-full flex flex-col bg-[var(--color-surface)] border-l border-[var(--color-border)] overflow-hidden animate-fade-in ${className}`}
+        className={`w-full lg:w-[460px] xl:w-[500px] shrink-0 h-full flex flex-col bg-[var(--surface)] border-l border-[var(--edge)] overflow-hidden animate-fade-in ${className}`}
       >
         {/* Header */}
-        <div className="shrink-0 px-4 py-3 border-b border-[var(--color-border)] flex items-start justify-between gap-3 bg-[var(--color-surface-elevated)]/60">
+        <div className="shrink-0 px-4 py-3 border-b border-[var(--edge)] flex items-start justify-between gap-3 bg-[var(--surface-2)]/60">
           <div className="min-w-0">
             {title && (
-              <h3 className="text-sm sm:text-base font-semibold text-[var(--color-text-primary)] tracking-tight truncate">
+              <h3 className="text-sm sm:text-base font-semibold text-[var(--text)] tracking-tight truncate">
                 {title}
               </h3>
             )}
             {subtitle && (
-              <p className="text-[12px] text-[var(--color-text-secondary)] truncate mt-0.5">
+              <p className="text-[12px] text-[var(--text-2)] truncate mt-0.5">
                 {subtitle}
               </p>
             )}
@@ -56,7 +56,7 @@ export default function SidePanel({
             <button
               onClick={onClose}
               aria-label="Close panel"
-              className="btn-ghost h-7 w-7 rounded-[var(--radius-sm)]"
+              className="btn-ghost h-7 w-7 rounded-[var(--r-sm)]"
             >
               <X className="w-4 h-4" />
             </button>
@@ -76,25 +76,25 @@ export default function SidePanel({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex justify-end bg-[var(--color-bg)]/60 backdrop-blur-xs animate-fade-in"
+      className="fixed inset-0 z-50 flex justify-end bg-[var(--ink)]/60 backdrop-blur-xs animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}
     >
       <div
         ref={panelRef}
-        className={`w-full ${width} h-full glass-raised rounded-l-[var(--radius-xl)] rounded-r-none border-y-0 border-r-0 flex flex-col overflow-hidden animate-rise-in ${className}`}
+        className={`w-full ${width} h-full glass-raised rounded-l-[var(--r-xl)] rounded-r-none border-y-0 border-r-0 flex flex-col overflow-hidden animate-rise-in ${className}`}
       >
         {/* Header */}
-        <div className="shrink-0 px-5 py-4 border-b border-[var(--color-border)] flex items-start justify-between gap-3 bg-[var(--color-surface-elevated)]/70">
+        <div className="shrink-0 px-5 py-4 border-b border-[var(--edge)] flex items-start justify-between gap-3 bg-[var(--surface-2)]/70">
           <div className="min-w-0">
             {title && (
-              <h3 className="text-base font-semibold text-[var(--color-text-primary)] tracking-tight truncate">
+              <h3 className="text-base font-semibold text-[var(--text)] tracking-tight truncate">
                 {title}
               </h3>
             )}
             {subtitle && (
-              <p className="text-[12px] text-[var(--color-text-secondary)] truncate mt-0.5">
+              <p className="text-[12px] text-[var(--text-2)] truncate mt-0.5">
                 {subtitle}
               </p>
             )}
@@ -104,7 +104,7 @@ export default function SidePanel({
             <button
               onClick={onClose}
               aria-label="Close panel"
-              className="btn-ghost h-8 w-8 rounded-[var(--radius-sm)]"
+              className="btn-ghost h-8 w-8 rounded-[var(--r-sm)]"
             >
               <X className="w-4 h-4" />
             </button>

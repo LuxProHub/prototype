@@ -45,21 +45,21 @@ export default function RegisterComposition({ stats }) {
             <div className="t-label">
               Register composition
             </div>
-            <div className="num text-[30px] sm:text-[34px] font-semibold leading-none tracking-tight text-[var(--color-text-primary)] mt-1.5">
+            <div className="num text-[30px] sm:text-[34px] font-semibold leading-none tracking-tight text-[var(--text)] mt-1.5">
               {total.toLocaleString()}
             </div>
           </div>
           <div className="text-right">
-            <div className="num text-[19px] font-semibold leading-none text-[var(--color-ok)]">
+            <div className="num text-[19px] font-semibold leading-none text-[var(--ok)]">
               {pct(valid, total).toFixed(1)}%
             </div>
-            <div className="text-[10.5px] text-[var(--color-text-muted)] mt-1">usable</div>
+            <div className="text-[10.5px] text-[var(--text-3)] mt-1">usable</div>
           </div>
         </div>
 
         {/* One rail, four parts. */}
         <div
-          className="mt-4 h-2.5 w-full rounded-full overflow-hidden flex bg-[var(--color-surface-muted)]"
+          className="mt-4 h-2.5 w-full rounded-full overflow-hidden flex bg-[var(--surface-3)]"
           role="img"
           aria-label={BANDS.map((b) => `${b.label} ${Math.round(pct(values[b.key], total))}%`).join(', ')}
         >
@@ -70,7 +70,7 @@ export default function RegisterComposition({ stats }) {
               <div
                 key={b.key}
                 className="h-full transition-[width] duration-700"
-                style={{ width: `${w}%`, background: `var(--color-${b.tone})` }}
+                style={{ width: `${w}%`, background: `var(--${b.tone})` }}
               />
             );
           })}
@@ -79,17 +79,17 @@ export default function RegisterComposition({ stats }) {
         <dl className="mt-3.5 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
           {BANDS.map((b) => (
             <div key={b.key} className="min-w-0">
-              <dt className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-secondary)]">
+              <dt className="flex items-center gap-1.5 text-[11px] text-[var(--text-2)]">
                 <span
                   className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ background: `var(--color-${b.tone})` }}
+                  style={{ background: `var(--${b.tone})` }}
                 />
                 <span className="truncate">{b.label}</span>
               </dt>
-              <dd className="num text-[15px] font-semibold text-[var(--color-text-primary)] mt-0.5">
+              <dd className="num text-[15px] font-semibold text-[var(--text)] mt-0.5">
                 {values[b.key].toLocaleString()}
               </dd>
-              <dd className="text-[10.5px] text-[var(--color-text-muted)] leading-snug mt-0.5">
+              <dd className="text-[10.5px] text-[var(--text-3)] leading-snug mt-0.5">
                 {b.hint}
               </dd>
             </div>
@@ -98,18 +98,18 @@ export default function RegisterComposition({ stats }) {
       </div>
 
       {/* Concentration ---------------------------------------------------- */}
-      <div className="flex-1 min-h-0 flex flex-col border-t border-[var(--color-border)] pt-4">
+      <div className="flex-1 min-h-0 flex flex-col border-t border-[var(--edge)] pt-4">
         <div className="flex items-baseline justify-between">
           <div className="t-label">
             Where it sits
           </div>
-          <div className="text-[10.5px] text-[var(--color-text-muted)]">
+          <div className="text-[10.5px] text-[var(--text-3)]">
             top {communities.length} of {(stats?.community_distribution || []).length || '—'}
           </div>
         </div>
 
         {communities.length === 0 ? (
-          <p className="text-[12px] text-[var(--color-text-muted)] mt-3">
+          <p className="text-[12px] text-[var(--text-3)] mt-3">
             Upload a register to see how holdings are distributed.
           </p>
         ) : (
@@ -117,20 +117,20 @@ export default function RegisterComposition({ stats }) {
             {communities.map((c, i) => (
               <li key={`${c.name}-${i}`} className="group">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-[12px] text-[var(--color-text-primary)] truncate">
+                  <span className="text-[12px] text-[var(--text)] truncate">
                     {c.name || 'Unspecified'}
                   </span>
-                  <span className="num text-[12px] text-[var(--color-text-secondary)] shrink-0 tabular-nums">
+                  <span className="num text-[12px] text-[var(--text-2)] shrink-0 tabular-nums">
                     {c.count.toLocaleString()}
                   </span>
                 </div>
-                <div className="mt-1 h-[3px] rounded-full bg-[var(--color-surface-muted)] overflow-hidden">
+                <div className="mt-1 h-[3px] rounded-full bg-[var(--surface-3)] overflow-hidden">
                   <div
                     className="h-full rounded-full transition-[width] duration-700"
                     style={{
                       width: `${(c.count / topCount) * 100}%`,
                       // The leader is brass; the rest recede. Rank is the message.
-                      background: i === 0 ? 'var(--color-value)' : 'var(--color-accent)',
+                      background: i === 0 ? 'var(--value)' : 'var(--accent)',
                       opacity: i === 0 ? 1 : Math.max(0.32, 1 - i * 0.11),
                     }}
                   />

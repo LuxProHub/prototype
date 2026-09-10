@@ -43,7 +43,7 @@ export default function PropertySummary({ record }) {
 
   return (
     <section
-      className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)]"
+      className="relative overflow-hidden rounded-[var(--r-lg)] border border-[var(--edge)]"
       aria-label="Property summary"
     >
       {/* A single soft wash gives the block elevation without another card. */}
@@ -52,7 +52,7 @@ export default function PropertySummary({ record }) {
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 60%)',
+            'radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%)',
         }}
       />
 
@@ -62,7 +62,7 @@ export default function PropertySummary({ record }) {
             <div className="t-label">Procedure value</div>
             <div
               className="num text-[26px] font-semibold leading-none tracking-tight mt-1.5"
-              style={{ color: value ? 'var(--color-value)' : 'var(--color-text-muted)' }}
+              style={{ color: value ? 'var(--value)' : 'var(--text-3)' }}
             >
               {value || 'Not recorded'}
             </div>
@@ -72,28 +72,28 @@ export default function PropertySummary({ record }) {
         </div>
 
         {where && (
-          <div className="mt-3 flex items-start gap-1.5 text-[12px] text-[var(--color-text-secondary)]">
-            <MapPin className="w-3.5 h-3.5 mt-px shrink-0 text-[var(--color-text-muted)]" aria-hidden="true" />
+          <div className="mt-3 flex items-start gap-1.5 text-[12px] text-[var(--text-2)]">
+            <MapPin className="w-3.5 h-3.5 mt-px shrink-0 text-[var(--text-3)]" aria-hidden="true" />
             <span className="min-w-0">{where}</span>
           </div>
         )}
       </div>
 
       {/* Recessed identifier strip: related facts, tightly spaced. */}
-      <dl className="relative grid grid-cols-3 divide-x divide-[var(--color-border)] border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
+      <dl className="relative grid grid-cols-3 divide-x divide-[var(--edge)] border-t border-[var(--edge)] bg-[var(--surface-2)]">
         {facts.map(({ Icon, label, value: v, mono }) => (
           <div key={label} className="px-3 py-2.5 min-w-0">
-            <dt className="flex items-center gap-1.5 text-[10.5px] text-[var(--color-text-muted)]">
+            <dt className="flex items-center gap-1.5 text-[10.5px] text-[var(--text-3)]">
               <Icon className="w-3 h-3 shrink-0" aria-hidden="true" />
               {label}
             </dt>
             <dd
               className={`mt-1 text-[13px] truncate ${
-                mono ? 'val' : 'text-[var(--color-text-primary)] font-medium'
+                mono ? 'val' : 'text-[var(--text)] font-medium'
               }`}
               title={v || ''}
             >
-              {v || <span className="text-[var(--color-text-muted)]">—</span>}
+              {v || <span className="text-[var(--text-3)]">—</span>}
             </dd>
           </div>
         ))}

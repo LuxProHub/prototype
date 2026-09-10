@@ -39,7 +39,7 @@ export function BentoCard({
   const variantClass = {
     solid: 'bento-card',
     glass: 'bento-card bento-card-glass',
-    interactive: 'bento-card cursor-pointer hover:border-[var(--color-accent-soft)] hover:-translate-y-0.5',
+    interactive: 'bento-card cursor-pointer hover:border-[var(--accent-soft)] hover:-translate-y-0.5',
   }[variant] || 'bento-card';
 
   return (
@@ -50,15 +50,15 @@ export function BentoCard({
       {(title || icon || badge) && (
         <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            {icon && <span className="shrink-0 text-[var(--color-accent)]">{icon}</span>}
+            {icon && <span className="shrink-0 text-[var(--accent)]">{icon}</span>}
             <div className="min-w-0">
               {title && (
-                <h3 className="text-xs sm:text-sm font-semibold text-[var(--color-text-primary)] tracking-tight truncate">
+                <h3 className="text-xs sm:text-sm font-semibold text-[var(--text)] tracking-tight truncate">
                   {title}
                 </h3>
               )}
               {subtitle && (
-                <p className="text-[11px] text-[var(--color-text-muted)] truncate">
+                <p className="text-[11px] text-[var(--text-3)] truncate">
                   {subtitle}
                 </p>
               )}

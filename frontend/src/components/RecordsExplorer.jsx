@@ -10,7 +10,7 @@ import {
   FileText,
   RotateCcw,
   SearchX,
-  SlidersHorizontal,
+  Filter,
 } from 'lucide-react';
 import CustomSelect from './CustomSelect';
 import { apiFetch } from '../lib/api';
@@ -65,7 +65,7 @@ const RecordRow = React.memo(function RecordRow({
       }}
       tabIndex={0}
       className={`group cursor-pointer transition-colors ${
-        isSelectedRow ? 'bg-[var(--color-accent-soft)] hover:bg-[color-mix(in_srgb,var(--color-accent)_18%,transparent)]' : ''
+        isSelectedRow ? 'bg-[var(--accent-soft)] hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]' : ''
       }`}
       data-selected={checked || isSelectedRow || undefined}
     >
@@ -75,7 +75,7 @@ const RecordRow = React.memo(function RecordRow({
           checked={checked}
           onChange={() => onToggle(r.id)}
           onKeyDown={(e) => e.stopPropagation()}
-          className="accent-[var(--color-accent)] w-3.5 h-3.5 align-middle cursor-pointer"
+          className="accent-[var(--accent)] w-3.5 h-3.5 align-middle cursor-pointer"
           aria-label={`Select ${r.name || `record ${r.id}`}`}
         />
       </td>
@@ -85,10 +85,10 @@ const RecordRow = React.memo(function RecordRow({
           <div className="flex items-center gap-2.5 min-w-0">
             <StatusDot status={r.status} />
             <span
-              className="truncate font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors"
+              className="truncate font-semibold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors"
               title={r.name || ''}
             >
-              {r.name || <span className="text-[var(--color-text-muted)] font-normal">Unnamed</span>}
+              {r.name || <span className="text-[var(--text-3)] font-normal">Unnamed</span>}
             </span>
             {r.status === 'DUPLICATE' && <span className="badge badge-dup">dup</span>}
           </div>
@@ -96,19 +96,19 @@ const RecordRow = React.memo(function RecordRow({
       )}
 
       {visibleCols.developer !== false && (
-        <td className="max-w-[170px] truncate text-[var(--color-text-secondary)]" title={r.developer || ''}>
+        <td className="max-w-[170px] truncate text-[var(--text-2)]" title={r.developer || ''}>
           {r.developer || '—'}
         </td>
       )}
 
       {visibleCols.community !== false && (
-        <td className="max-w-[150px] truncate text-[var(--color-text-secondary)]" title={r.community || ''}>
+        <td className="max-w-[150px] truncate text-[var(--text-2)]" title={r.community || ''}>
           {r.community || '—'}
         </td>
       )}
 
       {visibleCols.building_cluster !== false && (
-        <td className="max-w-[150px] truncate text-[var(--color-text-secondary)]" title={r.building_cluster || r.building || ''}>
+        <td className="max-w-[150px] truncate text-[var(--text-2)]" title={r.building_cluster || r.building || ''}>
           {r.building_cluster || r.building || '—'}
         </td>
       )}
@@ -120,19 +120,19 @@ const RecordRow = React.memo(function RecordRow({
       )}
 
       {visibleCols.bedroom !== false && (
-        <td className="whitespace-nowrap text-[var(--color-text-secondary)]">
+        <td className="whitespace-nowrap text-[var(--text-2)]">
           {r.bedroom || r.bedroom_type || '—'}
         </td>
       )}
 
       {visibleCols.procedure_value !== false && (
         <td className="val whitespace-nowrap text-right font-medium">
-          {formatAed(r.procedure_value) || <span className="text-[var(--color-text-muted)] font-normal">—</span>}
+          {formatAed(r.procedure_value) || <span className="text-[var(--text-3)] font-normal">—</span>}
         </td>
       )}
 
       {visibleCols.mobile_1 !== false && (
-        <td className="num whitespace-nowrap text-[var(--color-text-secondary)]">
+        <td className="num whitespace-nowrap text-[var(--text-2)]">
           {r.mobile_1 || r.mobile || '—'}
         </td>
       )}
@@ -432,9 +432,15 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
           <div className="min-w-0">
             <h1 className="t-title">Records</h1>
             <p className="t-meta mt-1">
+              {loading && !totalRecords ? (
+                'Loading records'
+              ) : (
+                <>
               <span className="num text-[var(--text-2)]">{formatTotal(totalRecords, totalCapped)}</span>
               {anyFilterActive ? ' matching' : ' in the register'}
               {totalCapped && <span> · narrow the filter for an exact count</span>}
+                </>
+              )}
             </p>
           </div>
 
@@ -489,10 +495,11 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
             onClick={() => setShowFilters((v) => !v)}
             aria-expanded={showFilters}
             aria-controls="records-filters"
-            className={`btn h-8 w-8 lg:hidden ${showFilters || anyFilterActive ? 'border-[var(--accent-ring)] bg-[var(--accent-soft)]' : ''}`}
+            className={`btn h-8 px-2.5 lg:hidden ${showFilters || anyFilterActive ? 'border-[var(--accent-ring)] bg-[var(--accent-soft)]' : ''}`}
             title="Filters"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <Filter className="w-3.5 h-3.5" />
+            <span>Filters</span>
           </button>
 
           <div id="records-filters" className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-wrap items-center gap-1.5 w-full lg:w-auto`}>
@@ -562,7 +569,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
                       type="checkbox"
                       checked={selected.size >= records.length && records.length > 0}
                       onChange={toggleSelectAll}
-                      className="accent-[var(--color-accent)] w-3.5 h-3.5 align-middle cursor-pointer"
+                      className="accent-[var(--accent)] w-3.5 h-3.5 align-middle cursor-pointer"
                       aria-label="Select all rows on page"
                     />
                   </th>
@@ -576,7 +583,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
                       <div className="inline-flex items-center gap-1.5 cursor-pointer select-none">
                         <span>Name</span>
                         {sortBy === 'name' ? (
-                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--color-accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--accent)]" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60" />
                         )}
@@ -593,7 +600,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
                       <div className="inline-flex items-center gap-1.5 cursor-pointer select-none">
                         <span>Developer</span>
                         {sortBy === 'developer' ? (
-                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--color-accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--accent)]" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60" />
                         )}
@@ -610,7 +617,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
                       <div className="inline-flex items-center gap-1.5 cursor-pointer select-none">
                         <span>Community</span>
                         {sortBy === 'community' ? (
-                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--color-accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--accent)]" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60" />
                         )}
@@ -639,7 +646,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
                       <div className="inline-flex items-center justify-end gap-1.5 cursor-pointer select-none w-full">
                         <span>Value (AED)</span>
                         {sortBy === 'procedure_value' ? (
-                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--color-accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--accent)]" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60" />
                         )}
@@ -658,15 +665,15 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
                   Array.from({ length: 8 }).map((_, i) => (
                     <tr key={i}>
                       <td colSpan={ALL_COLUMNS.length + 1} className="p-3">
-                        <div className="h-8 rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] animate-pulse" />
+                        <div className="h-8 rounded-[var(--r-md)] bg-[var(--surface-2)] animate-pulse" />
                       </td>
                     </tr>
                   ))
                 ) : loadError ? (
                   <tr>
                     <td colSpan={ALL_COLUMNS.length + 1} className="py-14 text-center">
-                      <div className="text-[var(--color-bad)] font-semibold text-sm mb-1">Could not load records</div>
-                      <p className="text-[12px] text-[var(--color-text-muted)] mb-3">{loadError}</p>
+                      <div className="text-[var(--bad)] font-semibold text-sm mb-1">Could not load records</div>
+                      <p className="text-[12px] text-[var(--text-3)] mb-3">{loadError}</p>
                       <button onClick={fetchRecords} className="btn h-8 px-3 text-[12px]">
                         Retry
                       </button>
@@ -676,9 +683,9 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
                   <tr>
                     <td colSpan={ALL_COLUMNS.length + 1} className="py-16 text-center">
                       <div className="flex flex-col items-center gap-2">
-                        <SearchX className="w-8 h-8 text-[var(--color-text-muted)]" />
-                        <div className="text-sm font-semibold text-[var(--color-text-primary)]">No records match criteria</div>
-                        <p className="text-[12px] text-[var(--color-text-muted)] max-w-sm">
+                        <SearchX className="w-8 h-8 text-[var(--text-3)]" />
+                        <div className="text-sm font-semibold text-[var(--text)]">No records match criteria</div>
+                        <p className="text-[12px] text-[var(--text-3)] max-w-sm">
                           {anyFilterActive ? 'Try broadening your search query or resetting filters.' : 'Upload registers to populate the database.'}
                         </p>
                         {anyFilterActive && (
@@ -707,8 +714,8 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
           </div>
 
           {/* Footer Pagination */}
-          <div className="shrink-0 px-4 py-2.5 border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px]">
-            <div className="hidden md:flex items-center gap-3 text-[var(--color-text-muted)]">
+          <div className="shrink-0 px-4 py-2.5 border-t border-[var(--edge)] bg-[var(--surface-2)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px]">
+            <div className="hidden md:flex items-center gap-3 text-[var(--text-3)]">
               <span className="flex items-center gap-1.5"><StatusDot status="VALID" /> Valid</span>
               <span className="flex items-center gap-1.5"><StatusDot status="DUPLICATE" /> Duplicate</span>
               <span className="flex items-center gap-1.5"><StatusDot status="INCOMPLETE" /> Incomplete</span>
@@ -716,11 +723,11 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-              <span className="text-[var(--color-text-secondary)] num">
+              <span className="text-[var(--text-2)] num">
                 {from.toLocaleString()}–{to.toLocaleString()} of {formatTotal(totalRecords, totalCapped)}
               </span>
 
-              <label className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
+              <label className="flex items-center gap-1.5 text-[var(--text-3)]">
                 <span className="hidden sm:inline">Rows</span>
                 <select
                   value={limit}
@@ -741,8 +748,8 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="num text-[var(--color-text-secondary)] px-1 whitespace-nowrap">
-                  {page} <span className="text-[var(--color-text-muted)]">/ {totalPages}</span>
+                <span className="num text-[var(--text-2)] px-1 whitespace-nowrap">
+                  {page} <span className="text-[var(--text-3)]">/ {totalPages}</span>
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

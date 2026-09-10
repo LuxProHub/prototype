@@ -20,7 +20,7 @@ import { apiFetch } from '../lib/api';
 import PageHeader from './ui/PageHeader';
 import IngestStages from './viz/IngestStages';
 
-export default function UploadSection({ onUploadComplete }) {
+export default function UploadSection({ onUploadComplete, onNavigate }) {
   const [fileQueue, setFileQueue] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [batchSize, setBatchSize] = useState(500);
@@ -500,8 +500,10 @@ export default function UploadSection({ onUploadComplete }) {
         }
       />
 
-      {/* Drag & Drop Multi-File Zone */}
-      <div className={`bento-card p-6 sm:p-10 text-center transition-all ${isDragOver ? 'border-[var(--color-accent)] shadow-lg bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)]'}`}>
+      {/* Idle composition: the dropzone, and beside it what a register needs to
+          be. Guidance that is true, rather than a dropzone over empty space. */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div className={`lg:col-span-7 bento-card p-6 sm:p-8 text-center transition-all ${isDragOver ? 'border-[var(--accent)] shadow-lg bg-[var(--accent-soft)]' : ''}`}>
         <div
           onDragEnter={handleDrag}
           onDragOver={handleDrag}
@@ -518,12 +520,12 @@ export default function UploadSection({ onUploadComplete }) {
             className="hidden"
           />
 
-          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-accent)]/30 flex items-center justify-center text-[var(--color-accent)] shadow-sm">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-xl bg-[var(--surface-2)] border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)] shadow-sm">
             <Layers3 className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
 
           <div className="space-y-2">
-            <p className="text-base sm:text-lg font-bold text-[var(--color-text-primary)] tracking-tight">
+            <p className="text-base sm:text-lg font-bold text-[var(--text)] tracking-tight">
               Tap to choose files or drop Excel / CSV registers here
             </p>
             <p className="t-body max-w-md mx-auto">
@@ -538,6 +540,34 @@ export default function UploadSection({ onUploadComplete }) {
             </label>
           </div>
         </div>
+      </div>
+
+        <aside className="lg:col-span-5 l2 p-4 flex flex-col gap-3" aria-label="Before you upload">
+          <div className="section-head">
+            <span className="t-heading">Before you upload</span>
+            <span className="t-meta">what a register needs</span>
+          </div>
+          <dl className="space-y-3 text-[12.5px]">
+            <div>
+              <dt className="text-[var(--text)]">Excel or CSV, in any layout</dt>
+              <dd className="t-meta mt-0.5">Headers are matched to the canonical fields through aliases, so a register does not need a fixed template.</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--text)]">Owners are deduplicated by identity</dt>
+              <dd className="t-meta mt-0.5">The same person across two registers becomes one record. Duplicates are kept and marked, never dropped.</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--text)]">Files run in order, in batches</dt>
+              <dd className="t-meta mt-0.5">Pause at a batch boundary and inspect row-level errors while the rest continues.</dd>
+            </div>
+          </dl>
+          <div className="mt-auto pt-3 border-t border-[var(--edge)] flex items-center justify-between gap-2">
+            <span className="t-meta">Unsure how a header will map?</span>
+            <button type="button" onClick={() => onNavigate?.('mapping')} className="btn h-7 px-2.5 text-[12px]">
+              Open column schema
+            </button>
+          </div>
+        </aside>
       </div>
 
       {globalError && (

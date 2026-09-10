@@ -147,7 +147,7 @@ export default function App() {
   }
 
   return (
-    <div className="relative h-screen w-full text-[var(--text)] overflow-hidden">
+    <div className="app-shell relative h-screen w-full text-[var(--text)] overflow-hidden">
       <AmbientBackdrop />
 
       {/* Fixed Full Screen Layout */}
@@ -192,6 +192,7 @@ export default function App() {
               <div className="flex-1 overflow-y-auto">
                 <UploadSection
                   onUploadComplete={handleUploadComplete}
+                  onNavigate={setActiveTab}
                   activeJob={activeJobId}
                 />
               </div>

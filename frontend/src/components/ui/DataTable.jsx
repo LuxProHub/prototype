@@ -83,12 +83,12 @@ export function SortableHeader({
     >
       <div className={`inline-flex items-center gap-1.5 cursor-pointer select-none group ${align === 'right' ? 'justify-end w-full' : ''}`}>
         <span>{label}</span>
-        <span className="shrink-0 text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] transition-colors">
+        <span className="shrink-0 text-[var(--text-3)] group-hover:text-[var(--text)] transition-colors">
           {isSorted ? (
             currentDir === 'asc' ? (
-              <ArrowUp className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+              <ArrowUp className="w-3.5 h-3.5 text-[var(--accent)]" />
             ) : (
-              <ArrowDown className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+              <ArrowDown className="w-3.5 h-3.5 text-[var(--accent)]" />
             )
           ) : (
             <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60" />
@@ -113,14 +113,14 @@ export function TablePagination({
   className = '',
 }) {
   return (
-    <div className={`px-3 py-2 border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px] ${className}`}>
-      <div className="text-[var(--color-text-secondary)] num">
+    <div className={`px-3 py-2 border-t border-[var(--edge)] bg-[var(--surface-2)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px] ${className}`}>
+      <div className="text-[var(--text-2)] num">
         {from.toLocaleString()}–{to.toLocaleString()} of {isCapped ? `${total.toLocaleString()}+` : total.toLocaleString()}
       </div>
 
       <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
         {onPageSizeChange && (
-          <label className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
+          <label className="flex items-center gap-1.5 text-[var(--text-3)]">
             <span className="hidden sm:inline">Rows</span>
             <select
               value={pageSize}
@@ -146,8 +146,8 @@ export function TablePagination({
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="num text-[var(--color-text-secondary)] px-1 whitespace-nowrap">
-            {page} <span className="text-[var(--color-text-muted)]">/ {totalPages}</span>
+          <span className="num text-[var(--text-2)] px-1 whitespace-nowrap">
+            {page} <span className="text-[var(--text-3)]">/ {totalPages}</span>
           </span>
           <button
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}

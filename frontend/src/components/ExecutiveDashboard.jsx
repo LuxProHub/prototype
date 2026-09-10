@@ -32,13 +32,13 @@ const STAGE_LABELS = {
 };
 
 const STAGE_COLORS = {
-  NEW: 'bg-[var(--color-accent)]',
+  NEW: 'bg-[var(--accent)]',
   CONTACTED: 'bg-sky-500',
-  INTERESTED: 'bg-[var(--color-warn)]',
+  INTERESTED: 'bg-[var(--warn)]',
   NEGOTIATING: 'bg-amber-500',
-  WON: 'bg-[var(--color-ok)]',
+  WON: 'bg-[var(--ok)]',
   LOST: 'bg-slate-500',
-  DO_NOT_CONTACT: 'bg-[var(--color-bad)]',
+  DO_NOT_CONTACT: 'bg-[var(--bad)]',
 };
 
 export default function ExecutiveDashboard() {
@@ -94,16 +94,16 @@ export default function ExecutiveDashboard() {
         title="Executive view"
         description="Who is calling, what they hold, and what the calls proved."
         actions={
-          <div className="flex items-center gap-1.5 bg-[var(--color-surface-elevated)] p-1 rounded-[var(--radius-md)] border border-[var(--color-border)]">
+          <div className="flex items-center gap-1.5 bg-[var(--surface-2)] p-1 rounded-[var(--r-md)] border border-[var(--edge)]">
             {[7, 30, 90].map((d) => (
               <button
                 key={d}
                 onClick={() => setDays(d)}
                 aria-pressed={days === d}
-                className={`px-3 py-1 rounded-[var(--radius-sm)] text-[12px] font-semibold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-[var(--r-sm)] text-[12px] font-semibold transition-all cursor-pointer ${
                   days === d
-                    ? 'bg-[var(--color-accent)] text-white shadow-xs'
-                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                    ? 'bg-[var(--accent)] text-white shadow-xs'
+                    : 'text-[var(--text-2)] hover:text-[var(--text)]'
                 }`}
               >
                 {d}d
@@ -114,7 +114,7 @@ export default function ExecutiveDashboard() {
       />
 
       {error && (
-        <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-bad-soft,#fb718520)] text-[var(--color-bad)] text-xs font-semibold border border-[var(--color-bad)]/30">
+        <div className="p-3 rounded-[var(--r-md)] bg-[var(--bad-soft)] text-[var(--bad)] text-xs font-semibold border border-[var(--bad)]/30">
           {error}
         </div>
       )}
@@ -122,33 +122,33 @@ export default function ExecutiveDashboard() {
       {/* Bento Executive Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {/* Bento 1: Contacts Disproved (Hero Proof-of-Value Card) */}
-        <div className="bento-card p-5 flex flex-col justify-between group border-[var(--color-ok)]/30 bg-[color-mix(in_srgb,var(--color-surface)_90%,var(--color-ok)_10%)]">
+        <div className="bento-card p-5 flex flex-col justify-between group border-[var(--ok)]/30 bg-[color-mix(in_srgb,var(--surface)_90%,var(--ok)_10%)]">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <span className="neo-tag bg-[var(--color-ok)]/10 text-[var(--color-ok)] border-[var(--color-ok)]/30">
+              <span className="neo-tag bg-[var(--ok)]/10 text-[var(--ok)] border-[var(--ok)]/30">
                 Data Quality ROI
               </span>
-              <div className="text-[12px] font-semibold text-[var(--color-text-secondary)] mt-1.5">
+              <div className="text-[12px] font-semibold text-[var(--text-2)] mt-1.5">
                 Contacts Disproved & Proven
               </div>
             </div>
-            <div className="p-2.5 rounded-[var(--radius-md)] bg-[var(--color-ok-soft,#34d39920)] text-[var(--color-ok)] border border-[var(--color-ok)]/30">
+            <div className="p-2.5 rounded-[var(--r-md)] bg-[var(--ok-soft)] text-[var(--ok)] border border-[var(--ok)]/30">
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
 
           <div className="my-3">
-            <div className="text-3xl font-bold num text-[var(--color-ok)] tracking-tight">
+            <div className="text-3xl font-bold num text-[var(--ok)] tracking-tight">
               {contactsDisproved.toLocaleString()}
             </div>
-            <div className="text-[11.5px] text-[var(--color-text-secondary)] mt-1 font-medium">
+            <div className="text-[11.5px] text-[var(--text-2)] mt-1 font-medium">
               Bad numbers cleansed by calling
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-text-muted)]">
+          <div className="pt-2 border-t border-[var(--edge)] flex items-center justify-between text-[11px] text-[var(--text-3)]">
             <span>Direct registry gain</span>
-            <span className="font-semibold text-[var(--color-ok)]">Verified Live</span>
+            <span className="font-semibold text-[var(--ok)]">Verified Live</span>
           </div>
         </div>
 
@@ -157,27 +157,27 @@ export default function ExecutiveDashboard() {
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <span className="neo-tag">Active Pipeline</span>
-              <div className="text-[12px] font-semibold text-[var(--color-text-secondary)] mt-1.5">
+              <div className="text-[12px] font-semibold text-[var(--text-2)] mt-1.5">
                 Open Leads Held
               </div>
             </div>
-            <div className="p-2.5 rounded-[var(--radius-md)] bg-[var(--color-accent-soft)] text-[var(--color-accent)] border border-[var(--color-accent)]/30">
+            <div className="p-2.5 rounded-[var(--r-md)] bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/30">
               <Users className="w-4 h-4" />
             </div>
           </div>
 
           <div className="my-3">
-            <div className="text-3xl font-bold num text-[var(--color-text-primary)] tracking-tight">
+            <div className="text-3xl font-bold num text-[var(--text)] tracking-tight">
               {openLeads.toLocaleString()}
             </div>
-            <div className="text-[11.5px] text-[var(--color-text-muted)] mt-1">
+            <div className="text-[11.5px] text-[var(--text-3)] mt-1">
               Currently assigned to sales desk
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-text-muted)]">
+          <div className="pt-2 border-t border-[var(--edge)] flex items-center justify-between text-[11px] text-[var(--text-3)]">
             <span>Coverage</span>
-            <span className="font-mono text-[var(--color-text-primary)]">Active Outreach</span>
+            <span className="font-mono text-[var(--text)]">Active Outreach</span>
           </div>
         </div>
 
@@ -186,12 +186,12 @@ export default function ExecutiveDashboard() {
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <span className="neo-tag">SLA Monitoring</span>
-              <div className="text-[12px] font-semibold text-[var(--color-text-secondary)] mt-1.5">
+              <div className="text-[12px] font-semibold text-[var(--text-2)] mt-1.5">
                 Overdue Callbacks
               </div>
             </div>
             <div
-              className={`p-2.5 rounded-[var(--radius-md)] border ${
+              className={`p-2.5 rounded-[var(--r-md)] border ${
                 overdueActions > 0
                   ? 'badge-bad'
                   : 'badge-ok'
@@ -204,20 +204,20 @@ export default function ExecutiveDashboard() {
           <div className="my-3">
             <div
               className={`text-3xl font-bold num tracking-tight ${
-                overdueActions > 0 ? 'text-[var(--color-bad)]' : 'text-[var(--color-text-primary)]'
+                overdueActions > 0 ? 'text-[var(--bad)]' : 'text-[var(--text)]'
               }`}
             >
               {overdueActions}
             </div>
-            <div className="text-[11.5px] text-[var(--color-text-muted)] mt-1">
+            <div className="text-[11.5px] text-[var(--text-3)] mt-1">
               {overdueActions > 0 ? 'Past scheduled callback deadline' : 'Zero overdue actions'}
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-text-muted)]">
+          <div className="pt-2 border-t border-[var(--edge)] flex items-center justify-between text-[11px] text-[var(--text-3)]">
             <span>Desk health</span>
             <span
-              className={`font-semibold ${overdueActions > 0 ? 'text-[var(--color-bad)]' : 'text-[var(--color-ok)]'}`}
+              className={`font-semibold ${overdueActions > 0 ? 'text-[var(--bad)]' : 'text-[var(--ok)]'}`}
             >
               {overdueActions > 0 ? 'Action Required' : 'On Track'}
             </span>
@@ -229,27 +229,27 @@ export default function ExecutiveDashboard() {
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <span className="neo-tag">Desk Effort</span>
-              <div className="text-[12px] font-semibold text-[var(--color-text-secondary)] mt-1.5">
+              <div className="text-[12px] font-semibold text-[var(--text-2)] mt-1.5">
                 Total Activities Logged
               </div>
             </div>
-            <div className="p-2.5 rounded-[var(--radius-md)] bg-[var(--color-value-soft,#d6a85b20)] text-[var(--color-value)] border border-[var(--color-value)]/30">
+            <div className="p-2.5 rounded-[var(--r-md)] bg-[var(--value-soft)] text-[var(--value)] border border-[var(--value)]/30">
               <Phone className="w-4 h-4" />
             </div>
           </div>
 
           <div className="my-3">
-            <div className="text-3xl font-bold num text-[var(--color-text-primary)] tracking-tight">
+            <div className="text-3xl font-bold num text-[var(--text)] tracking-tight">
               {totalActivities.toLocaleString()}
             </div>
-            <div className="text-[11.5px] text-[var(--color-text-muted)] mt-1">
+            <div className="text-[11.5px] text-[var(--text-3)] mt-1">
               Calls, notes & verdicts in last {days} days
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-text-muted)]">
+          <div className="pt-2 border-t border-[var(--edge)] flex items-center justify-between text-[11px] text-[var(--text-3)]">
             <span>Window</span>
-            <span className="font-mono text-[var(--color-text-primary)]">Last {days} Days</span>
+            <span className="font-mono text-[var(--text)]">Last {days} Days</span>
           </div>
         </div>
       </div>
@@ -257,14 +257,14 @@ export default function ExecutiveDashboard() {
       {/* Middle Bento Section: Pipeline Stage Funnel & Breakdown */}
       {pipeline && (
         <div className="bento-card p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
+          <div className="flex items-center justify-between border-b border-[var(--edge)] pb-3">
             <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[var(--color-accent)]" />
-              <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+              <Layers className="w-4 h-4 text-[var(--accent)]" />
+              <h3 className="text-sm font-semibold text-[var(--text)]">
                 Pipeline Lifecycle Distribution
               </h3>
             </div>
-            <span className="text-xs text-[var(--color-text-muted)] font-mono">
+            <span className="text-xs text-[var(--text-3)] font-mono">
               Total Active: {totalStageCount.toLocaleString()}
             </span>
           </div>
@@ -276,7 +276,7 @@ export default function ExecutiveDashboard() {
               return (
                 <div
                   key={stage}
-                  className="panel p-3.5 rounded-[var(--radius-md)] space-y-2 border border-[var(--color-border)] bg-[var(--color-surface-elevated)]/60 flex flex-col justify-between"
+                  className="panel p-3.5 rounded-[var(--r-md)] space-y-2 border border-[var(--edge)] bg-[var(--surface-2)]/60 flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center gap-1.5 mb-1">
@@ -285,12 +285,12 @@ export default function ExecutiveDashboard() {
                         {STAGE_LABELS[stage] || stage}
                       </span>
                     </div>
-                    <div className="text-2xl font-bold num text-[var(--color-text-primary)] mt-1">
+                    <div className="text-2xl font-bold num text-[var(--text)] mt-1">
                       {count.toLocaleString()}
                     </div>
                   </div>
 
-                  <div className="pt-1.5 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-text-muted)] font-mono">
+                  <div className="pt-1.5 border-t border-[var(--edge)] flex items-center justify-between text-[11px] text-[var(--text-3)] font-mono">
                     <span>{pct}%</span>
                     <span>share</span>
                   </div>
@@ -304,36 +304,36 @@ export default function ExecutiveDashboard() {
       {/* Bottom Bento: Team Productivity Matrix */}
       {team && (
         <div className="bento-card p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
+          <div className="flex items-center justify-between border-b border-[var(--edge)] pb-3">
             <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-[var(--color-value)]" />
-              <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+              <Award className="w-4 h-4 text-[var(--value)]" />
+              <h3 className="text-sm font-semibold text-[var(--text)]">
                 Team Member Performance Matrix
               </h3>
             </div>
-            <span className="text-xs text-[var(--color-text-muted)] font-medium">
+            <span className="text-xs text-[var(--text-3)] font-medium">
               {team.people?.length || 0} active operators in window
             </span>
           </div>
 
           {!team.people?.length ? (
-            <div className="p-8 text-center border border-dashed border-[var(--color-border)] rounded-[var(--radius-md)] text-xs text-[var(--color-text-muted)] font-mono">
+            <div className="p-8 text-center border border-dashed border-[var(--edge)] rounded-[var(--r-md)] text-xs text-[var(--text-3)] font-mono">
               No outreach activity logged in the selected {days}-day window.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[640px]">
                 <thead>
-                  <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)] font-mono text-[11px]">
+                  <tr className="border-b border-[var(--edge)] text-[var(--text-3)] font-mono text-[11px]">
                     <th className="pb-3 font-semibold">OPERATOR</th>
                     <th className="pb-3 font-semibold text-center">CALLS</th>
                     <th className="pb-3 font-semibold text-center">ALL ACTIVITIES</th>
                     <th className="pb-3 font-semibold text-center">LEADS HELD</th>
-                    <th className="pb-3 font-semibold text-center text-[var(--color-ok)]">WON DEALS</th>
+                    <th className="pb-3 font-semibold text-center text-[var(--ok)]">WON DEALS</th>
                     <th className="pb-3 font-semibold text-right">DISPROVED BAD DATA</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--color-border)] font-sans">
+                <tbody className="divide-y divide-[var(--edge)] font-sans">
                   {team.people.map((p) => {
                     const disprovedCount = ['WRONG_NUMBER', 'NOT_OWNER', 'SOLD'].reduce(
                       (n, v) => n + (p.verdicts_given?.[v] || 0),
@@ -341,29 +341,29 @@ export default function ExecutiveDashboard() {
                     );
 
                     return (
-                      <tr key={p.user} className="hover:bg-[var(--color-accent-soft)] transition-colors">
-                        <td className="py-3 font-semibold text-[var(--color-text-primary)]">
+                      <tr key={p.user} className="hover:bg-[var(--accent-soft)] transition-colors">
+                        <td className="py-3 font-semibold text-[var(--text)]">
                           <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[10.5px] font-bold flex items-center justify-center text-[var(--color-accent)] font-mono">
+                            <span className="w-6 h-6 rounded-full bg-[var(--surface-2)] border border-[var(--edge)] text-[10.5px] font-bold flex items-center justify-center text-[var(--accent)] font-mono">
                               {p.user?.slice(0, 2).toUpperCase() || 'OP'}
                             </span>
                             <span>{p.user}</span>
                           </div>
                         </td>
-                        <td className="py-3 text-center font-mono num font-semibold text-[var(--color-text-primary)]">
+                        <td className="py-3 text-center font-mono num font-semibold text-[var(--text)]">
                           {p.activities?.CALL || 0}
                         </td>
-                        <td className="py-3 text-center font-mono num text-[var(--color-text-secondary)]">
+                        <td className="py-3 text-center font-mono num text-[var(--text-2)]">
                           {p.total_activities || 0}
                         </td>
-                        <td className="py-3 text-center font-mono num font-semibold text-[var(--color-accent)]">
+                        <td className="py-3 text-center font-mono num font-semibold text-[var(--accent)]">
                           {p.leads_held || 0}
                         </td>
-                        <td className="py-3 text-center font-mono num font-bold text-[var(--color-ok)]">
+                        <td className="py-3 text-center font-mono num font-bold text-[var(--ok)]">
                           {p.leads_by_stage?.WON || 0}
                         </td>
                         <td className="py-3 text-right">
-                          <span className="inline-flex items-center gap-1 font-mono num font-semibold text-[var(--color-ok)] bg-[var(--color-ok-soft,#34d39920)] px-2.5 py-0.5 rounded-full border border-[var(--color-ok)]/25">
+                          <span className="inline-flex items-center gap-1 font-mono num font-semibold text-[var(--ok)] bg-[var(--ok-soft)] px-2.5 py-0.5 rounded-full border border-[var(--ok)]/25">
                             +{disprovedCount} cleaned
                           </span>
                         </td>

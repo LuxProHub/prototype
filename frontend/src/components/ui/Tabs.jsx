@@ -20,7 +20,7 @@ export default function Tabs({
   return (
     <div
       role="tablist"
-      className={`inline-flex items-center rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] ${sizeClasses} ${className}`}
+      className={`inline-flex items-center rounded-[var(--r-md)] bg-[var(--surface-2)] border border-[var(--edge)] ${sizeClasses} ${className}`}
     >
       {tabs.map((tab) => {
         const id = typeof tab === 'object' ? tab.id : tab;
@@ -35,10 +35,10 @@ export default function Tabs({
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(id)}
-            className={`relative flex items-center justify-center gap-1.5 px-3 h-full rounded-[var(--radius-sm)] font-medium transition-all select-none cursor-pointer ${
+            className={`relative flex items-center justify-center gap-1.5 px-3 h-full rounded-[var(--r-sm)] font-medium transition-all select-none cursor-pointer ${
               isActive
-                ? 'bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-sm font-semibold border border-[var(--color-border)]'
-                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)]'
+                ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm font-semibold border border-[var(--edge)]'
+                : 'text-[var(--text-3)] hover:text-[var(--text)] hover:bg-[var(--surface-3)]'
             }`}
           >
             <span>{label}</span>
@@ -46,8 +46,8 @@ export default function Tabs({
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full num ${
                   isActive
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)] font-semibold'
-                    : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]'
+                    ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold'
+                    : 'bg-[var(--surface-2)] text-[var(--text-3)]'
                 }`}
               >
                 {count}

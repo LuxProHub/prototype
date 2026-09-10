@@ -22,13 +22,13 @@ export default function BulkActionBar({
       aria-label="Bulk actions for selected records"
       className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-rise-in pointer-events-auto ${className}`}
     >
-      <div className="glass-liquid px-4 py-2.5 rounded-[var(--radius-xl)] shadow-2xl border border-[var(--color-border-strong)] flex items-center gap-3 text-[13px]">
-        <div className="flex items-center gap-2 pr-2 border-r border-[var(--color-border)]">
-          <CheckSquare className="w-4 h-4 text-[var(--color-accent)]" />
-          <span className="font-bold num text-[var(--color-text-primary)]">
+      <div className="glass-liquid px-4 py-2.5 rounded-[var(--r-xl)] shadow-2xl border border-[var(--edge-strong)] flex items-center gap-3 text-[13px]">
+        <div className="flex items-center gap-2 pr-2 border-r border-[var(--edge)]">
+          <CheckSquare className="w-4 h-4 text-[var(--accent)]" />
+          <span className="font-bold num text-[var(--text)]">
             {selectedCount.toLocaleString()}
           </span>
-          <span className="text-[var(--color-text-secondary)] hidden sm:inline">
+          <span className="text-[var(--text-2)] hidden sm:inline">
             selected
           </span>
         </div>
@@ -48,7 +48,7 @@ export default function BulkActionBar({
             className="btn h-8 px-2.5 text-[12px] flex items-center gap-1"
             title="Export selected to CSV"
           >
-            <FileText className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+            <FileText className="w-3.5 h-3.5 text-[var(--accent)]" />
             <span className="hidden sm:inline">CSV</span>
           </button>
 
@@ -58,17 +58,17 @@ export default function BulkActionBar({
             className="btn h-8 px-2.5 text-[12px] flex items-center gap-1"
             title="Export selected to Excel"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-[var(--color-ok)]" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-[var(--ok)]" />
             <span className="hidden sm:inline">XLSX</span>
           </button>
         </div>
 
-        <div className="pl-1 border-l border-[var(--color-border)]">
+        <div className="pl-1 border-l border-[var(--edge)]">
           <button
             onClick={onClear}
             aria-label="Clear selection"
             title="Clear selection"
-            className="btn-ghost h-7 w-7 rounded-[var(--radius-sm)] hover:text-[var(--color-bad)]"
+            className="btn-ghost h-7 w-7 rounded-[var(--r-sm)] hover:text-[var(--bad)]"
           >
             <X className="w-4 h-4" />
           </button>

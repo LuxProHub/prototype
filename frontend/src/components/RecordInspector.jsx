@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Edit3,
@@ -78,6 +78,13 @@ export default function RecordInspector({
   className = '',
 }) {
   const { notify } = useToast();
+  const rootRef = useRef(null);
+  // Move focus into the panel whenever a different record opens. Without
+  // this, focus stays on the table row and the panel is invisible to a
+  // screen reader until the user hunts for it.
+  useEffect(() => {
+    rootRef.current?.focus({ preventScroll: true });
+  }, [record?.id]);
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'activity'
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({});
@@ -127,23 +134,25 @@ export default function RecordInspector({
 
   return (
     <aside
-      aria-label="Record Inspector"
-      className={`w-full lg:w-[460px] xl:w-[500px] shrink-0 h-full flex flex-col bg-[var(--color-surface)] border-l border-[var(--color-border)] shadow-xl overflow-hidden animate-fade-in ${className}`}
+      ref={rootRef}
+      tabIndex={-1}
+      aria-label="Record inspector"
+      className={`outline-none w-full lg:w-[460px] xl:w-[500px] shrink-0 h-full flex flex-col bg-[var(--surface)] border-l border-[var(--edge)] shadow-xl overflow-hidden animate-fade-in ${className}`}
     >
       {/* Header: Identity, Prev/Next, Close */}
-      <div className="shrink-0 px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)]/60 flex items-start justify-between gap-3">
+      <div className="shrink-0 px-4 py-3 border-b border-[var(--edge)] bg-[var(--surface-2)]/60 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] text-[var(--color-text-muted)] font-mono num">
+            <span className="text-[11px] text-[var(--text-3)] font-mono num">
               #{record.id}
             </span>
             <StatusBadge status={record.status} />
             {isEditing && <span className="badge badge-accent">Editing</span>}
           </div>
-          <h2 className="text-base font-bold text-[var(--color-text-primary)] tracking-tight truncate">
+          <h2 className="text-base font-bold text-[var(--text)] tracking-tight truncate">
             {record.name || record.developer || 'Record'}
           </h2>
-          <p className="text-[12px] text-[var(--color-text-secondary)] truncate">
+          <p className="text-[12px] text-[var(--text-2)] truncate">
             {[record.community, record.building_cluster || record.building].filter(Boolean).join(', ') || 'Dubai, UAE'}
           </p>
         </div>
@@ -155,7 +164,7 @@ export default function RecordInspector({
             disabled={!hasPrev}
             title="Previous record (Arrow Up)"
             aria-label="Previous record"
-            className="btn-ghost h-7 w-7 rounded-[var(--radius-sm)]"
+            className="btn-ghost h-7 w-7 rounded-[var(--r-sm)]"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -164,17 +173,17 @@ export default function RecordInspector({
             disabled={!hasNext}
             title="Next record (Arrow Down)"
             aria-label="Next record"
-            className="btn-ghost h-7 w-7 rounded-[var(--radius-sm)]"
+            className="btn-ghost h-7 w-7 rounded-[var(--r-sm)]"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
 
-          <div className="h-4 w-px bg-[var(--color-border)] mx-1" />
+          <div className="h-4 w-px bg-[var(--edge)] mx-1" />
 
           <button
             onClick={onClose}
             aria-label="Close inspector (Esc)"
-            className="btn-ghost h-7 w-7 rounded-[var(--radius-sm)] hover:text-[var(--color-bad)]"
+            className="btn-ghost h-7 w-7 rounded-[var(--r-sm)] hover:text-[var(--bad)]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -182,7 +191,7 @@ export default function RecordInspector({
       </div>
 
       {/* Action Bar / Direct Outreach Controls */}
-      <div className="shrink-0 px-4 py-2 bg-[var(--color-surface-elevated)] border-b border-[var(--color-border)] flex items-center justify-between gap-2">
+      <div className="shrink-0 px-4 py-2 bg-[var(--surface-2)] border-b border-[var(--edge)] flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           {record.mobile_1 && (
             <a
@@ -238,13 +247,13 @@ export default function RecordInspector({
       </div>
 
       {/* Tabs Switcher: Property Details vs Outreach Activity */}
-      <div className="shrink-0 px-4 pt-2 border-b border-[var(--color-border)] flex items-center gap-4 bg-[var(--color-surface)]">
+      <div className="shrink-0 px-4 pt-2 border-b border-[var(--edge)] flex items-center gap-4 bg-[var(--surface)]">
         <button
           onClick={() => setActiveTab('details')}
           className={`pb-2 text-[12.5px] font-medium transition-colors border-b-2 ${
             activeTab === 'details'
-              ? 'border-[var(--color-accent)] text-[var(--color-text-primary)] font-semibold'
-              : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+              ? 'border-[var(--accent)] text-[var(--text)] font-semibold'
+              : 'border-transparent text-[var(--text-3)] hover:text-[var(--text)]'
           }`}
         >
           Property & Identity
@@ -253,8 +262,8 @@ export default function RecordInspector({
           onClick={() => setActiveTab('activity')}
           className={`pb-2 text-[12.5px] font-medium transition-colors border-b-2 ${
             activeTab === 'activity'
-              ? 'border-[var(--color-accent)] text-[var(--color-text-primary)] font-semibold'
-              : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+              ? 'border-[var(--accent)] text-[var(--text)] font-semibold'
+              : 'border-transparent text-[var(--text-3)] hover:text-[var(--text)]'
           }`}
         >
           Outreach & Activity
@@ -264,7 +273,7 @@ export default function RecordInspector({
       {/* Inspector Body */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-4">
         {saveError && (
-          <div className="p-2.5 rounded-[var(--radius-md)] bg-[var(--color-bad-soft,#fb718520)] text-[var(--color-bad)] text-[12px] flex items-center gap-2 border border-[var(--color-bad)]/30">
+          <div className="p-2.5 rounded-[var(--r-md)] bg-[var(--bad-soft)] text-[var(--bad)] text-[12px] flex items-center gap-2 border border-[var(--bad)]/30">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{saveError}</span>
           </div>
@@ -279,9 +288,9 @@ export default function RecordInspector({
             {SECTIONS.map((sec) => {
               const Icon = sec.icon;
               return (
-                <section key={sec.id} className="panel p-3.5 space-y-2.5 rounded-[var(--radius-lg)]">
-                  <div className="flex items-center gap-2 pb-1.5 border-b border-[var(--color-border)]">
-                    <Icon className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                <section key={sec.id} className="panel p-3.5 space-y-2.5 rounded-[var(--r-lg)]">
+                  <div className="flex items-center gap-2 pb-1.5 border-b border-[var(--edge)]">
+                    <Icon className="w-3.5 h-3.5 text-[var(--accent)]" />
                     <span className="t-heading">
                       {sec.label}
                     </span>
@@ -309,11 +318,11 @@ export default function RecordInspector({
                           ) : (
                             <div
                               className={`text-[12.5px] truncate font-medium ${
-                                f.val ? 'val' : f.num ? 'num text-[var(--color-text-primary)]' : 'text-[var(--color-text-primary)]'
+                                f.val ? 'val' : f.num ? 'num text-[var(--text)]' : 'text-[var(--text)]'
                               }`}
                               title={shown || ''}
                             >
-                              {shown || <span className="text-[var(--color-text-muted)] font-normal">—</span>}
+                              {shown || <span className="text-[var(--text-3)] font-normal">—</span>}
                             </div>
                           )}
                         </div>
@@ -332,12 +341,12 @@ export default function RecordInspector({
       </div>
 
       {/* Provenance Footer */}
-      <div className="shrink-0 px-4 py-2 border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[11px] text-[var(--color-text-muted)] flex items-center justify-between gap-2">
+      <div className="shrink-0 px-4 py-2 border-t border-[var(--edge)] bg-[var(--surface-2)] text-[11px] text-[var(--text-3)] flex items-center justify-between gap-2">
         <span className="truncate">
-          Source: <span className="text-[var(--color-text-secondary)] font-medium">{record.source_file || 'Register'}</span>
+          Source: <span className="text-[var(--text-2)] font-medium">{record.source_file || 'Register'}</span>
           <span className="num font-mono"> row {record.source_row ?? '1'}</span>
         </span>
-        <kbd className="hidden sm:inline-block h-5 px-1.5 rounded border border-[var(--color-border)] bg-[var(--color-surface)] text-[10px] leading-5">
+        <kbd className="hidden sm:inline-block h-5 px-1.5 rounded border border-[var(--edge)] bg-[var(--surface)] text-[10px] leading-5">
           Esc
         </kbd>
       </div>

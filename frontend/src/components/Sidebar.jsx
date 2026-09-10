@@ -15,7 +15,7 @@ export default function Sidebar({ activeTab, setActiveTab, activeJob, userRole }
   const visibleItems = visibleFor(userRole);
 
   return (
-    <aside className="hidden md:flex w-56 shrink-0 flex-col h-screen sticky top-0 z-30 select-none bg-[var(--surface)]/70 backdrop-blur-md border-r border-[var(--edge)]">
+    <aside className="app-rail hidden md:flex w-56 shrink-0 flex-col h-screen sticky top-0 z-30 select-none bg-[var(--surface)]/70 backdrop-blur-md border-r border-[var(--edge)]">
       {/* Brand */}
       <div className="h-12 px-3.5 flex items-center gap-2.5 border-b border-[var(--edge)]">
         <div className="w-7 h-7 rounded-[7px] bg-[var(--accent-soft)] border border-[var(--accent-ring)] flex items-center justify-center shrink-0">
@@ -106,15 +106,15 @@ export function MobileBottomNav({ activeTab, setActiveTab, activeJob, userRole }
             key={item.id}
             onClick={() => setActiveTab(item.id)}
             aria-current={isActive ? 'page' : undefined}
-            className={`relative flex flex-col items-center justify-center min-w-[50px] py-1 px-1.5 rounded-[var(--radius-md)] transition-all ${
+            className={`relative flex flex-col items-center justify-center min-w-[50px] py-1 px-1.5 rounded-[var(--r-md)] transition-all ${
               isActive
-                ? 'text-[var(--color-accent)] font-bold'
-                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                ? 'text-[var(--accent)] font-bold'
+                : 'text-[var(--text-3)] hover:text-[var(--text)]'
             }`}
           >
             <span
-              className={`p-1.5 rounded-[var(--radius-md)] ${
-                isActive ? 'bg-[var(--color-accent-soft)]' : ''
+              className={`p-1.5 rounded-[var(--r-md)] ${
+                isActive ? 'bg-[var(--accent-soft)]' : ''
               }`}
             >
               <Icon className="w-4 h-4" strokeWidth={isActive ? 2.4 : 1.8} />
@@ -123,7 +123,7 @@ export function MobileBottomNav({ activeTab, setActiveTab, activeJob, userRole }
               {item.shortLabel}
             </span>
             {hasBadge && (
-              <span className="absolute top-1 right-2 w-2 h-2 bg-[var(--color-accent)] rounded-full animate-ping" />
+              <span className="absolute top-1 right-2 w-2 h-2 bg-[var(--accent)] rounded-full animate-ping" />
             )}
           </button>
         );

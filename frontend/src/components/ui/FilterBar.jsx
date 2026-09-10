@@ -19,7 +19,7 @@ export function FilterBar({
       <div className="flex flex-wrap items-center gap-2">
         {onSearchChange !== undefined && (
           <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none" />
             <input
               type="search"
               value={searchQuery}
@@ -38,7 +38,7 @@ export function FilterBar({
 
       {activeChips.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <span className="text-[11px] text-[var(--color-text-muted)] font-medium mr-1">
+          <span className="text-[11px] text-[var(--text-3)] font-medium mr-1">
             Active filters:
           </span>
           {activeChips.map((chip, idx) => (
@@ -51,7 +51,7 @@ export function FilterBar({
           {onClearAll && (
             <button
               onClick={onClearAll}
-              className="btn-ghost h-6 px-2 text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-bad)] flex items-center gap-1 ml-1"
+              className="btn-ghost h-6 px-2 text-[11px] text-[var(--text-3)] hover:text-[var(--bad)] flex items-center gap-1 ml-1"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset</span>

@@ -38,6 +38,7 @@
 
     /* Value — money and registry identifiers. The one warm note. */
     --value: #8a5f1f;
+    --value-soft: rgba(138, 95, 31, 0.1);
 
     /* Status */
     --ok: #047857;        --ok-soft: rgba(4, 120, 87, 0.12);
@@ -61,12 +62,6 @@
     --r-xl: 16px;
     --r-pill: 9999px;
 
-    /* Canonical Radius Scale */
-    --radius-sm: 6px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-modal: 16px;
-    --radius-pill: 9999px;
 
     /* Spacing Scale */
     --space-1: 0.25rem;
@@ -90,25 +85,6 @@
 
     --blur: 18px;
 
-    /* Canonical Semantic Tokens (Light) */
-    --color-bg: var(--ink);
-    --color-surface: var(--surface);
-    --color-surface-elevated: var(--surface-2);
-    --color-surface-muted: var(--surface-3);
-    --color-border: var(--edge);
-    --color-border-strong: var(--edge-strong);
-    --color-text-primary: var(--text);
-    --color-text-secondary: var(--text-2);
-    --color-text-muted: var(--text-3);
-    --color-accent: var(--accent);
-    --color-accent-hover: var(--accent-hover);
-    --color-accent-soft: var(--accent-soft);
-    --color-focus: var(--accent-ring);
-    --color-value: var(--value);
-    --color-ok: var(--ok);
-    --color-dup: var(--dup);
-    --color-warn: var(--warn);
-    --color-bad: var(--bad);
 
     /* Geist carries the interface; Geist Mono carries every figure. Both fall
        back to the system stack when the network is not there. */
@@ -157,6 +133,7 @@
     --accent-ring: rgba(77, 130, 243, 0.45);
 
     --value: #d6a85b;
+    --value-soft: rgba(214, 168, 91, 0.12);
 
     --ok: #34d399;        --ok-soft: rgba(52, 211, 153, 0.12);
     --dup: #a78bfa;       --dup-soft: rgba(167, 139, 250, 0.14);
@@ -169,25 +146,6 @@
     --wash-accent: rgba(77, 130, 243, 0.09);
     --wash-value: rgba(214, 168, 91, 0.07);
 
-    /* Canonical Semantic Tokens (Dark) */
-    --color-bg: var(--ink);
-    --color-surface: var(--surface);
-    --color-surface-elevated: var(--surface-2);
-    --color-surface-muted: var(--surface-3);
-    --color-border: var(--edge);
-    --color-border-strong: var(--edge-strong);
-    --color-text-primary: var(--text);
-    --color-text-secondary: var(--text-2);
-    --color-text-muted: var(--text-3);
-    --color-accent: var(--accent);
-    --color-accent-hover: var(--accent-hover);
-    --color-accent-soft: var(--accent-soft);
-    --color-focus: var(--accent-ring);
-    --color-value: var(--value);
-    --color-ok: var(--ok);
-    --color-dup: var(--dup);
-    --color-warn: var(--warn);
-    --color-bad: var(--bad);
 
     color-scheme: dark;
   }
@@ -297,7 +255,7 @@
   backdrop-filter: blur(calc(var(--blur) * 1.2)) saturate(170%);
   -webkit-backdrop-filter: blur(calc(var(--blur) * 1.2)) saturate(170%);
   border: 1px solid var(--edge-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--r-lg);
   box-shadow:
     inset 0 1px 0 var(--highlight),
     inset 0 -1px 0 rgba(0, 0, 0, 0.12),
@@ -334,7 +292,7 @@
   position: relative;
   background: var(--surface);
   border: 1px solid var(--edge);
-  border-radius: var(--radius-lg);
+  border-radius: var(--r-lg);
   padding: 1rem 1.125rem;
   box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-1);
   overflow: hidden;
@@ -426,13 +384,6 @@
     radial-gradient(120% 90% at 100% 100%, var(--wash-value), transparent 55%),
     var(--surface);
 }
-
-/* Older elevation names, kept as aliases for components still using them. */
-.elevation-0 { background: var(--color-bg); }
-.elevation-1 { background: var(--color-surface); border: 1px solid var(--color-border); }
-.elevation-2 { background: var(--color-surface-elevated); border: 1px solid var(--color-border); }
-.elevation-3 { background: var(--glass); backdrop-filter: blur(var(--blur)); border: 1px solid var(--color-border-strong); }
-.elevation-4 { background: var(--glass-strong); backdrop-filter: blur(calc(var(--blur) * 1.5)); border: 1px solid var(--color-border-strong); }
 
 /* Surface levels. The page is L0. Most content sits directly on it (L1: no
    border, no card -- separated by spacing and a hairline). Only content that
@@ -813,3 +764,73 @@
     opacity: 0.5;
   }
 }
+
+/* Nocturne Ledger: a deliberate 2D editorial layer for the operational shell. */
+.app-shell::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  z-index: 40;
+  background: linear-gradient(180deg, transparent 7%, var(--accent) 25%, var(--value) 72%, transparent 94%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+.app-rail {
+  position: relative;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%), var(--surface)) !important;
+  box-shadow: 18px 0 46px -36px color-mix(in srgb, var(--text) 55%, transparent);
+}
+.app-rail::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 108px;
+  background: radial-gradient(90% 120% at 0% 0%, var(--accent-soft), transparent 72%);
+  pointer-events: none;
+}
+.command-bar {
+  margin: 10px 12px 0;
+  min-height: 44px;
+  height: 44px !important;
+  border: 1px solid var(--edge) !important;
+  border-radius: var(--r-lg) !important;
+  box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-2) !important;
+}
+.command-bar::after {
+  content: '';
+  position: absolute;
+  right: 18px;
+  bottom: -1px;
+  width: 64px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.85;
+}
+.l2, .bento-hero {
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--highlight) 68%, transparent), transparent 28%), var(--surface);
+}
+.l2 { box-shadow: inset 0 1px 0 var(--highlight), 0 18px 42px -38px color-mix(in srgb, var(--text) 70%, transparent); }
+.bento-hero::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 34%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.8;
+  pointer-events: none;
+}
+.data-table thead th {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 92%, var(--accent-soft)), var(--surface-2));
+  letter-spacing: 0.045em;
+}
+.data-table tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+@media (max-width: 767px) {
+  .app-shell::after { display: none; }
+  .command-bar { margin: 0; height: 48px !important; border-radius: 0 !important; border-inline: 0 !important; }
+}
+.ambient-field{background:#090d15;overflow:hidden}.ambient-field__light{position:absolute;inset:0;background:radial-gradient(78rem 44rem at 8% -18%,rgba(35,91,156,.17),transparent 58%),radial-gradient(62rem 38rem at 100% 110%,rgba(122,87,41,.1),transparent 65%),linear-gradient(145deg,#0b1019,#080b12 62%,#0b0e15)}.ambient-field__grain{position:absolute;inset:0;opacity:.14}.overview-canvas{max-width:1480px;margin:0 auto;padding:28px 32px 48px}.overview-titlebar{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:30px}.overview-titlebar h1{font:600 clamp(30px,3vw,46px)/.98 var(--font-sans);letter-spacing:-.045em;margin:7px 0 9px}.overview-kicker{margin:0;color:var(--text-3);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}.overview-actions{display:flex;gap:8px}.overview-hero{position:relative;min-height:365px;overflow:hidden;padding:34px;border-radius:20px;background:linear-gradient(132deg,rgba(23,34,52,.88),rgba(14,19,29,.86) 62%,rgba(27,25,22,.74));border:1px solid rgba(255,255,255,.1)}.overview-total{display:block;margin-top:18px;font-size:clamp(54px,8vw,116px);line-height:.78;letter-spacing:-.075em;color:#f2f6fb}.overview-health{position:absolute;top:38px;right:34px;width:min(31%,305px);padding-left:25px;border-left:1px solid rgba(255,255,255,.12)}.overview-health strong{display:block;color:var(--ok);font-size:clamp(38px,4vw,64px);line-height:1;margin:14px 0 8px}.overview-health i{display:block;height:4px;margin-top:18px;background:rgba(255,255,255,.1)}.overview-health b{display:block;height:100%;background:var(--ok)}.overview-signals{position:absolute;bottom:0;left:34px;right:34px;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.12)}.overview-signal{position:relative;padding:20px 16px 22px 0}.overview-signal+.overview-signal{padding-left:20px;border-left:1px solid rgba(255,255,255,.1)}.overview-dot{position:absolute;top:26px;left:0;width:6px;height:6px;border-radius:99px}.overview-signal p{margin:0 0 0 13px;color:var(--text-2);font-size:12px}.overview-signal strong{display:block;color:var(--text);font-size:22px;margin:6px 0 2px}.overview-signal small{color:var(--text-3);font-size:10px}.overview-columns{display:grid;grid-template-columns:1.55fr .85fr;gap:40px;margin-top:42px}.overview-region header{display:flex;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--edge)}.overview-region h2{font-size:16px;margin:6px 0 0}.overview-composition>div:last-child{padding:22px 0 0!important}.overview-facts{margin:0}.overview-facts>div{display:grid;grid-template-columns:1fr auto;padding:18px 0;border-bottom:1px solid var(--edge)}.overview-facts dt{color:var(--text-2);font-size:12px}.overview-facts dd{margin:0;text-align:right}.overview-activity{margin-top:42px}.overview-activity ul{list-style:none;margin:0;padding:0}.overview-activity li{border-bottom:1px solid var(--edge)}.overview-activity li button{width:100%;display:grid;grid-template-columns:58px minmax(0,1fr) 140px 120px;gap:16px;padding:14px 0;border:0;background:none;color:var(--text-2);text-align:left}.overview-activity li b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:13px}@media(max-width:800px){.overview-canvas{padding:20px 16px 92px}.overview-titlebar{align-items:start;flex-direction:column}.overview-hero{min-height:480px;padding:25px}.overview-health{position:static;width:auto;margin-top:30px;padding:18px 0 0;border-left:0;border-top:1px solid rgba(255,255,255,.12)}.overview-signals{left:25px;right:25px;grid-template-columns:repeat(2,1fr)}.overview-signal{padding:12px 8px}.overview-columns{grid-template-columns:1fr;gap:30px;margin-top:32px}.overview-activity li button{grid-template-columns:45px minmax(0,1fr) auto;gap:9px}.overview-activity li button>:nth-child(4){display:none}}

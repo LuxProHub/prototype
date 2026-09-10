@@ -348,10 +348,10 @@ export default function CallQueue() {
         >
           <div className="space-y-4">
             {records[activeActivityLead.record_id]?.mobile_1 && (
-              <div className="panel p-3 bg-[var(--color-surface-elevated)] flex items-center justify-between">
+              <div className="panel p-3 bg-[var(--surface-2)] flex items-center justify-between">
                 <div>
                   <div className="t-label">Phone</div>
-                  <div className="num font-bold text-[14px] text-[var(--color-text-primary)]">
+                  <div className="num font-bold text-[14px] text-[var(--text)]">
                     {records[activeActivityLead.record_id].mobile_1}
                   </div>
                 </div>
