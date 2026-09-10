@@ -184,6 +184,7 @@ export default function App() {
                   onRetry={fetchStats}
                   setActiveTab={setActiveTab}
                   setSelectedJobId={setSelectedJobId}
+                  setSearchQuery={setSearchQuery}
                 />
               </div>
             )}
