@@ -284,25 +284,25 @@ export default function RecordInspector({
             {/* Value, status and location, before the field-by-field detail */}
             <PropertySummary record={record} />
 
-            {/* Core Sections */}
+            {/* Core Sections: Editorial Typography & Subtle Dividers (No Nested Cards) */}
             {SECTIONS.map((sec) => {
               const Icon = sec.icon;
               return (
-                <section key={sec.id} className="panel p-3.5 space-y-2.5 rounded-[var(--r-lg)]">
-                  <div className="flex items-center gap-2 pb-1.5 border-b border-[var(--edge)]">
+                <section key={sec.id} className="pt-3 pb-2 border-b border-[var(--edge)] last:border-b-0 space-y-2.5">
+                  <div className="flex items-center gap-2">
                     <Icon className="w-3.5 h-3.5 text-[var(--accent)]" />
-                    <span className="t-heading">
+                    <span className="text-[12.5px] font-semibold text-[var(--text)] tracking-tight">
                       {sec.label}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
                     {sec.fields.map((f) => {
                       const shown = f.read ? f.read(record) : record[f.key];
                       const span = f.span === 2 ? 'col-span-2' : '';
                       return (
                         <div key={f.key} className={`min-w-0 ${span}`}>
-                          <div className="t-label mb-0.5">
+                          <div className="text-[10.5px] font-medium text-[var(--text-3)] uppercase tracking-wider mb-0.5">
                             {f.label}
                           </div>
                           {isEditing ? (
@@ -318,7 +318,7 @@ export default function RecordInspector({
                           ) : (
                             <div
                               className={`text-[12.5px] truncate font-medium ${
-                                f.val ? 'val' : f.num ? 'num text-[var(--text)]' : 'text-[var(--text)]'
+                                f.val ? 'val font-semibold' : f.num ? 'num text-[var(--text)]' : 'text-[var(--text)]'
                               }`}
                               title={shown || ''}
                             >
