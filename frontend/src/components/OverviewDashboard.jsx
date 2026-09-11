@@ -159,7 +159,7 @@ export default function OverviewDashboard({
             </div>
 
             <div className="mt-3.5 flex items-baseline gap-3 flex-wrap">
-              <span className="num text-5xl sm:text-6xl font-black tracking-tight text-white drop-shadow-sm">
+              <span className="num text-5xl sm:text-6xl font-black tracking-tight text-[var(--text)] drop-shadow-sm">
                 {total.toLocaleString()}
               </span>
               <span className="text-[13px] font-semibold text-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1 rounded-full border border-[var(--accent-ring)]">
@@ -214,7 +214,7 @@ export default function OverviewDashboard({
           <div className="relative z-10 mt-6 pt-5 border-t border-[var(--edge)] grid grid-cols-2 sm:grid-cols-4 gap-3.5">
             <button
               onClick={() => handleFilterStatus('VALID')}
-              className="text-left group p-3.5 rounded-xl bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.07] border border-white/[0.08] hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+              className="text-left group p-3.5 rounded-xl bg-[var(--surface-2)]/70 dark:bg-white/[0.03] backdrop-blur-md hover:bg-[var(--surface-2)] dark:hover:bg-white/[0.07] border border-[var(--edge)] dark:border-white/[0.08] hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:hover:shadow-xl cursor-pointer"
             >
               <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-3)] group-hover:text-[var(--ok)] transition-colors">
                 <div className="flex items-center gap-1.5">
@@ -234,7 +234,7 @@ export default function OverviewDashboard({
 
             <button
               onClick={() => handleFilterStatus('DUPLICATE')}
-              className="text-left group p-3.5 rounded-xl bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.07] border border-white/[0.08] hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+              className="text-left group p-3.5 rounded-xl bg-[var(--surface-2)]/70 dark:bg-white/[0.03] backdrop-blur-md hover:bg-[var(--surface-2)] dark:hover:bg-white/[0.07] border border-[var(--edge)] dark:border-white/[0.08] hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:hover:shadow-xl cursor-pointer"
             >
               <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-3)] group-hover:text-[var(--dup)] transition-colors">
                 <div className="flex items-center gap-1.5">
@@ -254,7 +254,7 @@ export default function OverviewDashboard({
 
             <button
               onClick={() => handleFilterStatus('INCOMPLETE')}
-              className="text-left group p-3.5 rounded-xl bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.07] border border-white/[0.08] hover:border-amber-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+              className="text-left group p-3.5 rounded-xl bg-[var(--surface-2)]/70 dark:bg-white/[0.03] backdrop-blur-md hover:bg-[var(--surface-2)] dark:hover:bg-white/[0.07] border border-[var(--edge)] dark:border-white/[0.08] hover:border-amber-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:hover:shadow-xl cursor-pointer"
             >
               <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-3)] group-hover:text-[var(--warn)] transition-colors">
                 <div className="flex items-center gap-1.5">
@@ -274,7 +274,7 @@ export default function OverviewDashboard({
 
             <button
               onClick={() => handleFilterStatus('ERROR')}
-              className="text-left group p-3.5 rounded-xl bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.07] border border-white/[0.08] hover:border-red-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+              className="text-left group p-3.5 rounded-xl bg-[var(--surface-2)]/70 dark:bg-white/[0.03] backdrop-blur-md hover:bg-[var(--surface-2)] dark:hover:bg-white/[0.07] border border-[var(--edge)] dark:border-white/[0.08] hover:border-red-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:hover:shadow-xl cursor-pointer"
             >
               <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-3)] group-hover:text-[var(--bad)] transition-colors">
                 <div className="flex items-center gap-1.5">
@@ -314,7 +314,7 @@ export default function OverviewDashboard({
                 const isMed = val >= 70 && val < 90;
 
                 return (
-                  <div key={f.key} className="bg-white/[0.03] backdrop-blur-md p-2.5 rounded-lg border border-white/[0.06] hover:border-white/[0.18] hover:bg-white/[0.06] transition-all duration-200">
+                  <div key={f.key} className="bg-[var(--surface-2)]/60 dark:bg-white/[0.03] backdrop-blur-md p-2.5 rounded-lg border border-[var(--edge)] dark:border-white/[0.06] hover:border-[var(--edge-strong)] dark:hover:border-white/[0.18] hover:bg-[var(--surface-2)] dark:hover:bg-white/[0.06] transition-all duration-200">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-[var(--text-2)] font-medium truncate">{f.label}</span>
                       <span
@@ -349,7 +349,7 @@ export default function OverviewDashboard({
         </div>
 
         {/* 4-column Supporting Module: Validation Health with SVG Radial Gauge */}
-        <div className="lg:col-span-4 glass-morphism glass-specular p-6 flex flex-col justify-between shadow-[0_20px_50px_-15px_rgba(0,0,0,0.75)]">
+        <div className="lg:col-span-4 glass-morphism glass-specular p-6 flex flex-col justify-between dark:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.75)]">
           <div>
             <div className="flex items-center justify-between">
               <span className="t-label">Validation Health</span>
@@ -432,7 +432,7 @@ export default function OverviewDashboard({
       {/* SECONDARY BENTO MODULES: Holdings Distribution & Operational History */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* 7-column Community & Spatial Concentration */}
-        <div className="lg:col-span-7 glass-morphism flex flex-col shadow-[0_16px_45px_-12px_rgba(0,0,0,0.75)]">
+        <div className="lg:col-span-7 glass-morphism flex flex-col dark:shadow-[0_16px_45px_-12px_rgba(0,0,0,0.75)]">
           <div className="p-5 border-b border-[var(--edge)] flex items-center justify-between">
             <div>
               <span className="t-label">Geographic Distribution</span>
@@ -454,7 +454,7 @@ export default function OverviewDashboard({
         </div>
 
         {/* 5-column Ingestion Activity & Pipeline Overview */}
-        <div className="lg:col-span-5 glass-morphism flex flex-col shadow-[0_16px_45px_-12px_rgba(0,0,0,0.75)]">
+        <div className="lg:col-span-5 glass-morphism flex flex-col dark:shadow-[0_16px_45px_-12px_rgba(0,0,0,0.75)]">
           <div className="p-5 border-b border-[var(--edge)] flex items-center justify-between">
             <div>
               <span className="t-label">Pipeline Activity</span>

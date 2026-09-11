@@ -14,12 +14,12 @@ function initials(name) {
 }
 
 const ROLE_THEME = {
-  ADMIN: 'border-blue-500/40 text-blue-400 bg-blue-500/10 shadow-[0_0_10px_rgba(59,130,246,0.15)]',
-  DEVELOPER: 'border-purple-500/40 text-purple-400 bg-purple-500/10 shadow-[0_0_10px_rgba(168,85,247,0.15)]',
-  CEO: 'border-amber-500/40 text-amber-400 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.15)]',
-  CCO: 'border-amber-500/40 text-amber-400 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.15)]',
-  DATA_PROCESSOR: 'border-slate-500/40 text-slate-300 bg-slate-500/10',
-  VIEWER: 'border-slate-500/30 text-slate-400 bg-slate-500/10',
+  ADMIN: 'border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/10 shadow-[0_0_10px_rgba(59,130,246,0.15)]',
+  DEVELOPER: 'border-purple-500/40 text-purple-600 dark:text-purple-400 bg-purple-500/10 shadow-[0_0_10px_rgba(168,85,247,0.15)]',
+  CEO: 'border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.15)]',
+  CCO: 'border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.15)]',
+  DATA_PROCESSOR: 'border-slate-500/40 text-slate-700 dark:text-slate-300 bg-slate-500/10',
+  VIEWER: 'border-slate-500/30 text-slate-600 dark:text-slate-400 bg-slate-500/10',
 };
 
 export default function Header({
@@ -39,7 +39,7 @@ export default function Header({
   const avatarTheme = ROLE_THEME[role] || ROLE_THEME.ADMIN;
 
   return (
-    <header className="command-bar h-13 shrink-0 sticky top-0 z-30 glass-morphism glass-specular border border-white/10 px-4 sm:px-6 flex items-center justify-between gap-4 shadow-[0_12px_35px_-10px_rgba(0,0,0,0.75)]">
+    <header className="command-bar h-13 shrink-0 sticky top-0 z-30 glass-morphism glass-specular border border-[var(--edge)] dark:border-white/10 px-4 sm:px-6 flex items-center justify-between gap-4 shadow-[0_4px_20px_-5px_rgba(15,23,42,0.06)] dark:shadow-[0_12px_35px_-10px_rgba(0,0,0,0.75)]">
       {/* Search: Spatial Command Input */}
       <div className="relative flex-1 max-w-[500px]">
         <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none" />
@@ -52,7 +52,7 @@ export default function Header({
           }}
           placeholder="Search 6.4M records across UAE registers..."
           aria-label="Search records"
-          className="field w-full h-8.5 pl-9 pr-10 text-[12.5px] bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.06] border border-white/[0.08] focus:border-[var(--accent)] rounded-lg transition-all shadow-inner"
+          className="field w-full h-8.5 pl-9 pr-10 text-[12.5px] bg-[var(--surface-2)]/80 dark:bg-white/[0.03] backdrop-blur-md hover:bg-[var(--surface)] dark:hover:bg-white/[0.06] border border-[var(--edge)] dark:border-white/[0.08] focus:border-[var(--accent)] rounded-lg transition-all shadow-inner"
         />
         <kbd className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 items-center justify-center rounded border border-[var(--edge)] bg-[var(--surface)] text-[10px] font-mono text-[var(--text-3)] pointer-events-none shadow-sm">
           /
