@@ -264,6 +264,46 @@
     var(--shadow-3);
 }
 
+/* Glass Morphism Deluxe & Specular Sheen */
+.glass-morphism {
+  position: relative;
+  background: rgba(10, 15, 29, 0.65);
+  backdrop-filter: blur(20px) saturate(185%);
+  -webkit-backdrop-filter: blur(20px) saturate(185%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--r-xl);
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 16px 0 rgba(255, 255, 255, 0.02),
+    0 14px 40px -10px rgba(0, 0, 0, 0.75);
+  transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-morphism:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
+    0 18px 50px -10px rgba(37, 99, 235, 0.22),
+    0 8px 24px -4px rgba(0, 0, 0, 0.85);
+  transform: translateY(-2px);
+}
+
+.glass-specular {
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-specular::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  pointer-events: none;
+}
+
 /* Typographic Roles */
 .t-display {
   font-size: clamp(2rem, 3.5vw, 2.75rem);
@@ -630,11 +670,60 @@
   to { transform: translateX(100%); }
 }
 
+@keyframes fluidFloatA {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(25px, -18px) scale(1.06);
+  }
+  66% {
+    transform: translate(-15px, 14px) scale(0.96);
+  }
+}
+
+@keyframes fluidFloatB {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-20px, 20px) scale(1.05);
+  }
+  66% {
+    transform: translate(16px, -12px) scale(0.94);
+  }
+}
+
+@keyframes fluidFloatC {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(12px, 16px) scale(1.04);
+  }
+}
+
+@keyframes shimmerWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 @layer utilities {
   .animate-fade-in { animation: fadeIn var(--dur-2) var(--ease); }
   .animate-rise-in { animation: riseIn 220ms var(--ease); }
   .animate-drop-in { animation: dropIn var(--dur-1) var(--ease); }
   .animate-pulse-glow { animation: pulseGlow 2.5s ease-in-out infinite; }
+  .animate-fluid-float-a { animation: fluidFloatA 22s ease-in-out infinite alternate; }
+  .animate-fluid-float-b { animation: fluidFloatB 26s ease-in-out infinite alternate; }
+  .animate-fluid-float-c { animation: fluidFloatC 30s ease-in-out infinite alternate; }
+  .animate-shimmer-wave {
+    background-size: 200% 100%;
+    animation: shimmerWave 4s linear infinite;
+  }
 }
 
 @layer components {

@@ -39,7 +39,7 @@ export default function Header({
   const avatarTheme = ROLE_THEME[role] || ROLE_THEME.ADMIN;
 
   return (
-    <header className="command-bar h-13 shrink-0 sticky top-0 z-30 glass border-b border-[var(--edge)] px-4 sm:px-6 flex items-center justify-between gap-4">
+    <header className="command-bar h-13 shrink-0 sticky top-0 z-30 glass-morphism glass-specular border border-white/10 px-4 sm:px-6 flex items-center justify-between gap-4 shadow-[0_12px_35px_-10px_rgba(0,0,0,0.75)]">
       {/* Search: Spatial Command Input */}
       <div className="relative flex-1 max-w-[500px]">
         <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none" />
@@ -52,7 +52,7 @@ export default function Header({
           }}
           placeholder="Search 6.4M records across UAE registers..."
           aria-label="Search records"
-          className="field w-full h-8.5 pl-9 pr-10 text-[12.5px] bg-[var(--surface-2)]/80 hover:bg-[var(--surface-2)] border-[var(--edge)] focus:border-[var(--accent)] rounded-lg transition-all"
+          className="field w-full h-8.5 pl-9 pr-10 text-[12.5px] bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.06] border border-white/[0.08] focus:border-[var(--accent)] rounded-lg transition-all shadow-inner"
         />
         <kbd className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 h-5 px-1.5 items-center justify-center rounded border border-[var(--edge)] bg-[var(--surface)] text-[10px] font-mono text-[var(--text-3)] pointer-events-none shadow-sm">
           /

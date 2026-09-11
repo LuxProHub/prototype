@@ -3,12 +3,13 @@ import React from 'react';
 /**
  * Liquid Spatial Atmospheric Backdrop
  *
- * Multi-layered atmospheric lighting creating deep visual depth:
+ * Multi-layered atmospheric lighting with slow, organic fluid motions:
  * - Deep obsidian void base (#050811)
- * - Soft azure atmospheric light cone from the top-left
- * - Subtle deep indigo / violet ambient dispersion in the center-right
- * - Warm brass low-horizon glow on the bottom-right
- * 100% 2D spatial lighting, zero canvas/WebGL overhead, zero grid artifacts.
+ * - Animated fluid azure orb drifting top-left
+ * - Animated fluid cyan/sky orb drifting top-center
+ * - Animated deep indigo/violet fluid dispersion center-right
+ * - Animated warm gold/brass glow bottom-right
+ * 100% 2D CSS-accelerated fluid lighting, zero WebGL, ultra-smooth 60fps.
  */
 export default function AmbientBackdrop() {
   return (
@@ -16,43 +17,43 @@ export default function AmbientBackdrop() {
       aria-hidden="true"
       className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-[#050811]"
     >
-      {/* Top-left deep azure atmospheric lighting */}
+      {/* Top-left animated fluid azure atmospheric lighting */}
       <div
-        className="absolute -top-[25%] -left-[15%] w-[70vw] h-[60vh] rounded-full blur-[150px] pointer-events-none"
+        className="absolute -top-[25%] -left-[15%] w-[70vw] h-[65vh] rounded-full blur-[140px] pointer-events-none animate-fluid-float-a opacity-90"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(37, 99, 235, 0.12) 0%, rgba(29, 78, 216, 0.04) 50%, transparent 75%)',
+          background: 'radial-gradient(ellipse at center, rgba(37, 99, 235, 0.16) 0%, rgba(29, 78, 216, 0.05) 50%, transparent 75%)',
         }}
       />
 
-      {/* Top-center soft cold ambient illumination */}
+      {/* Top-center animated fluid cyan/sky illumination */}
       <div
-        className="absolute -top-[10%] left-[35%] w-[45vw] h-[35vh] rounded-full blur-[160px] pointer-events-none"
+        className="absolute -top-[10%] left-[30%] w-[50vw] h-[40vh] rounded-full blur-[150px] pointer-events-none animate-fluid-float-b opacity-80"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(56, 189, 248, 0.06) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse at center, rgba(56, 189, 248, 0.08) 0%, rgba(37, 99, 235, 0.03) 50%, transparent 70%)',
         }}
       />
 
-      {/* Mid-right subtle violet/amethyst spatial depth */}
+      {/* Mid-right animated violet/amethyst spatial depth */}
       <div
-        className="absolute top-[25%] -right-[15%] w-[55vw] h-[45vh] rounded-full blur-[170px] pointer-events-none"
+        className="absolute top-[20%] -right-[15%] w-[55vw] h-[50vh] rounded-full blur-[160px] pointer-events-none animate-fluid-float-c opacity-85"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(124, 58, 237, 0.05) 0%, rgba(15, 23, 42, 0) 70%)',
+          background: 'radial-gradient(ellipse at center, rgba(124, 58, 237, 0.08) 0%, rgba(79, 70, 229, 0.03) 50%, transparent 70%)',
         }}
       />
 
-      {/* Bottom-right warm restrained brass/gold glow */}
+      {/* Bottom-right animated warm brass/gold luxury glow */}
       <div
-        className="absolute -bottom-[20%] -right-[10%] w-[55vw] h-[55vh] rounded-full blur-[160px] pointer-events-none"
+        className="absolute -bottom-[20%] -right-[10%] w-[55vw] h-[55vh] rounded-full blur-[150px] pointer-events-none animate-fluid-float-a opacity-75"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(212, 175, 55, 0.05) 0%, rgba(180, 130, 20, 0.02) 45%, transparent 70%)',
+          background: 'radial-gradient(ellipse at center, rgba(212, 175, 55, 0.07) 0%, rgba(180, 130, 20, 0.03) 45%, transparent 70%)',
         }}
       />
 
-      {/* Very faint center-bottom grounding shadow */}
+      {/* Center-bottom grounding shadow to keep tables and data razor-sharp */}
       <div
-        className="absolute bottom-0 left-[20%] w-[60vw] h-[25vh] rounded-full blur-[140px] pointer-events-none"
+        className="absolute bottom-0 left-[15%] w-[70vw] h-[30vh] rounded-full blur-[130px] pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(15, 23, 42, 0.4) 0%, transparent 80%)',
+          background: 'radial-gradient(ellipse at center, rgba(10, 15, 29, 0.5) 0%, transparent 80%)',
         }}
       />
     </div>

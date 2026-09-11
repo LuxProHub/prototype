@@ -15,11 +15,11 @@ export default function Sidebar({ activeTab, setActiveTab, activeJob, userRole }
   const visibleItems = visibleFor(userRole);
 
   return (
-    <aside className="app-rail hidden md:flex w-60 shrink-0 flex-col h-screen sticky top-0 z-30 select-none bg-[var(--surface)]/90 backdrop-blur-xl border-r border-[var(--edge)]">
+    <aside className="app-rail hidden md:flex w-60 shrink-0 flex-col h-screen sticky top-0 z-30 select-none bg-[#0a0f1d]/75 backdrop-blur-2xl border-r border-white/10 shadow-[8px_0_32px_-10px_rgba(0,0,0,0.85)]">
       {/* Brand */}
-      <div className="h-14 px-4 flex items-center justify-between border-b border-[var(--edge)]">
+      <div className="h-14 px-4 flex items-center justify-between border-b border-white/10">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 via-blue-600/10 to-transparent border border-blue-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 via-blue-600/10 to-transparent border border-blue-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(59,130,246,0.25)]">
             <DataLinkLogo className="w-4.5 h-4.5 text-[var(--accent)]" />
           </div>
           <div className="leading-tight min-w-0">
@@ -89,19 +89,19 @@ export default function Sidebar({ activeTab, setActiveTab, activeJob, userRole }
       </nav>
 
       {/* Engine status dock */}
-      <div className="p-3 border-t border-[var(--edge)] bg-[var(--surface)]/50">
-        <div className="px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--edge)] flex items-center justify-between">
+      <div className="p-3 border-t border-white/10 bg-transparent">
+        <div className="px-3 py-2.5 rounded-lg bg-white/[0.03] backdrop-blur-md border border-white/[0.08] hover:border-white/[0.15] transition-colors flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2 min-w-0">
             <span className="relative flex h-2 w-2 shrink-0">
               <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--ok)] opacity-60 animate-ping" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--ok)] shadow-[0_0_6px_var(--ok)]" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--ok)] shadow-[0_0_8px_var(--ok)]" />
             </span>
             <div className="min-w-0 leading-tight">
               <div className="text-[11.5px] font-semibold text-[var(--text)] truncate">PostgreSQL 18</div>
               <div className="text-[10px] text-[var(--ok)] font-medium">Local · Connected</div>
             </div>
           </div>
-          <span className="text-[10px] font-mono text-[var(--text-3)]">5432</span>
+          <span className="text-[10px] font-mono text-[var(--text-3)] bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">5432</span>
         </div>
       </div>
     </aside>
