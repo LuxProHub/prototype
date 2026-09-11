@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "@supabase/ssr": "^0.12.4",
-    "@supabase/supabase-js": "^2.112.3",
-    "ai": "^7.0.70"
-  }
-}

@@ -29,7 +29,6 @@
       "CONTACT/OCCUPIER PERSONS NAME",
       "CUSTOMER NAME",
       "FULL NAME",
-      "JOINT ACCT NAME",
       "NAME",
       "NAMEEN",
       "OWNER NAME",
@@ -70,7 +69,8 @@
       "Armin Ismail",
       "Account Name:",
       "Client Name",
-      "Naam"
+      "Naam",
+      "JOINT ACCT NAME"
     ],
     "Community": [
       "AREANAMEEN",
