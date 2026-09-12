@@ -260,6 +260,13 @@ _UNIT_STRIP_RE = re.compile(r"\s*(?:sqm|sq\s*\.?\s*m|m2|m²|sq\s*meter|square\s*
 SQM_TO_SQFT_MULT = 10.763910416711
 
 
+# Version of the unit-conversion rule itself, recorded on every size observation.
+# Distinct from ENGINE_VERSION: if the factor or the unit-detection regexes ever
+# change, already-stored conversions can be identified by the rule that produced
+# them instead of being silently reinterpreted under the new one.
+SIZE_CONVERSION_RULE_VERSION = 1
+
+
 def clean_size(v, raw_header: str | None = None) -> float | None:
     """Clean size number, automatically converting Sqm (m2) to Sq.Ft (1 m2 = 10.76391 sq.ft).
 
@@ -267,9 +274,39 @@ def clean_size(v, raw_header: str | None = None) -> float | None:
     ("Total Size Sqm."). A unit on the value wins, because it describes that one
     cell; the header is the fallback for the far commoner case of a bare number
     under a headline that names the unit once.
+
+    Returns the number alone. `clean_size_detailed` returns the same number plus
+    what unit was detected, where that came from, and whether a conversion was
+    applied -- which is what the observation layer records. A bare float cannot
+    say whether it was converted, and a 10.76x error is undetectable once the
+    unit has been forgotten.
     """
+    return clean_size_detailed(v, raw_header)["value"]
+
+
+def clean_size_detailed(v, raw_header: str | None = None) -> dict:
+    """clean_size, plus the unit decision and the conversion performed.
+
+    value             number in square feet, or None
+    original_value    the input exactly as received, unmodified
+    original_unit     'sqm' | 'sqft' | None   (None = no unit stated anywhere)
+    normalized_unit   'sqft' whenever a value was produced
+    unit_source       'value' | 'header' | 'assumed' | None
+    converted         whether a conversion was applied
+    conversion_factor the multiplier used (1.0 when none)
+    rule_version      SIZE_CONVERSION_RULE_VERSION
+
+    `unit_source == 'assumed'` is the case that must never be mistaken for a
+    measurement: nothing in the source stated a unit and sq ft was applied as
+    the market convention. The observation layer flags those for review.
+    """
+    out = {
+        "value": None, "original_value": v, "original_unit": None,
+        "normalized_unit": None, "unit_source": None, "converted": False,
+        "conversion_factor": 1.0, "rule_version": SIZE_CONVERSION_RULE_VERSION,
+    }
     if v is None:
-        return None
+        return out
 
     is_sqm = False
     value_states_unit = False
@@ -277,9 +314,11 @@ def clean_size(v, raw_header: str | None = None) -> float | None:
     if isinstance(v, str):
         if _SQM_VAL_RE.search(v):
             is_sqm = value_states_unit = True
+            out["original_unit"], out["unit_source"] = "sqm", "value"
         elif _SQFT_VAL_RE.search(v):
             # Explicitly square feet: never re-convert, whatever the header says.
             value_states_unit = True
+            out["original_unit"], out["unit_source"] = "sqft", "value"
         cleaned_input = _UNIT_STRIP_RE.sub("", v).strip()
 
     # Checked for every value type, not just non-strings. Reading a file gives
@@ -288,17 +327,27 @@ def clean_size(v, raw_header: str | None = None) -> float | None:
     # small.
     if not value_states_unit and raw_header and _SQM_HEADER_RE.search(str(raw_header)):
         is_sqm = True
+        out["original_unit"], out["unit_source"] = "sqm", "header"
 
     f = clean_number(cleaned_input)
     if f is None:
-        return None
+        return out
 
     if is_sqm:
+        out["conversion_factor"] = SQM_TO_SQFT_MULT
+        out["converted"] = True
         f = round(f * SQM_TO_SQFT_MULT, 2)
     else:
         f = round(f, 2)
+        if out["original_unit"] is None:
+            # Nothing anywhere stated a unit. sq ft is the UAE market
+            # convention, so the number is usable -- but it is an assumption,
+            # and saying so is the difference between a default and a claim.
+            out["original_unit"], out["unit_source"] = "sqft", "assumed"
 
-    return f
+    out["value"] = f
+    out["normalized_unit"] = "sqft"
+    return out
 
 
 

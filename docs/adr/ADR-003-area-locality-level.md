@@ -21,20 +21,33 @@ The two curated mapping workbooks disagree outright: `header_mapping_completed.x
 reads it as `Community`, `header_mapping_completed_updated.xlsx` as `Sub-Community`
 (see ADR-001).
 
-`engine/mapping.resolve_ambiguities` already separated case 1 correctly —
-a column whose values are >70% numeric becomes `Size`. For the text case it
-hardcoded `Community`, on every sheet, with no confidence and no record that a
-decision had been made.
+`engine/mapping.resolve_ambiguities` contained a branch for exactly this: a
+column whose values are >70% numeric becomes `Size`, otherwise `Community`.
+
+**That branch was unreachable for a bare `AREA` header.** It iterates
+`plan.index_to_target`, and `AREA` was not an alias of any canonical field, so
+it never entered the plan in the first place. Every `AREA` column fell through
+to `extras` — preserved, but contributing nothing to canonical geography. The
+branch only ever fired on the handful of headerless sheets where `AREA` was
+mapped by column position.
+
+So the real starting position was not "always Community". It was **685
+occurrences reaching no canonical field at all**, behind a code path that looked
+like it handled them. This was found by integration-testing the pipeline
+end to end; unit tests on a hand-built `ColumnPlan` had `AREA` pre-mapped and so
+never exercised the gap.
 
 ## Problem
 
 Case 2 and case 3 are both text and both real. A global rule is wrong for
-whichever half it does not describe, and the corpus contains both.
+whichever half it does not describe, and the corpus contains both. And before
+any of that can matter, `AREA` has to reach the plan at all.
 
 ## Options considered
 
-**A. Always `Community`.** Status quo. Wrong wherever the sheet already has its
-own Community column, which is where the finer locality is silently discarded.
+**A. Always `Community`.** What the dead branch intended. Wrong wherever the
+sheet already has its own Community column, which is where the finer locality
+gets discarded.
 
 **B. Always `Sub-Community`.** Wrong in the opposite direction, and worse:
 promotes every standalone AREA column into a level that has no parent.
@@ -46,7 +59,9 @@ files and new files keep arriving.
 
 ## Decision
 
-Resolve `AREA` per sheet, using the sheet's own structure as evidence:
+First, add `AREA` to the alias table (entered as `Community`) so it reaches the
+column plan instead of falling into `extras`. Then resolve it per sheet, using
+the sheet's own structure as evidence:
 
 - The numeric branch is unchanged — `>70%` numeric values still mean `Size`, and
   a size is not a locality decision, so none is recorded.

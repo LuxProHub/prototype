@@ -227,6 +227,38 @@ def resolve_ambiguities(plan: ColumnPlan, samples: dict[int, list]) -> None:
                 plan.index_to_target.pop(idx)
                 plan.extras_indexes[idx] = plan.header[idx]
 
+    resolve_multi_party(plan)
+
+
+def resolve_multi_party(plan: ColumnPlan) -> None:
+    """Record which party each name belongs to when a row carries several.
+
+    Two-party transaction sheets put a seller and a buyer on the same row, each
+    with their own nationality, contact and email. The canonical schema has one
+    Name slot, so apply_plan gives it to the best-ranked column and preserves
+    the other in extras -- nothing is lost, but the resulting record does not
+    say whose name it kept.
+
+    Which party SHOULD own the slot is a business question (a current-owner
+    registry wants the buyer; a transaction history wants both) that the data
+    cannot answer, so it is not decided here. The role of each name column is
+    recorded and the choice is flagged for review. See ADR-004.
+    """
+    name_cols = [i for i, t in plan.index_to_target.items() if t == "Name"]
+    if len(name_cols) < 2:
+        return
+    companions = [str(h) for h in plan.header if h not in (None, "")]
+    for idx in name_cols:
+        header = plan.header[idx] if idx < len(plan.header) else ""
+        decision = semantics.infer("Name", header, companions=companions)
+        # The party is readable from the header; which one the schema should
+        # keep is not. Flag every column on a multi-party sheet regardless of
+        # how confidently its own role was read.
+        decision["needs_review"] = True
+        decision.setdefault("evidence", {})["multi_party_sheet"] = True
+        decision["evidence"]["name_columns"] = len(name_cols)
+        plan.semantic_decisions[idx] = decision
+
 
 # Reference/lookup workbooks describe *places*, not people. They must feed the
 # enrichment layer, never the records table: a "record" built from one of these

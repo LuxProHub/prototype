@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import validation as V
+from . import observations as OBS
 from . import ENGINE_VERSION
 from .dedup import (FUZZY_THRESHOLD, calculate_name_similarity,
                     extract_property_key)
@@ -332,6 +333,11 @@ class Processor:
         # Resolved once per sheet, not per row: the header is fixed for the
         # whole sheet and the lookup walks the whole column plan.
         size_header = plan.header_for("Size")
+        # Same reasoning: a column's MEANING is a property of the column, so the
+        # semantic reading is resolved once here and only the values are
+        # captured per row. See engine/observations.py.
+        sheet_semantics = OBS.resolve_sheet(
+            plan, samples, sheet_name=sheet.name, workbook_name=source_name)
 
         def flush():
             nonlocal batch, batch_no
@@ -433,6 +439,17 @@ class Processor:
             # Stamped at write time so a later rule change can find exactly the
             # rows it invalidated.
             row["engine_version"] = ENGINE_VERSION
+
+            # Semantic observations ride along under a private key. They cannot
+            # carry a record_id yet -- the record has no id until it is written
+            # -- so the persistence layer pops this, inserts the records, and
+            # attaches the ids it gets back. Private key so bulk_insert_mappings
+            # never sees a column that does not exist on Record.
+            obs = OBS.build_for_row(plan, sheet_semantics, raw_row, fields, row,
+                                    source_file=source_name, sheet_name=sheet.name,
+                                    row_no=row_no)
+            if obs:
+                row[OBS.OBSERVATIONS_KEY] = obs
 
             if not ok:
                 row["status"] = "INVALID"

@@ -13,7 +13,7 @@ Source of truth for semantic vocabularies: `engine/resources/semantic_types.json
 
 | # | Canonical name | DB column (`records`) | Type | Notes |
 |---|---|---|---|---|
-| 1 | Name | `name` | string(512) | Owner, contact or occupier. 45 aliases. |
+| 1 | Name | `name` | string(512) | Owner, contact or occupier. 55 aliases. **Semantic: party.** See below. |
 | 2 | Community | `community` | string(255) | Master community. See [ADR-003](adr/ADR-003-area-locality-level.md). |
 | 3 | Sub-Community | `sub_community` | string(255) | Area/sector within a community. |
 | 4 | Building/Cluster | `building_cluster` | string(255) | Tower, cluster, building. |
@@ -100,12 +100,38 @@ party-type field.
 
 ---
 
+## Field #1 — `Name` on two-party rows
+
+**Decision: [ADR-004](adr/ADR-004-two-party-rows-and-name.md).**
+
+Eight sheets carry a seller *and* a buyer on the same row, each with their own
+nationality, contact and email. `SELLER NAME` / `BUYERS NAME` hold **person
+names** — verified against source values — so they are aliases of `Name`, not of
+`Type (Buyer/Seller)` where both mapping workbooks filed them.
+
+The schema has one `Name` slot. `apply_plan` awards it deterministically by
+column preference and preserves the other party in `extras`. Which party *should*
+own it depends on whether this is a current-owner registry or a transaction
+history — a question the data cannot answer — so it is not decided. Each name
+column on a multi-party sheet gets an observation carrying its party role
+(`seller_party`, `buyer_party`, `joint_owner`, `sole_party`) with `needs_review`
+set.
+
+**Deliberately not mapped** — these belong to someone other than the owner, and
+stay in `extras` attributed to nobody: `Emergency Contact Number` (next of kin),
+`POA Contact #` (attorney), `Agent Name` (broker), `Short Lease Tourism Company
+Name` (a company).
+
+---
+
 ## `AREA` — not a canonical field
 
 **Decision: [ADR-003](adr/ADR-003-area-locality-level.md).**
 
 The largest ambiguous raw label in the corpus (685 occurrences), used for three
-different things. Resolved per sheet:
+different things. It was previously **not an alias of anything** and fell through
+to `extras`, reaching no canonical field at all. It is now entered as `Community`
+and refined per sheet:
 
 - values >70% numeric → `Size`
 - sheet already has its own Community column → `Sub-Community`
@@ -156,3 +182,14 @@ existing rows are stale until reprocessed:
 `POST /api/maintenance/reprocess` re-derives them from stored source files.
 
 Current version: **3** — see `engine/__init__.py` for the changelog.
+
+---
+
+## Related
+
+- [SEMANTIC_RESOLUTION.md](SEMANTIC_RESOLUTION.md) — how ambiguous columns are read
+- [ENRICHMENT_POLICY.md](ENRICHMENT_POLICY.md) — what may and may not be researched externally
+- [ADR-001](adr/ADR-001-authoritative-mapping-workbook.md) — which mapping workbook is authoritative
+- [ADR-002](adr/ADR-002-date-semantics.md) — Date semantics and the observation table
+- [ADR-003](adr/ADR-003-area-locality-level.md) — AREA resolved per sheet
+- [ADR-004](adr/ADR-004-two-party-rows-and-name.md) — two-party rows and the Name slot

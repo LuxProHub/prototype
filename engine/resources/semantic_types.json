@@ -11,27 +11,59 @@
     "ENGINE_VERSION bump -- never a code change. Order within 'types' is the tie-break",
     "order used when two types score equally, so put the most common first.",
     "",
+    "Signals, strongest first. A reading made from fewer signals scores lower,",
+    "which is what routes it to review rather than into a confident wrong answer.",
+    "",
     "signals.header      substrings matched against the ORIGINAL source header",
-    "signals.neighbour   canonical fields present in the same sheet that make this",
-    "                    reading more likely",
-    "signals.companion   other raw headers in the same sheet",
+    "signals.value       substrings matched against sample VALUES -- the source",
+    "                    stating its own unit ('1,250 sq.m') outranks any header",
+    "signals.neighbour   canonical fields mapped elsewhere on the same sheet",
+    "signals.companion   other raw headers on the same sheet",
+    "signals.sheet       substrings matched against the worksheet name",
+    "signals.workbook    substrings matched against the source filename",
+    "signals.vocabulary  known values; matched against the column's own values",
     "min_confidence      below this the observation is routed to review, never guessed"
   ],
-
   "Date": {
     "target_column": "record_date",
     "default_type": null,
-    "min_confidence": 0.70,
+    "min_confidence": 0.7,
     "types": [
       {
         "name": "transaction_date",
         "display": "Transaction / Procedure Date",
         "description": "Date the sale, transfer or procedure was executed.",
         "signals": {
-          "header": ["transaction", "transfer", "procedure", "deal", "sale date",
-                     "sold", "purchase date", "contract date", "instrument date"],
-          "neighbour": ["Procedure Value", "Type (Buyer/Seller)"],
-          "companion": ["procedure value", "amount", "price", "buyer", "seller"]
+          "header": [
+            "transaction",
+            "transfer",
+            "procedure",
+            "deal",
+            "sale date",
+            "sold",
+            "purchase date",
+            "contract date",
+            "instrument date"
+          ],
+          "neighbour": [
+            "Procedure Value",
+            "Type (Buyer/Seller)"
+          ],
+          "companion": [
+            "procedure value",
+            "amount",
+            "price",
+            "buyer",
+            "seller"
+          ],
+          "sheet": [
+            "seller to buyer",
+            "transaction",
+            "transfer",
+            "sales",
+            "sold",
+            "deal"
+          ]
         }
       },
       {
@@ -39,10 +71,32 @@
         "display": "Registration Date",
         "description": "Date the plot or unit was recorded in the land registry.",
         "signals": {
-          "header": ["registration", "registered", "reg date", "reg.date",
-                     "title deed", "deed date", "dld date", "mulkiya"],
-          "neighbour": ["Plot Reg. No", "DMNO", "DMsubno"],
-          "companion": ["plot reg", "title deed", "deed no"]
+          "header": [
+            "registration",
+            "registered",
+            "reg date",
+            "reg.date",
+            "title deed",
+            "deed date",
+            "dld date",
+            "mulkiya"
+          ],
+          "neighbour": [
+            "Plot Reg. No",
+            "DMNO",
+            "DMsubno"
+          ],
+          "companion": [
+            "plot reg",
+            "title deed",
+            "deed no"
+          ],
+          "sheet": [
+            "registration",
+            "title deed",
+            "registry",
+            "mulkiya"
+          ]
         }
       },
       {
@@ -50,10 +104,33 @@
         "display": "Handover / Possession Date",
         "description": "Date the unit was handed over to the owner.",
         "signals": {
-          "header": ["handover", "hand over", "possession", "completion date",
-                     "delivery date", "occupancy", "move in", "moved in"],
-          "neighbour": ["Project", "Developer"],
-          "companion": ["project", "developer", "completion", "status"]
+          "header": [
+            "handover",
+            "hand over",
+            "possession",
+            "completion date",
+            "delivery date",
+            "occupancy",
+            "move in",
+            "moved in"
+          ],
+          "neighbour": [
+            "Project",
+            "Developer"
+          ],
+          "companion": [
+            "project",
+            "developer",
+            "completion",
+            "status"
+          ],
+          "sheet": [
+            "handover",
+            "hand over",
+            "possession",
+            "completion",
+            "snagging"
+          ]
         }
       },
       {
@@ -61,10 +138,29 @@
         "display": "Lease Start Date",
         "description": "Date a tenancy began.",
         "signals": {
-          "header": ["lease start", "tenancy start", "contract start",
-                     "rent start", "ejari start", "from date", "start date"],
+          "header": [
+            "lease start",
+            "tenancy start",
+            "contract start",
+            "rent start",
+            "ejari start",
+            "from date",
+            "start date"
+          ],
           "neighbour": [],
-          "companion": ["lease end", "tenancy", "rent", "ejari", "tenant"]
+          "companion": [
+            "lease end",
+            "tenancy",
+            "rent",
+            "ejari",
+            "tenant"
+          ],
+          "sheet": [
+            "lease",
+            "tenancy",
+            "rent",
+            "ejari"
+          ]
         }
       },
       {
@@ -72,10 +168,31 @@
         "display": "Lease End Date",
         "description": "Date a tenancy ends or expires.",
         "signals": {
-          "header": ["lease end", "tenancy end", "contract end", "rent end",
-                     "ejari end", "expiry", "expires", "to date", "end date"],
+          "header": [
+            "lease end",
+            "tenancy end",
+            "contract end",
+            "rent end",
+            "ejari end",
+            "expiry",
+            "expires",
+            "to date",
+            "end date"
+          ],
           "neighbour": [],
-          "companion": ["lease start", "tenancy", "rent", "ejari", "tenant"]
+          "companion": [
+            "lease start",
+            "tenancy",
+            "rent",
+            "ejari",
+            "tenant"
+          ],
+          "sheet": [
+            "lease",
+            "tenancy",
+            "rent",
+            "ejari"
+          ]
         }
       },
       {
@@ -83,28 +200,65 @@
         "display": "Listing / Enquiry Date",
         "description": "Date the property was listed, or the contact enquired.",
         "signals": {
-          "header": ["listed", "listing", "enquiry", "inquiry", "lead date",
-                     "created", "added on", "entry date"],
+          "header": [
+            "listed",
+            "listing",
+            "enquiry",
+            "inquiry",
+            "lead date",
+            "created",
+            "added on",
+            "entry date"
+          ],
           "neighbour": [],
-          "companion": ["agent", "lead", "source", "status"]
+          "companion": [
+            "agent",
+            "lead",
+            "source",
+            "status"
+          ],
+          "sheet": [
+            "listing",
+            "leads",
+            "enquiry",
+            "contacts"
+          ]
         }
       }
     ]
   },
-
   "Size": {
     "target_column": "size",
     "default_type": "sqft",
-    "min_confidence": 0.70,
+    "min_confidence": 0.7,
     "types": [
       {
         "name": "sqft",
         "display": "Square Feet",
         "description": "Area in square feet. The UAE market default.",
         "signals": {
-          "header": ["sq ft", "sqft", "sq.ft", "sq. ft", "square feet", "feet", "f2", "ft2"],
+          "header": [
+            "sq ft",
+            "sqft",
+            "sq.ft",
+            "sq. ft",
+            "square feet",
+            "feet",
+            "f2",
+            "ft2"
+          ],
           "neighbour": [],
-          "companion": []
+          "companion": [],
+          "value": [
+            "sq ft",
+            "sqft",
+            "sq.ft",
+            "sq. ft",
+            "square feet",
+            "feet",
+            "f2",
+            "ft2"
+          ]
         }
       },
       {
@@ -112,28 +266,78 @@
         "display": "Square Metres",
         "description": "Area in square metres. Converted to sq ft on write; a mis-read here is a 10.76x error.",
         "signals": {
-          "header": ["sq m", "sqm", "sq.m", "sq. m", "square met", "metre", "meter", "m2"],
+          "header": [
+            "sq m",
+            "sqm",
+            "sq.m",
+            "sq. m",
+            "square met",
+            "metre",
+            "meter",
+            "m2"
+          ],
           "neighbour": [],
-          "companion": []
+          "companion": [],
+          "value": [
+            "sq m",
+            "sqm",
+            "sq.m",
+            "sq. m",
+            "square met",
+            "metre",
+            "meter",
+            "m2"
+          ]
         }
       }
     ]
   },
-
   "AREA": {
     "_note": "Not a canonical field. The raw header 'AREA' (685 occurrences) is the largest ambiguous label in the corpus: header_mapping_completed.xlsx reads it as Community, header_mapping_completed_updated.xlsx as Sub-Community. Resolved per source file from sample values -- see ADR-003.",
     "target_column": null,
     "default_type": null,
-    "min_confidence": 0.70,
+    "min_confidence": 0.7,
     "types": [
       {
         "name": "community",
         "display": "Community",
         "description": "Master community. Resolves when AREA's values match known Community vocabulary and no separate Community column exists.",
         "signals": {
-          "header": ["master", "community", "location"],
-          "neighbour": ["Sub-Community"],
-          "companion": ["sub community", "sub-community", "subcommunity"]
+          "header": [
+            "master",
+            "community",
+            "location"
+          ],
+          "neighbour": [
+            "Sub-Community"
+          ],
+          "companion": [
+            "sub community",
+            "sub-community",
+            "subcommunity"
+          ],
+          "vocabulary": [
+            "Business Bay",
+            "Downtown Dubai",
+            "Dubai Marina",
+            "JBR",
+            "Jumeirah Beach Residence",
+            "JLT",
+            "Jumeirah Lake Towers",
+            "Palm Jumeirah",
+            "Dubai Hills Estate",
+            "Arabian Ranches",
+            "Remraam",
+            "Damac Hills",
+            "Emirates Hills",
+            "Jumeirah Village Circle",
+            "Al Reem Island",
+            "Saadiyat Island",
+            "Yas Island",
+            "Al Raha Beach",
+            "Reem Island",
+            "The Villa"
+          ]
         }
       },
       {
@@ -141,9 +345,109 @@
         "display": "Sub-Community",
         "description": "Area or sector within a master community.",
         "signals": {
-          "header": ["sub", "sector", "district", "cluster area"],
-          "neighbour": ["Community"],
-          "companion": ["community", "master location", "master community"]
+          "header": [
+            "sub",
+            "sector",
+            "district",
+            "cluster area"
+          ],
+          "neighbour": [
+            "Community"
+          ],
+          "companion": [
+            "community",
+            "master location",
+            "master community"
+          ],
+          "vocabulary": [
+            "Sadaf 4",
+            "Bahar 6",
+            "Al Thamam 18",
+            "Al Ramth 26",
+            "Executive Towers",
+            "Cluster D",
+            "Sadaf 1",
+            "Sadaf 2",
+            "Bahar 1",
+            "Rimal 3",
+            "Shams 4",
+            "Murjan 2",
+            "Amwaj 4"
+          ]
+        }
+      }
+    ]
+  },
+  "Name": {
+    "_note": "Which PARTY a name belongs to. Two-party transaction sheets (DP 3.xlsx, DP Emails 2.xlsx, JBR-Remram..., The Villa '17) put a seller and a buyer on the same row, each with their own nationality, contact and email. The 23-field schema has one Name slot, so one party wins it and the other is preserved in extras. Which party SHOULD win is a business question the data cannot answer -- see ADR-004 -- so the role is recorded and the choice flagged rather than decided silently.",
+    "target_column": "name",
+    "default_type": null,
+    "min_confidence": 0.7,
+    "types": [
+      {
+        "name": "seller_party",
+        "display": "Seller",
+        "description": "Name of the disposing party in a transfer.",
+        "signals": {
+          "header": [
+            "seller",
+            "vendor",
+            "disposer",
+            "transferor"
+          ],
+          "neighbour": [],
+          "companion": [
+            "buyer",
+            "purchaser"
+          ]
+        }
+      },
+      {
+        "name": "buyer_party",
+        "display": "Buyer",
+        "description": "Name of the acquiring party in a transfer.",
+        "signals": {
+          "header": [
+            "buyer",
+            "purchaser",
+            "transferee",
+            "new owner"
+          ],
+          "neighbour": [],
+          "companion": [
+            "seller",
+            "vendor"
+          ]
+        }
+      },
+      {
+        "name": "joint_owner",
+        "display": "Joint owner",
+        "description": "Additional owner on a jointly held unit.",
+        "signals": {
+          "header": [
+            "joint",
+            "co owner",
+            "co-owner",
+            "second owner",
+            "and surname"
+          ],
+          "neighbour": [],
+          "companion": []
+        }
+      },
+      {
+        "name": "sole_party",
+        "display": "Sole named party",
+        "description": "The only name on the row; no party distinction applies.",
+        "signals": {
+          "header": [
+            "owner name",
+            "full name",
+            "customer name"
+          ],
+          "neighbour": [],
+          "companion": []
         }
       }
     ]

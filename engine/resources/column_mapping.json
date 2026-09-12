@@ -70,7 +70,17 @@
       "Account Name:",
       "Client Name",
       "Naam",
-      "JOINT ACCT NAME"
+      "JOINT ACCT NAME",
+      "SELLER NAME",
+      "SELLERS NAME",
+      "SELLER'S NAME",
+      "BUYER NAME",
+      "BUYERS NAME",
+      "BUYER'S NAME",
+      "JOINT BUYER NAME AND SURNAME",
+      "NEW BUYER",
+      "PURCHASER NAME",
+      "VENDOR NAME"
     ],
     "Community": [
       "AREANAMEEN",
@@ -85,7 +95,8 @@
       "AREA2",
       "Commnty",
       "Master Project Land",
-      "Communty"
+      "Communty",
+      "AREA"
     ],
     "Sub-Community": [
       "PROJECT",
@@ -191,7 +202,10 @@
       "HouseAptNo",
       "(O) Unit Number",
       "Apartment Card No",
-      "Unit Purchased"
+      "Unit Purchased",
+      "VILLA  NUMBER",
+      "VILLA NO",
+      "VILLA #"
     ],
     "Size": [
       "ACTUAL AREA",
@@ -237,7 +251,14 @@
       "SQFT BUA",
       "Rest Area",
       "Area Size",
-      "Area Coverd"
+      "Area Coverd",
+      "SIZE (SQ.FT)",
+      "SIZE (SQFT)",
+      "SIZE (SQM)",
+      "AREA (SQ.FT)",
+      "AREA (SQM)",
+      "SIZE SQ.FT",
+      "UNIT SIZE (SQFT)"
     ],
     "Plot Reg. No": [
       "PLOT REG NO",
@@ -554,7 +575,24 @@
       "Date of Sale",
       "Date uploaded",
       "Date Inquired",
-      "Regis"
+      "Regis",
+      "HANDOVER DATE",
+      "UNIT HANDOVER DATE",
+      "UNIT HANDOVER  DATE",
+      "POSSESSION DATE",
+      "REGISTRATION DATE",
+      "REGISTERED DATE",
+      "TITLE DEED DATE",
+      "LEASE START DATE",
+      "LEASE END DATE",
+      "TENANCY START DATE",
+      "TENANCY END DATE",
+      "MOVE IN DATE",
+      "MOVE OUT DATE",
+      "CHEQUE DATE",
+      "DATE OF TRANSFER",
+      "TRANSFER DATE",
+      "SALE DATE"
     ],
     "Procedure Value": [
       "AMOUNT",
@@ -578,7 +616,9 @@
       "Selling Price (AED)",
       "Price SUM",
       "Price From",
-      "Deal Value"
+      "Deal Value",
+      "PURCHASE PRICE",
+      "PURCHASE  PRICE"
     ],
     "Developer": [
       "DEVELOPER",

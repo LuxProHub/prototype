@@ -13,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.app.core.dedup_index import DedupIndex
 from backend.app.models.models import Base, Record
+from engine import observations
 from engine.processor import Processor
 
 HEADER = "Name,Community,Building/Cluster,Unit Number,Mobile 1,Developer\n"
@@ -41,6 +42,10 @@ def _ingest(db, path, *, job_id, cross_register=True):
     """Run one file through the engine, persisting rows as the API does."""
     def on_batch(rows):
         for r in rows:
+            # Observations ride on the row and are not Record columns; the API
+            # pops them before the insert and so must this. See
+            # engine/observations.py.
+            observations.pop_from(r)
             db.add(Record(job_id=job_id, **r))
         db.commit()
         return len(rows)

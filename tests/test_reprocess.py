@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from backend.app.api.maintenance import _stale_job_ids
 from backend.app.core.dedup_index import DedupIndex
 from backend.app.models.models import Base, ProcessingJob, Record, SourceFile
-from engine import ENGINE_VERSION
+from engine import ENGINE_VERSION, observations
 from engine.processor import Processor
 
 HEADER = "Name,Community,Building/Cluster,Unit Number,Total Size Sqm.,Mobile 1\n"
@@ -34,6 +34,10 @@ def _ingest(db, tmp_path, *, job_id=1, name="register.csv"):
 
     def on_batch(rows):
         for r in rows:
+            # Semantic observations ride on the row and are not Record columns.
+            # This test does not assert on them, but they have to come off
+            # before the row becomes a Record. See engine/observations.py.
+            observations.pop_from(r)
             db.add(Record(job_id=job_id, **r))
         db.commit()
         return len(rows)

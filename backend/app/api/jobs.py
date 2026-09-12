@@ -541,6 +541,8 @@ def run_job(job_id: int) -> None:
     from engine.detection import UnreadableFile
     from engine.processor import Processor
 
+    from ..core.persistence import persist_batch
+
     db = SessionLocal()
     try:
         # Claim the job before touching it. A compare-and-set on the status
@@ -613,11 +615,14 @@ def run_job(job_id: int) -> None:
             if sig == JobSignal.RESUME:
                 clear_signal()
 
-            for r in rows:
-                r["job_id"] = job_id
             try:
                 with WRITE_LOCK:
-                    db.bulk_insert_mappings(Record, rows)
+                    # Records and their semantic observations go in together, in
+                    # that order, because an observation carries a record_id
+                    # that does not exist until the record is written. Shared
+                    # with the integration tests so they exercise this path
+                    # rather than a copy of it.
+                    persist_batch(db, rows, job_id)
                     db.commit()
             except Exception:
                 db.rollback()
