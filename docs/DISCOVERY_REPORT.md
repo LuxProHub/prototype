@@ -335,3 +335,59 @@ Stated plainly, per §45 (make uncertainty visible):
 
 Everything downstream depends on this. I recommend `Prototype/`, and I have written no
 implementation code pending your answer.
+
+---
+
+# Addendum — 2026-09-12 (post-implementation)
+
+Phase 0 conclusions are superseded where they conflict with what follows.
+Everything here was measured, not inferred.
+
+## Corrections to the body of this report
+
+**§6 alias coverage.** This report stated 97.4% coverage of assigned
+occurrences, treating `AREA` (685 occurrences) as a deliberate non-mapping. That
+was wrong. `AREA` was not an alias of any canonical field, so it never entered
+the column plan and every occurrence fell through to `extras`, reaching no
+canonical field at all. The `resolve_ambiguities` branch that appeared to handle
+it was unreachable for a bare `AREA` header. Closed; see ADR-003.
+
+**§7 gap analysis.** "Entity resolution — Done" overstated it. `dedup.py`
+detects duplicates well, but there is no entity table: no stable entity IDs, no
+alias set, no merge history. Re-rated **Partial** and raised to P1 in
+`ATLAS_CURRENT_STATE.md`.
+
+**§5 conflicts.** `Type (Buyer/Seller)` contamination and the `Premise 1`
+composite are confirmed as described. The `SELLER NAME` item is resolved by
+evidence in ADR-004: those columns hold person names, not the Buyer/Seller
+classification both workbooks assigned them.
+
+## Evidence found after this report was written
+
+**Delivery artifacts.** Two Park Gate workbooks were located and analysed. They
+are delivery output, not source schema, and are covered by ADR-005. Their
+headline counts reconcile exactly with the figures in the master directive
+(2,348 raw − 434 delivered = 1,914 removed).
+
+**The delivery template carries an undeclared unit.** `SIZE` in the Noor format
+is square metres with nothing in the file saying so — a 2-bedroom's median is
+146.16, impossible as sq ft, ordinary at 1,573. The engine declines rather than
+converts, which is right but not sufficient: templates must declare their unit.
+
+**The historical dedup rule is not recoverable** from the artifacts. No tested
+key reproduces 434 rows. Preserved as configuration rather than guessed.
+
+## Status of this report's five open questions
+
+| # | Question | Status |
+|---|---|---|
+| 1 | `AREA` → Community or Sub-Community | **Resolved** — per sheet from context (ADR-003) |
+| 2 | What is `Date` | **Resolved** — semantic type per observation (ADR-002) |
+| 3 | `Size` unit consistency | **Partly** — per-value/header detection built; per-template declaration required (ADR-005) |
+| 4 | `SELLER NAME` placement | **Resolved** — it is a `Name` (ADR-004); which party wins the slot remains open |
+| 5 | Enrichment scope | **Resolved as policy** — `ENRICHMENT_POLICY.md`; implementation blocked on entity resolution |
+
+## Where to look now
+
+`docs/ATLAS_CURRENT_STATE.md` supersedes this report as the current picture, and
+carries the full 27-row capability gap matrix.

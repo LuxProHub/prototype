@@ -181,7 +181,9 @@ def _numeric_ratio(samples: list) -> float:
     return n / len(vals)
 
 
-def resolve_ambiguities(plan: ColumnPlan, samples: dict[int, list]) -> None:
+def resolve_ambiguities(plan: ColumnPlan, samples: dict[int, list], *,
+                        decisions=None, source_file: str | None = None,
+                        sheet_name: str | None = None) -> None:
     """Fix the header names that mean different things in different files.
 
     AREA  -> numeric column is a size; text column is a locality, but WHICH
@@ -210,8 +212,11 @@ def resolve_ambiguities(plan: ColumnPlan, samples: dict[int, list]) -> None:
             neighbours = {t for i, t in plan.index_to_target.items() if i != idx}
             companions = [str(x) for i, x in enumerate(plan.header)
                           if i != idx and x not in (None, "")]
-            decision = semantics.infer("AREA", plan.header[idx] if idx < len(plan.header) else "AREA",
-                                       neighbours=neighbours, companions=companions)
+            decision = semantics.infer(
+                "AREA", plan.header[idx] if idx < len(plan.header) else "AREA",
+                neighbours=neighbours, companions=companions, values=col,
+                sheet_name=sheet_name, workbook_name=source_file,
+                decisions=decisions)
             resolved = {"community": "Community",
                         "sub_community": "Sub-Community"}.get(decision["semantic_type"])
             # An unresolved reading keeps the historical Community mapping so no
@@ -227,10 +232,13 @@ def resolve_ambiguities(plan: ColumnPlan, samples: dict[int, list]) -> None:
                 plan.index_to_target.pop(idx)
                 plan.extras_indexes[idx] = plan.header[idx]
 
-    resolve_multi_party(plan)
+    resolve_multi_party(plan, decisions=decisions, source_file=source_file,
+                        sheet_name=sheet_name)
 
 
-def resolve_multi_party(plan: ColumnPlan) -> None:
+def resolve_multi_party(plan: ColumnPlan, *, decisions=None,
+                        source_file: str | None = None,
+                        sheet_name: str | None = None) -> None:
     """Record which party each name belongs to when a row carries several.
 
     Two-party transaction sheets put a seller and a buyer on the same row, each
@@ -250,7 +258,9 @@ def resolve_multi_party(plan: ColumnPlan) -> None:
     companions = [str(h) for h in plan.header if h not in (None, "")]
     for idx in name_cols:
         header = plan.header[idx] if idx < len(plan.header) else ""
-        decision = semantics.infer("Name", header, companions=companions)
+        decision = semantics.infer("Name", header, companions=companions,
+                                   sheet_name=sheet_name, workbook_name=source_file,
+                                   decisions=decisions)
         # The party is readable from the header; which one the schema should
         # keep is not. Flag every column on a multi-party sheet regardless of
         # how confidently its own role was read.
@@ -368,7 +378,9 @@ def _matches_name_phone_email(samples: dict[int, list] | None, n_cols: int) -> b
 
 
 def build_plan(header: list[str], headerless: bool, n_cols: int,
-               samples: dict[int, list] | None = None) -> ColumnPlan:
+               samples: dict[int, list] | None = None, *, decisions=None,
+               source_file: str | None = None,
+               sheet_name: str | None = None) -> ColumnPlan:
     plan = ColumnPlan(header=list(header))
 
     if headerless:
@@ -424,7 +436,8 @@ def build_plan(header: list[str], headerless: bool, n_cols: int,
     # also exists it supplies Community and PROJECT stays Sub-Community/Project;
     # this duplication is applied at row level in apply_plan().
     if samples:
-        resolve_ambiguities(plan, samples)
+        resolve_ambiguities(plan, samples, decisions=decisions,
+                        source_file=source_file, sheet_name=sheet_name)
     return plan
 
 

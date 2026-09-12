@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))          # make `engine` importable
 
 from backend.app.api import (analytics, auth, erasure, jobs, leads,  # noqa: E402
-                             maintenance, records)
+                             maintenance, records, review)
 from backend.app.config import settings                       # noqa: E402
 from backend.app.database.session import SessionLocal, init_db  # noqa: E402
 from backend.app.models.models import User, UserRole          # noqa: E402
@@ -167,3 +167,4 @@ app.include_router(maintenance.router, prefix=settings.API_PREFIX, tags=["mainte
 app.include_router(leads.router, prefix=settings.API_PREFIX, tags=["leads"])
 app.include_router(erasure.router, prefix=settings.API_PREFIX, tags=["erasure"])
 app.include_router(analytics.router, prefix=settings.API_PREFIX, tags=["analytics"])
+app.include_router(review.router, prefix=settings.API_PREFIX, tags=["review"])

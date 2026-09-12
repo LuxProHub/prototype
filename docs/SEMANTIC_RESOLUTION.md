@@ -165,3 +165,82 @@ Column-level fields need no code change at all.
 - [ADR-003](adr/ADR-003-area-locality-level.md) — AREA resolved per sheet
 - [ADR-004](adr/ADR-004-two-party-rows-and-name.md) — party roles on two-party rows
 - [DATA_DICTIONARY.md](DATA_DICTIONARY.md) — field-by-field reference
+
+---
+
+## The decision loop
+
+A refusal to guess is only worth its cost if somebody can resolve it and the
+resolution sticks. That is what `review_decisions` and the review API are for.
+
+```
+ingest ──> resolver declines ──> needs_review on the observation
+                                          │
+                              GET /api/review/queue   grouped by QUESTION
+                                          │
+                              POST /api/review/decide  answer + rationale + scope
+                                          │
+                                  review_decisions (append-only)
+                                          │
+next ingest ──> DecisionIndex.lookup() ──> resolved, attributed to the decision
+```
+
+### Grouped by question, not by row
+
+A 24,000-row file with one ambiguous `Date` column produces 24,000 flagged
+observations and asks exactly **one** question. The queue groups on
+(field, header, file, sheet, current reading) and orders by affected rows, so
+the decision with the largest blast radius surfaces first. Answering it once is
+enough.
+
+### Scope
+
+| Scope | Applies to | When |
+|---|---|---|
+| `sheet` | one worksheet in one file | the reading is specific to that sheet |
+| `workbook` | every sheet in one file | **default** — a file's conventions are internally consistent |
+| `global` | that header everywhere | only when the reading is a property of the header itself |
+
+Lookup prefers the narrowest match. This is the mechanism that stops one
+reviewer's call about one file rewriting the reading for the whole corpus —
+the failure mode Part 35 of the directive names explicitly.
+
+A `sheet` or `workbook` decision without a `scope_file` is rejected at the API,
+because a scope that does not say what it is narrow *to* silently becomes
+global at lookup time.
+
+### A decision outranks inference; it never silences it
+
+`resolve()` computes the inferred reading **whether or not** a decision exists,
+and carries it in the decision's evidence:
+
+```json
+{ "rule": "human_decision", "decision_id": 7, "scope": "workbook",
+  "inferred_semantic_type": "handover_date", "inferred_confidence": 0.78,
+  "contradicts_inference": true }
+```
+
+A person who looked at the source knows more than a phrase-match score, so the
+decision wins — at confidence 0.95, deliberately not 1.0, because people are
+wrong too. But a pattern of decisions contradicting confident inferences is
+visible in the data rather than in somebody's memory, and one of the two is
+then systematically wrong.
+
+### Decisions do not rewrite history
+
+Recording a decision changes how the column is read from the **next ingest**.
+It does not touch stored rows: re-deriving what is already there is what
+`POST /api/maintenance/reprocess` is for. A review click that silently rewrote
+thousands of rows would be a bulk data change disguised as an annotation.
+
+### Append-only, and not re-derivable
+
+Changing an answer writes a new row and stamps `superseded_by` on the old one.
+Revoking deactivates rather than deletes: a decision that turned out wrong is
+part of how the data got the way it is, and removing it would make the rows it
+produced inexplicable.
+
+Note the asymmetry with observations: observations are re-derivable from the
+stored source files, **decisions are not.** They are the one thing in this
+schema that cannot be recomputed, which is why the migration's `downgrade()`
+says so.

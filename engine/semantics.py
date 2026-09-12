@@ -160,17 +160,54 @@ def _score_type(tspec: dict, ctx: SemanticContext, hay: dict) -> tuple[float, li
     return min(score, 1.0), hits
 
 
-def resolve(field: str, ctx: SemanticContext) -> dict:
+def resolve(field: str, ctx: SemanticContext, decisions=None) -> dict:
     """Read the meaning of one column from its full context.
 
     Returns {semantic_type, confidence, needs_review, evidence}. Never raises
     and never invents a reading: below the field's threshold it returns
     UNRESOLVED with needs_review set, which is what routes the column to a
     human instead of into a plausible wrong answer.
+
+    `decisions` is any object with a `lookup()` returning the same shape --
+    normally backend.app.core.decision_index.DecisionIndex. A recorded human
+    decision outranks inference, because somebody who looked at the source
+    knows more than a phrase-match score. It does not SILENCE inference: the
+    inferred reading is computed either way and carried in the evidence, so a
+    decision that contradicts the data stays visible instead of hiding it.
     """
     spec = _VOCAB.get(field)
     if not spec:
         return _unresolved("field has no semantic vocabulary", {})
+
+    inferred = _infer_from_signals(field, ctx, spec)
+
+    if decisions is not None:
+        try:
+            decided = decisions.lookup(field, header=ctx.header,
+                                       source_file=ctx.workbook_name,
+                                       sheet_name=ctx.sheet_name)
+        except Exception:
+            decided = None          # a broken lookup must not stop ingestion
+        if decided:
+            ev = dict(decided.get("evidence") or {})
+            ev["inferred_semantic_type"] = inferred["semantic_type"]
+            ev["inferred_confidence"] = inferred["confidence"]
+            # Worth seeing in the data rather than in anecdote: a decision that
+            # keeps contradicting a confident inference means one of the two is
+            # systematically wrong.
+            ev["contradicts_inference"] = (
+                inferred["semantic_type"] != UNRESOLVED
+                and inferred["semantic_type"] != decided["semantic_type"]
+            )
+            decided = dict(decided)
+            decided["evidence"] = ev
+            return decided
+
+    return inferred
+
+
+def _infer_from_signals(field: str, ctx: SemanticContext, spec: dict) -> dict:
+    """The signal-scoring reading, with no human decision consulted."""
 
     hay = ctx.haystacks()
     scores, evidence = {}, {}
@@ -228,7 +265,7 @@ def resolve(field: str, ctx: SemanticContext) -> dict:
 
 def infer(field: str, header: str | None = None, *, neighbours=None, companions=None,
           value_hint: str | None = None, values=None, sheet_name: str | None = None,
-          workbook_name: str | None = None) -> dict:
+          workbook_name: str | None = None, decisions=None) -> dict:
     """Convenience facade over `resolve` for callers with loose arguments.
 
     `value_hint` is the single-sample form of `values`, kept because a caller
@@ -241,7 +278,7 @@ def infer(field: str, header: str | None = None, *, neighbours=None, companions=
         header=header, values=vals, neighbours=set(neighbours or ()),
         companions=list(companions or ()), sheet_name=sheet_name,
         workbook_name=workbook_name,
-    ))
+    ), decisions=decisions)
 
 
 def _order(spec: dict, name: str) -> int:

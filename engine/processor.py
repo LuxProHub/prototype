@@ -58,7 +58,8 @@ class Processor:
 
     def __init__(self, *, batch_size: int = 1000, enable_enrichment: bool = True,
                  reference_path: Path | None = None, record_grain: str = "owner",
-                 dedup_index=None, property_reference_path: Path | None = None):
+                 dedup_index=None, property_reference_path: Path | None = None,
+                 decisions=None):
         self.batch_size = max(1, batch_size)
         self.record_grain = record_grain
         # Looks up identity hashes, property keys and phones already stored by
@@ -66,6 +67,10 @@ class Processor:
         # file being ingested and the same owner in two registers is stored
         # twice. None keeps the engine usable with no database at all.
         self.dedup_index = dedup_index
+        # Recorded human review decisions, consulted before inference. None
+        # simply means "resolve from signals alone", which is the behaviour
+        # that existed before the review queue.
+        self.decisions = decisions
         # Property Type for the ~60% of rows whose register never carried one.
         self.properties = (load_property_reference(property_reference_path)
                            if enable_enrichment and property_reference_path
@@ -147,7 +152,9 @@ class Processor:
                 n_cols = max([sheet.n_cols] + [len(r) for r in buffered] or [0])
                 samples = {i: [r[i] for r in buffered if i < len(r)]
                            for i in range(n_cols)}
-                plan = build_plan(sheet.header, sheet.headerless, n_cols, samples)
+                plan = build_plan(sheet.header, sheet.headerless, n_cols, samples,
+                                  decisions=self.decisions, source_file=path.name,
+                                  sheet_name=sheet.name)
                 for raw in list(buffered) + list(it):
                     if not any(c not in (None, "") for c in raw):
                         continue
@@ -275,7 +282,9 @@ class Processor:
 
         n_cols = max([sheet.n_cols] + [len(r) for r in sample_rows] or [0])
         samples = {i: [r[i] for r in sample_rows if i < len(r)] for i in range(n_cols)}
-        plan = build_plan(sheet.header, sheet.headerless, n_cols, samples)
+        plan = build_plan(sheet.header, sheet.headerless, n_cols, samples,
+                          decisions=self.decisions, source_file=source_name,
+                          sheet_name=sheet.name)
 
         result.mapping_report[sheet.name] = plan.report()
 
@@ -337,7 +346,8 @@ class Processor:
         # semantic reading is resolved once here and only the values are
         # captured per row. See engine/observations.py.
         sheet_semantics = OBS.resolve_sheet(
-            plan, samples, sheet_name=sheet.name, workbook_name=source_name)
+            plan, samples, sheet_name=sheet.name, workbook_name=source_name,
+            decisions=self.decisions)
 
         def flush():
             nonlocal batch, batch_no

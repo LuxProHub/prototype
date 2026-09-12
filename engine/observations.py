@@ -58,7 +58,7 @@ def pop_from(row: dict) -> list[dict]:
 
 
 def resolve_sheet(plan, samples: dict, *, sheet_name: str | None = None,
-                  workbook_name: str | None = None) -> dict:
+                  workbook_name: str | None = None, decisions=None) -> dict:
     """Resolve the value-level semantics for one sheet, once.
 
     A column's meaning is a property of the column, not of each row, so this
@@ -80,7 +80,7 @@ def resolve_sheet(plan, samples: dict, *, sheet_name: str | None = None,
                         if i != idx and h not in (None, "")],
             sheet_name=sheet_name,
             workbook_name=workbook_name,
-        ))
+        ), decisions=decisions)
         out[field]["_column_index"] = idx
         out[field]["_header"] = header
     return out

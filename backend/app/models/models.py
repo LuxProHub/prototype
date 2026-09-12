@@ -717,3 +717,91 @@ class FieldObservation(Base):
         # they are the minority.
         Index("ix_fieldobs_review", "needs_review", "canonical_field"),
     )
+
+
+class DecisionScope:
+    """How widely a human decision is allowed to apply.
+
+    Narrow by default. A reviewer looking at one sheet has seen one sheet, and
+    the same header genuinely means different things in different files -- AREA
+    is the worked example. Letting one screenful of evidence rewrite the rule
+    for the whole corpus is how a single wrong call poisons everything
+    downstream, so GLOBAL is never the default and has to be chosen.
+    """
+    SHEET = "sheet"        # this workbook + worksheet only
+    WORKBOOK = "workbook"  # every sheet in this file
+    GLOBAL = "global"      # this header, everywhere
+
+    ORDER = (SHEET, WORKBOOK, GLOBAL)   # most specific first
+
+
+class ReviewDecision(Base):
+    """A human answer to something the engine declined to decide.
+
+    The semantic layer's most defensible behaviour is refusing to guess, but a
+    refusal is only useful if somebody can resolve it and the resolution sticks.
+    This is that record: what was asked, what a person answered, on what
+    evidence, and how widely it applies.
+
+    APPEND-ONLY, like field_observations. Changing an answer writes a new row
+    and stamps `superseded_by` on the old one, so the reasoning behind a
+    decision that later proved wrong is still readable. `active` is what the
+    lookup filters on.
+
+    Decisions outrank inference at resolve time -- a person who has looked at
+    the source knows more than a phrase-match score -- but they never silence
+    it: the inferred reading is still computed and recorded in the evidence, so
+    a decision that contradicts the data stays visible instead of hiding it.
+    """
+    __tablename__ = "review_decisions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    # --- what this decision answers --------------------------------------
+    # Canonical field name, or the raw label for column-level cases ("AREA").
+    # Same vocabulary as FieldObservation.canonical_field so the two join.
+    canonical_field: Mapped[str] = mapped_column(String(64), index=True)
+    # The source header this was decided about, normalised. NULL means the
+    # decision is about the field regardless of which header fed it.
+    original_header: Mapped[str | None] = mapped_column(String(512), index=True)
+
+    scope: Mapped[str] = mapped_column(String(16), default=DecisionScope.WORKBOOK,
+                                       index=True)
+    # Which workbook/sheet the scope refers to. NULL for GLOBAL.
+    scope_file: Mapped[str | None] = mapped_column(String(512), index=True)
+    scope_sheet: Mapped[str | None] = mapped_column(String(255))
+
+    # --- the answer -------------------------------------------------------
+    semantic_type: Mapped[str] = mapped_column(String(48))
+    # Free text from the reviewer. Not decoration: the next person to disagree
+    # needs to know what this one was looking at.
+    rationale: Mapped[str | None] = mapped_column(Text)
+
+    # --- who, when, and against what ------------------------------------
+    decided_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    # Denormalised so the trail survives the account being deleted.
+    decided_by_email: Mapped[str | None] = mapped_column(String(320))
+    decided_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True)
+    # The observation that prompted this, when there was one. SET NULL rather
+    # than CASCADE: a reprocess replaces observations, and the decision must
+    # outlive the row that raised the question.
+    observation_id: Mapped[int | None] = mapped_column(
+        ForeignKey("field_observations.id", ondelete="SET NULL"))
+    # What the engine had inferred when the human overrode it. Kept so a
+    # pattern of disagreement is visible in the data rather than anecdotal.
+    engine_semantic_type: Mapped[str | None] = mapped_column(String(48))
+    engine_confidence: Mapped[float | None] = mapped_column(Float)
+    engine_version: Mapped[int | None] = mapped_column(Integer)
+
+    # --- append-only lifecycle -------------------------------------------
+    active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    superseded_by: Mapped[int | None] = mapped_column(Integer)
+
+    __table_args__ = (
+        # The lookup the engine performs for every ambiguous column: what has a
+        # human already said about this field and header, at any scope.
+        Index("ix_decisions_lookup", "canonical_field", "original_header", "active"),
+        Index("ix_decisions_scope", "scope", "scope_file"),
+    )
