@@ -25,6 +25,13 @@ Changelog
    Dubai Hills developer fallback corrected; Property Type normalised to market
    vocabulary and filled from the property reference; deduplication matches
    across registers rather than within one file.
+3  AREA is read per sheet instead of always as Community: a sheet that already
+   carries its own Community column is using AREA for the level below it, so it
+   now maps to Sub-Community there. Sheets that give no such signal keep the
+   Community reading, but the decision is recorded as needing review rather than
+   presented as certain. Semantic readings -- which kind of date, which unit of
+   area, which locality level -- are captured with their evidence and confidence
+   in field_observations. See engine/semantics.py and docs/adr/ADR-003.
 """
 
-ENGINE_VERSION = 2
+ENGINE_VERSION = 3

@@ -1,0 +1,151 @@
+{
+  "_readme": [
+    "Semantic vocabularies for canonical fields whose VALUE is unambiguous but whose",
+    "MEANING is not. Three of the 23 fields have this shape:",
+    "",
+    "  Date      a date, but which date? transaction / registration / handover / lease",
+    "  Size      a number, but in what unit? sq ft / sq m",
+    "  AREA      a place, but at what level? Community / Sub-Community",
+    "",
+    "These are data, not code. Adding a date_type is an edit to this file plus an",
+    "ENGINE_VERSION bump -- never a code change. Order within 'types' is the tie-break",
+    "order used when two types score equally, so put the most common first.",
+    "",
+    "signals.header      substrings matched against the ORIGINAL source header",
+    "signals.neighbour   canonical fields present in the same sheet that make this",
+    "                    reading more likely",
+    "signals.companion   other raw headers in the same sheet",
+    "min_confidence      below this the observation is routed to review, never guessed"
+  ],
+
+  "Date": {
+    "target_column": "record_date",
+    "default_type": null,
+    "min_confidence": 0.70,
+    "types": [
+      {
+        "name": "transaction_date",
+        "display": "Transaction / Procedure Date",
+        "description": "Date the sale, transfer or procedure was executed.",
+        "signals": {
+          "header": ["transaction", "transfer", "procedure", "deal", "sale date",
+                     "sold", "purchase date", "contract date", "instrument date"],
+          "neighbour": ["Procedure Value", "Type (Buyer/Seller)"],
+          "companion": ["procedure value", "amount", "price", "buyer", "seller"]
+        }
+      },
+      {
+        "name": "registration_date",
+        "display": "Registration Date",
+        "description": "Date the plot or unit was recorded in the land registry.",
+        "signals": {
+          "header": ["registration", "registered", "reg date", "reg.date",
+                     "title deed", "deed date", "dld date", "mulkiya"],
+          "neighbour": ["Plot Reg. No", "DMNO", "DMsubno"],
+          "companion": ["plot reg", "title deed", "deed no"]
+        }
+      },
+      {
+        "name": "handover_date",
+        "display": "Handover / Possession Date",
+        "description": "Date the unit was handed over to the owner.",
+        "signals": {
+          "header": ["handover", "hand over", "possession", "completion date",
+                     "delivery date", "occupancy", "move in", "moved in"],
+          "neighbour": ["Project", "Developer"],
+          "companion": ["project", "developer", "completion", "status"]
+        }
+      },
+      {
+        "name": "lease_start_date",
+        "display": "Lease Start Date",
+        "description": "Date a tenancy began.",
+        "signals": {
+          "header": ["lease start", "tenancy start", "contract start",
+                     "rent start", "ejari start", "from date", "start date"],
+          "neighbour": [],
+          "companion": ["lease end", "tenancy", "rent", "ejari", "tenant"]
+        }
+      },
+      {
+        "name": "lease_end_date",
+        "display": "Lease End Date",
+        "description": "Date a tenancy ends or expires.",
+        "signals": {
+          "header": ["lease end", "tenancy end", "contract end", "rent end",
+                     "ejari end", "expiry", "expires", "to date", "end date"],
+          "neighbour": [],
+          "companion": ["lease start", "tenancy", "rent", "ejari", "tenant"]
+        }
+      },
+      {
+        "name": "listing_date",
+        "display": "Listing / Enquiry Date",
+        "description": "Date the property was listed, or the contact enquired.",
+        "signals": {
+          "header": ["listed", "listing", "enquiry", "inquiry", "lead date",
+                     "created", "added on", "entry date"],
+          "neighbour": [],
+          "companion": ["agent", "lead", "source", "status"]
+        }
+      }
+    ]
+  },
+
+  "Size": {
+    "target_column": "size",
+    "default_type": "sqft",
+    "min_confidence": 0.70,
+    "types": [
+      {
+        "name": "sqft",
+        "display": "Square Feet",
+        "description": "Area in square feet. The UAE market default.",
+        "signals": {
+          "header": ["sq ft", "sqft", "sq.ft", "sq. ft", "square feet", "feet", "f2", "ft2"],
+          "neighbour": [],
+          "companion": []
+        }
+      },
+      {
+        "name": "sqm",
+        "display": "Square Metres",
+        "description": "Area in square metres. Converted to sq ft on write; a mis-read here is a 10.76x error.",
+        "signals": {
+          "header": ["sq m", "sqm", "sq.m", "sq. m", "square met", "metre", "meter", "m2"],
+          "neighbour": [],
+          "companion": []
+        }
+      }
+    ]
+  },
+
+  "AREA": {
+    "_note": "Not a canonical field. The raw header 'AREA' (685 occurrences) is the largest ambiguous label in the corpus: header_mapping_completed.xlsx reads it as Community, header_mapping_completed_updated.xlsx as Sub-Community. Resolved per source file from sample values -- see ADR-003.",
+    "target_column": null,
+    "default_type": null,
+    "min_confidence": 0.70,
+    "types": [
+      {
+        "name": "community",
+        "display": "Community",
+        "description": "Master community. Resolves when AREA's values match known Community vocabulary and no separate Community column exists.",
+        "signals": {
+          "header": ["master", "community", "location"],
+          "neighbour": ["Sub-Community"],
+          "companion": ["sub community", "sub-community", "subcommunity"]
+        }
+      },
+      {
+        "name": "sub_community",
+        "display": "Sub-Community",
+        "description": "Area or sector within a master community.",
+        "signals": {
+          "header": ["sub", "sector", "district", "cluster area"],
+          "neighbour": ["Community"],
+          "companion": ["community", "master location", "master community"]
+        }
+      }
+    ]
+  }
+}

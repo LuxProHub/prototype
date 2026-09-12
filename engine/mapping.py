@@ -16,6 +16,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import semantics
+
 RESOURCES = Path(__file__).parent / "resources"
 _CFG = json.loads((RESOURCES / "column_mapping.json").read_text(encoding="utf8"))
 
@@ -128,6 +130,12 @@ class ColumnPlan:
     header: list[str] = field(default_factory=list)
     positional: bool = False
     unmapped_headers: list[str] = field(default_factory=list)
+    # Readings made for headers whose value is clear and whose meaning is not
+    # (AREA today; Date and Size as they move onto this path). Keyed by column
+    # index; each entry is what engine.semantics.infer returned, evidence and
+    # confidence included, so the decision travels into the job's mapping report
+    # instead of having to be reverse-engineered from the resulting rows.
+    semantic_decisions: dict[int, dict] = field(default_factory=dict)
 
     def header_for(self, target: str) -> str | None:
         """Raw source header that fed `target`, or None.
@@ -152,6 +160,10 @@ class ColumnPlan:
             "excluded": sorted(self.excluded_indexes.values()),
             "unmapped": self.unmapped_headers,
             "positional_fallback": self.positional,
+            "semantic_decisions": {
+                (self.header[i] if i < len(self.header) else f"col{i}"): d
+                for i, d in sorted(self.semantic_decisions.items())
+            },
         }
 
 
@@ -172,7 +184,17 @@ def _numeric_ratio(samples: list) -> float:
 def resolve_ambiguities(plan: ColumnPlan, samples: dict[int, list]) -> None:
     """Fix the header names that mean different things in different files.
 
-    AREA  -> numeric column is a size; text column is a locality.
+    AREA  -> numeric column is a size; text column is a locality, but WHICH
+             locality level depends on the sheet. AREA is the largest ambiguous
+             label in the corpus (685 occurrences) and the two curated mapping
+             workbooks disagree on it outright: header_mapping_completed.xlsx
+             reads it as Community, header_mapping_completed_updated.xlsx as
+             Sub-Community. Neither is right for every file, so it is decided
+             per sheet from the surrounding columns -- a sheet that already has
+             its own Community column is using AREA for the level below it.
+             Where the sheet gives no such signal the reading stays Community,
+             which is what this line has always done, and the decision is
+             recorded as needing review rather than passed off as certain.
     TYPE  -> only a party type if the values actually look like Buyer/Seller.
     """
     for idx, target in list(plan.index_to_target.items()):
@@ -180,7 +202,23 @@ def resolve_ambiguities(plan: ColumnPlan, samples: dict[int, list]) -> None:
         col = samples.get(idx, [])
 
         if h == "AREA":
-            plan.index_to_target[idx] = "Size" if _numeric_ratio(col) > 0.7 else "Community"
+            if _numeric_ratio(col) > 0.7:
+                plan.index_to_target[idx] = "Size"
+                continue
+            # Everything mapped on this sheet except AREA itself, plus the raw
+            # headers, are the evidence for which level AREA is being used at.
+            neighbours = {t for i, t in plan.index_to_target.items() if i != idx}
+            companions = [str(x) for i, x in enumerate(plan.header)
+                          if i != idx and x not in (None, "")]
+            decision = semantics.infer("AREA", plan.header[idx] if idx < len(plan.header) else "AREA",
+                                       neighbours=neighbours, companions=companions)
+            resolved = {"community": "Community",
+                        "sub_community": "Sub-Community"}.get(decision["semantic_type"])
+            # An unresolved reading keeps the historical Community mapping so no
+            # data is dropped on the floor, but carries needs_review so the queue
+            # can see the value was placed without evidence.
+            plan.index_to_target[idx] = resolved or "Community"
+            plan.semantic_decisions[idx] = decision
 
         elif h == "TYPE" and target == "Type (Buyer/Seller)":
             vals = {str(v).strip().upper() for v in col if v not in (None, "")}

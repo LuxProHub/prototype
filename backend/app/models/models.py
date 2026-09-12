@@ -616,3 +616,104 @@ class PrivilegedActionAudit(Base):
 
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, index=True)
+
+
+class SemanticType:
+    """Sentinel for an observation whose meaning could not be determined.
+
+    Stored rather than left NULL: NULL would be indistinguishable from "this
+    field has no semantic dimension", and the review queue's whole job is to
+    find the rows where we knew we did not know.
+    """
+    UNRESOLVED = "unresolved"
+
+
+class FieldObservation(Base):
+    """One observed value of one canonical field, with the meaning we read into it.
+
+    Exists because three of the 23 fields carry a value that is unambiguous and
+    a MEANING that is not:
+
+        Date   a date, but transaction / registration / handover / lease?
+        Size   a number, but square feet or square metres? (a 10.76x error)
+        AREA   a place, but Community or Sub-Community? (685 occurrences)
+
+    The flat columns on Record cannot hold that distinction. record_date is one
+    timestamp; asked which kind of date it is, the row has no answer, and the
+    four source semantics were collapsed into one on write -- unrecoverably.
+
+    This table is APPEND-ONLY. A row is never updated to a better reading; a
+    better reading is a new row with a higher confidence, and the old one stays
+    as the record of what we previously believed and why. Record's flat columns
+    remain the canonical external contract and are still written exactly as
+    before -- this sits alongside them, so the 23-field API is unchanged.
+
+    Zero data loss is structural here, not conventional: raw_value is the
+    untouched source string, so even a parse that fails outright leaves the
+    original recoverable.
+    """
+    __tablename__ = "field_observations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    record_id: Mapped[int] = mapped_column(
+        ForeignKey("records.id", ondelete="CASCADE"), index=True)
+
+    # --- what was observed ------------------------------------------------
+    # The canonical field name as it appears in the 23 ("Date", "Size"), NOT the
+    # database column. The vocabulary in engine/resources/semantic_types.json is
+    # keyed by this, and raw labels like "AREA" that are not canonical fields
+    # are carried here too -- which is why it is a string and not an enum.
+    canonical_field: Mapped[str] = mapped_column(String(64), index=True)
+    semantic_type: Mapped[str] = mapped_column(
+        String(48), default=SemanticType.UNRESOLVED, index=True)
+
+    # raw_value is the source string as it arrived, before any cleaning. Never
+    # overwritten, never normalised in place.
+    raw_value: Mapped[str | None] = mapped_column(Text)
+    # The canonical text form after normalisation. NULL when parsing failed,
+    # which raw_value surviving makes diagnosable.
+    parsed_value: Mapped[str | None] = mapped_column(Text)
+    # Typed forms, populated only for the kind of field they suit, so dates can
+    # be ordered and sizes compared without re-parsing text on every query.
+    parsed_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    parsed_number: Mapped[float | None] = mapped_column(Float)
+
+    # --- provenance -------------------------------------------------------
+    # Denormalised from Record rather than joined: an observation has to stay
+    # interpretable after a reprocess replaces the record it came from, and
+    # source_column is not on Record at all.
+    original_header: Mapped[str | None] = mapped_column(String(512))
+    source_file: Mapped[str | None] = mapped_column(String(512), index=True)
+    source_sheet: Mapped[str | None] = mapped_column(String(255))
+    source_row: Mapped[int | None] = mapped_column(Integer)
+    source_column: Mapped[int | None] = mapped_column(Integer)
+    job_id: Mapped[int | None] = mapped_column(
+        ForeignKey("processing_jobs.id", ondelete="SET NULL"), index=True)
+
+    # --- how much we believe it -------------------------------------------
+    # 0.0-1.0. Below the field's min_confidence in semantic_types.json the row
+    # is written with needs_review set; it is never upgraded to a guess.
+    confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    # Which signals fired, so a wrong reading can be explained and the rule
+    # corrected rather than argued about. Shape:
+    #   {"reason": str, "signals": [...], "scores": {type: score}, "rule": str}
+    evidence: Mapped[dict | None] = mapped_column(JSON)
+    needs_review: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+    # Which set of rules read this value. Same contract as Record.engine_version:
+    # a rule change bumps engine.ENGINE_VERSION and every row below it is stale
+    # and re-derivable. See engine/__init__.py.
+    engine_version: Mapped[int | None] = mapped_column(Integer, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow)
+
+    __table_args__ = (
+        # The two questions actually asked of this table: "every observation for
+        # this record" (the inspector panel) and "what did we read this field as
+        # across the corpus" (the review queue and the per-file AREA decision).
+        Index("ix_fieldobs_record_field", "record_id", "canonical_field"),
+        Index("ix_fieldobs_field_type", "canonical_field", "semantic_type"),
+        # Partial-index shape: the review queue reads only the flagged rows and
+        # they are the minority.
+        Index("ix_fieldobs_review", "needs_review", "canonical_field"),
+    )
