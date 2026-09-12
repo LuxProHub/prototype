@@ -4,8 +4,8 @@ import os
 from datetime import datetime, timezone
 
 from sqlalchemy import (
-    JSON, Boolean, Computed, DateTime, Float, ForeignKey, Index, Integer,
-    String, Text, func,
+    JSON, Boolean, CheckConstraint, Computed, DateTime, Float, ForeignKey,
+    Index, Integer, String, Text, func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -767,7 +767,11 @@ class ReviewDecision(Base):
 
     scope: Mapped[str] = mapped_column(String(16), default=DecisionScope.WORKBOOK,
                                        index=True)
-    # Which workbook/sheet the scope refers to. NULL for GLOBAL.
+    # Which workbook/sheet the scope refers to. NULL for GLOBAL. The check
+    # constraints in __table_args__ make the pairing structural: a narrow scope
+    # that does not say what it is narrow TO would silently behave as global at
+    # lookup, and that must be impossible to store, not merely rejected by one
+    # API endpoint.
     scope_file: Mapped[str | None] = mapped_column(String(512), index=True)
     scope_sheet: Mapped[str | None] = mapped_column(String(255))
 
@@ -778,6 +782,10 @@ class ReviewDecision(Base):
     rationale: Mapped[str | None] = mapped_column(Text)
 
     # --- who, when, and against what ------------------------------------
+    # Where the decision came from: 'api' (a person in the review queue),
+    # 'import' (bulk-loaded from curated rules), 'migration' (seeded). A
+    # decision's provenance is as much a part of it as its answer.
+    source: Mapped[str] = mapped_column(String(32), default="api")
     decided_by: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), index=True)
     # Denormalised so the trail survives the account being deleted.
@@ -804,4 +812,10 @@ class ReviewDecision(Base):
         # human already said about this field and header, at any scope.
         Index("ix_decisions_lookup", "canonical_field", "original_header", "active"),
         Index("ix_decisions_scope", "scope", "scope_file"),
+        CheckConstraint("scope IN ('sheet','workbook','global')",
+                        name="ck_decisions_scope_known"),
+        CheckConstraint("scope = 'global' OR scope_file IS NOT NULL",
+                        name="ck_decisions_narrow_scope_has_file"),
+        CheckConstraint("scope <> 'sheet' OR scope_sheet IS NOT NULL",
+                        name="ck_decisions_sheet_scope_has_sheet"),
     )

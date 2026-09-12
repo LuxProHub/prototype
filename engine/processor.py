@@ -96,6 +96,21 @@ class Processor:
         fmt, sheets = open_source(path)          # raises UnreadableFile
         result.detected_format = fmt
 
+        # A decision index that could not load falls back to inference-only,
+        # which is the pre-review-queue behaviour -- acceptable to run, not
+        # acceptable to hide. Every column that had a human answer will read
+        # as though it never did.
+        degraded = getattr(self.decisions, "degraded_reason", None)
+        if degraded:
+            result.errors.append({
+                "sheet_name": None, "batch_number": None, "source_row": None,
+                "severity": "WARNING", "code": "DECISIONS_UNAVAILABLE",
+                "message": ("Human review decisions could not be loaded; this "
+                            "job resolved semantics from inference alone. "
+                            f"{degraded}"),
+                "payload": None,
+            })
+
         # DLD-style workbooks split one record across a property sheet and an
         # owner sheet keyed on P-NUMBER. Index the property side first so owner
         # rows can be completed with their location instead of being stored
@@ -122,7 +137,18 @@ class Processor:
         try:
             from .inspection import inspect_source
             info = inspect_source(path)
-        except Exception:
+        except Exception as exc:
+            # Surfaced, not swallowed: without the index every owner row from
+            # a property/owner split file is stored half-empty, and a job that
+            # reports success while doing that is worse than one that fails.
+            result.errors.append({
+                "sheet_name": None, "batch_number": None, "source_row": None,
+                "severity": "WARNING", "code": "PROPERTY_INDEX_FAILED",
+                "message": ("Could not inspect the file for a property/owner "
+                            f"split; owner rows will not be completed with "
+                            f"their location. {type(exc).__name__}: {exc}"),
+                "payload": None,
+            })
             return {}
 
         roles = {}
@@ -164,7 +190,19 @@ class Processor:
                         continue
                     index.setdefault(str(key).strip(), fields)
         except Exception as exc:
+            # This block once swallowed a NameError and silently disabled the
+            # property/owner join. A failure here changes what every owner
+            # row on the file looks like, so it goes on the job, not only in
+            # the log.
             log.warning("property index failed: %s", exc)
+            result.errors.append({
+                "sheet_name": None, "batch_number": None, "source_row": None,
+                "severity": "WARNING", "code": "PROPERTY_INDEX_FAILED",
+                "message": ("Property/owner join failed; owner rows will not be "
+                            f"completed with their location. "
+                            f"{type(exc).__name__}: {exc}"),
+                "payload": {"traceback": traceback.format_exc()[-1500:]},
+            })
             return {}
 
         if index:
@@ -371,6 +409,7 @@ class Processor:
             batch = []
 
         consecutive_empty = 0
+        enrich_failures_reported: set[str] = set()
 
         def handle(raw_row):
             nonlocal row_no, consecutive_empty
@@ -424,9 +463,24 @@ class Processor:
                     enriched = enrich(fields, self.ref, source_name=source_name,
                                       flags=enrich_flags,
                                       properties=self.properties)
-                except Exception:
+                except Exception as exc:
+                    # Not enriched is a legitimate outcome; "enrichment crashed
+                    # and we called it not-enriched" is not. The row carries a
+                    # flag so it can be found, and the sheet gets one warning
+                    # rather than one per row.
                     enriched = []
-                    enrich_flags = []
+                    enrich_flags = ["enrichment_failed"]
+                    if sheet.name not in enrich_failures_reported:
+                        enrich_failures_reported.add(sheet.name)
+                        result.errors.append({
+                            "sheet_name": sheet.name, "batch_number": batch_no + 1,
+                            "source_row": row_no, "severity": "WARNING",
+                            "code": "ENRICHMENT_FAILED",
+                            "message": ("Reference enrichment raised on this sheet; "
+                                        "affected rows carry the enrichment_failed "
+                                        f"flag. First failure: {type(exc).__name__}: {exc}"),
+                            "payload": None,
+                        })
             elif source_name and not fields.get("Community"):
                 from .reference import clean_filename_community
                 inferred = clean_filename_community(source_name)

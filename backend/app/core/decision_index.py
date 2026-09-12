@@ -20,6 +20,8 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from engine import ENGINE_VERSION
+
 from ..models.models import DecisionScope, ReviewDecision
 
 log = logging.getLogger(__name__)
@@ -40,6 +42,10 @@ class DecisionIndex:
 
     def __init__(self, db: Session):
         self._by_field: dict[str, list[ReviewDecision]] = {}
+        # Set when the load failed. The Processor surfaces it on the job, so a
+        # run that silently ignored every human decision cannot pass as a run
+        # that had none to apply.
+        self.degraded_reason: str | None = None
         try:
             rows = db.scalars(
                 select(ReviewDecision)
@@ -47,12 +53,14 @@ class DecisionIndex:
                 # Newest first, so an equally-scoped later decision wins.
                 .order_by(ReviewDecision.decided_at.desc())
             ).all()
-        except Exception:
+        except Exception as exc:
             # A missing table (an environment that has not migrated yet) must
             # not take ingestion down. No decisions simply means the resolver
-            # falls back to inference, which is the pre-existing behaviour.
+            # falls back to inference, which is the pre-existing behaviour --
+            # but the job has to say so, which degraded_reason is for.
             log.warning("review_decisions unavailable; resolving without them",
                         exc_info=True)
+            self.degraded_reason = f"{type(exc).__name__}: {exc}"[:300]
             rows = []
         for d in rows:
             self._by_field.setdefault(d.canonical_field, []).append(d)
@@ -96,6 +104,11 @@ class DecisionIndex:
         if best is None:
             return None
 
+        # A decision made under an older engine is still applied -- the
+        # vocabulary rarely changes -- but it is marked, so "which decisions
+        # predate the current rules" is a query rather than an archaeology.
+        stale = best.engine_version is not None and best.engine_version < ENGINE_VERSION
+
         return {
             "semantic_type": best.semantic_type,
             # A human who looked at the source outranks a phrase-match score,
@@ -113,5 +126,7 @@ class DecisionIndex:
                 "decided_at": best.decided_at.isoformat() if best.decided_at else None,
                 "rationale": best.rationale,
                 "scope": best.scope,
+                "decision_engine_version": best.engine_version,
+                "decision_stale": stale,
             },
         }

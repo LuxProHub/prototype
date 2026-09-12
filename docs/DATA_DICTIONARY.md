@@ -193,3 +193,68 @@ Current version: **3** — see `engine/__init__.py` for the changelog.
 - [ADR-002](adr/ADR-002-date-semantics.md) — Date semantics and the observation table
 - [ADR-003](adr/ADR-003-area-locality-level.md) — AREA resolved per sheet
 - [ADR-004](adr/ADR-004-two-party-rows-and-name.md) — two-party rows and the Name slot
+
+---
+
+## `review_decisions`
+
+A human answer to something the engine declined to decide. **Append-only**:
+a changed answer is a new row with `superseded_by` stamped on the old one; a
+withdrawn answer is `active = false`, never deleted. Unlike observations, these
+are **not re-derivable** from source files — they are the one thing in the
+schema that cannot be recomputed.
+
+| Column | Type | Meaning |
+|---|---|---|
+| `canonical_field` | string(64) | Same vocabulary as `field_observations.canonical_field` |
+| `original_header` | string(512) | Header the decision is about; NULL = any header for this field |
+| `scope` | `sheet` / `workbook` / `global` | How widely it applies. Default `workbook` |
+| `scope_file`, `scope_sheet` | string | What the scope is narrow *to*. **CHECK-constrained**: required for `workbook` / `sheet` |
+| `semantic_type` | string(48) | The answer |
+| `rationale` | text | What the reviewer was looking at |
+| `source` | string(32) | `api` / `import` / `migration` — decision provenance |
+| `decided_by`, `decided_by_email` | | Actor; email denormalised so the trail survives account deletion |
+| `decided_at` | datetime | |
+| `observation_id` | FK SET NULL | What prompted it; outlives a reprocess |
+| `engine_semantic_type`, `engine_confidence` | | What the engine had inferred when overruled |
+| `engine_version` | int | Ruleset the decision was made under; below `ENGINE_VERSION` = stale |
+| `active`, `superseded_by` | | Lifecycle |
+
+Precedence at lookup: `sheet` > `workbook` > `global`; equal scope, newest wins.
+A decision outranks inference at confidence 0.95 and never silences it — see
+`SEMANTIC_RESOLUTION.md`, *Quality-gate additions*.
+
+---
+
+## Lineage — what can and cannot be traced today
+
+Asked of a value: where did it come from, what happened to it, who touched it?
+
+| Question | Canonical flat columns (the 23) | Semantic fields (`Date`, `Size`, `AREA`, `Name` party) | Delivery output |
+|---|---|---|---|
+| Which source file | **Yes** — `records.source_file` | **Yes** — `field_observations.source_file` | **Yes** — `lineage.source_file` |
+| Which sheet | **Yes** — `records.source_sheet` | **Yes** | **Yes** |
+| Which source row | **Yes** — `records.source_row` | **Yes** | **Yes** |
+| Which source column | **Indirect** — `processing_jobs.mapping_report` gives header→target per sheet; not stored on the row | **Yes** — `source_column` + `original_header` | **Yes** — via the record |
+| Raw value | **Partial** — kept only when a cleaning rule rejected it (`extras["<field> (raw, rejected)"]`) or the column was unmapped (`extras`). A value that cleaned successfully keeps only its cleaned form | **Yes** — `raw_value`, always | **Yes** — `transformations[].raw_value` for converted columns |
+| What transformation occurred | **Ruleset only** — `engine_version` names the rules, not the per-value operation | **Yes** — unit, factor, rule version, parse outcome in `evidence` | **Yes** — `transformations[]` per converted column; `passthrough` flagged when no unit declared |
+| Was it inferred | **Partial** — `enriched_fields` lists fields filled from the reference/filename, without the rule | **Yes** — `evidence.rule` | n/a |
+| Was it normalized | **Implicit** — everything is; the pre-normalization form is not kept unless rejected | **Yes** — `raw_value` vs `parsed_value` | n/a |
+| Was it enriched, from what source | **Gap** — `enriched_fields` says *which* fields, not from *what*. External enrichment is unimplemented; when built it must write per-fact observations (`ENRICHMENT_POLICY.md` §6) | n/a | n/a |
+| Which human decision affected it | **Gap** for flat columns — decisions apply to semantic fields only | **Yes** — `evidence.decision_id`, `decided_by`, `rationale` | **Yes** — via the record's observations |
+
+### Stated gaps
+
+1. **Per-value raw form for the 19 non-semantic canonical fields.** A name that
+   cleaned from `"  DLF Ltd. "` to `"DLF Limited"` keeps only the result. The
+   original survives in the stored source file and is re-derivable by
+   reprocessing, but it is not on the row. Closing this means either per-field
+   raw shadow columns (19 of them) or extending `field_observations` to every
+   cell — a volume decision. Not done in this gate.
+2. **Per-value transformation log for the flat columns.** `engine_version`
+   names the ruleset, not which rule fired on this value. Same remedy as (1).
+3. **Enrichment source per fact.** Unimplemented; specified in `ENRICHMENT_POLICY.md` §6.
+4. **Source column on `records`.** Recoverable from `mapping_report` + sheet; not stored per row.
+
+The delivery layer, being new, has none of these gaps: every output value
+carries its record id, source file/sheet/row, and every conversion applied.

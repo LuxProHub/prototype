@@ -1,0 +1,56 @@
+{
+  "name": "noor",
+  "version": 1,
+  "description": "The Noor client format, recovered column-for-column from Park_Gate_Residences_-Noor_standardised.xlsx. Eleven columns; SIZE in square metres. See ADR-005.",
+
+  "columns": [
+    {"output": "Contact Phone",     "canonical_field": "Mobile 1"},
+    {"output": "Contact NAME",      "canonical_field": "Name"},
+    {"output": "Contact Email",     "canonical_field": "Email Address"},
+    {"output": "Second Phone",      "canonical_field": "Mobile 2"},
+    {"output": "PROJECT",           "canonical_field": "Project"},
+    {"output": "BUILDING NAME",     "canonical_field": "Building/Cluster"},
+    {"output": "FLAT ",             "canonical_field": "Unit Number"},
+    {"output": "PLOT NUMBER",       "canonical_field": "Plot Number"},
+    {"output": "SIZE",              "canonical_field": "Size",
+     "source_unit": "sqft", "delivery_unit": "sqm", "rounding": 2},
+    {"output": "ROOMS DESCRIPTION", "canonical_field": "Bedroom"},
+    {"output": "FLOOR",             "canonical_field": null, "literal": ""}
+  ],
+
+  "_columns_note": [
+    "FLAT  carries a trailing space because the client's file does. Templates",
+    "reproduce the client's format, quirks included.",
+    "FLOOR is not one of the 23 canonical fields and is emitted blank until a",
+    "decision is made on whether it becomes one (ADR-005, open question).",
+    "SIZE: canonical storage is square feet. The client wants square metres. The",
+    "conversion is declared here, on both sides, or it does not happen."
+  ],
+
+  "dedup": {
+    "key": ["Mobile 1"],
+    "keep": "first",
+    "require_any": ["Mobile 1", "Mobile 2"]
+  },
+  "_dedup_note": [
+    "This is a DECLARED rule. It does NOT reproduce the historical Park Gate",
+    "delivery: no tested key reproduces its 434 rows (ADR-005). The summary",
+    "reports counts under this rule by name and never claims to match history."
+  ],
+
+  "validation": {
+    "required": ["Name"],
+    "phone_fields": ["Mobile 1"]
+  },
+
+  "filters": [],
+
+  "summary": {
+    "greeting": "Hi, here's the data you've requested",
+    "area_label": "Area",
+    "duplicate_label": "Duplicate, No number"
+  },
+
+  "filename_pattern": "{area}_{template}.xlsx",
+  "output_format": "xlsx"
+}

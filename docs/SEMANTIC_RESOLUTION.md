@@ -244,3 +244,77 @@ Note the asymmetry with observations: observations are re-derivable from the
 stored source files, **decisions are not.** They are the one thing in this
 schema that cannot be recomputed, which is why the migration's `downgrade()`
 says so.
+
+---
+
+## Quality-gate additions (2026-09-12)
+
+### A decision cannot suppress a contradiction forever
+
+A decision wins the reading. It does not win the argument. `resolve()` always
+computes the inferred reading, and when a decision is applied it checks whether
+the source's own evidence — header, neighbours, values, sheet — would have
+cleared the review threshold **on its own** for a *different* reading.
+
+| Inference strength | Agrees with decision | Result |
+|---|---|---|
+| any | yes | decision applied, `needs_review = False` |
+| weak (< `min_confidence`) | no | decision applied, contradiction recorded, `needs_review = False` |
+| **strong (≥ `min_confidence`)** | **no** | **decision applied, `needs_review = True`, reason states the contradiction** |
+
+The third row is the guarantee. A future workbook with strong contrary evidence
+puts the column back in the queue with the old answer still applied and the
+disagreement stated, so a human sees it rather than the decision quietly
+winning against new data. A bare `Date` column — weak evidence for anything —
+does not re-question a decision on every ingest.
+
+### Stale decisions are detectable, not auto-invalidated
+
+Every decision records the `ENGINE_VERSION` it was made under. A decision from
+an older engine is still applied (the vocabulary rarely changes) but every
+observation it produces carries `decision_stale: true` and
+`decision_engine_version`, and `GET /api/review/decisions?stale=true` lists
+them. Auto-invalidating would re-flag every decided column after every engine
+bump — review noise that trains people to click through.
+
+### A failed lookup is inference-only, and says so
+
+If the decision store cannot be read, ingestion continues on inference alone —
+the pre-review-queue behaviour — but never silently. Two surfaces:
+
+- the **job** gets a `DECISIONS_UNAVAILABLE` warning from `DecisionIndex.degraded_reason`
+- each affected **observation** gets `decision_lookup_failed` in its evidence and `needs_review = True`
+
+A run that ignored every human decision cannot pass as a run that had none to apply.
+
+### Scope integrity is structural
+
+The API rejects a sheet- or workbook-scoped decision without its `scope_file`.
+So does the database: three `CHECK` constraints on `review_decisions` make it
+impossible to store, whatever code tries. The failure mode — a narrow scope
+with nothing to be narrow *to*, silently behaving as global at lookup — is
+closed at the layer that cannot be bypassed.
+
+### Privacy in review
+
+The grouped queue decides what a **column** means. That never requires showing
+a person: a reviewer choosing whether `Seller Name` is a seller or a buyer is
+reading the header. So the list view masks raw values for personal fields
+(`Name`, `Mobile 1-3`, `Email Address`, `Nationality`) — `A***n E***n`,
+`+9715*****67`, `a***@example.com` — and marks them `example_value_masked`.
+
+The single-item endpoint returns the full value, because deterministic review
+sometimes needs it, and a deliberate per-item fetch by an authenticated user is
+a narrower exposure than a page of them. Every such fetch is logged with the
+observation id, the field, and who opened it.
+
+Non-personal fields (`Date`, `Size`, `AREA`) are shown in full in both views.
+
+### Historical immutability
+
+Recording a decision changes how a column is read from the next ingest. It
+touches no stored row — pinned by
+`test_recording_a_decision_does_not_touch_rows_already_ingested`. Applying a
+decision to rows already stored is `POST /api/maintenance/reprocess`, which
+routes through the same `run_job` path that now constructs the `DecisionIndex`.
+Decisions are superseded, never edited; revoked, never deleted.

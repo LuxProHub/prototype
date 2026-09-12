@@ -1,6 +1,6 @@
 # ADR-005 — Delivery templates are configuration, not schema
 
-**Status:** Accepted
+**Status:** Accepted — implemented in `engine/delivery.py` + `engine/resources/templates/noor_park_gate.json`
 **Date:** 2026-09-12
 **Related:** [ADR-001](ADR-001-authoritative-mapping-workbook.md), [ADR-002](ADR-002-date-semantics.md)
 
@@ -130,3 +130,29 @@ rejects cannot be audited.
   which.
 - Whether `SIZE` in sq m holds for every client template or only this one. It is
   declared per template precisely because that is unknown.
+
+## Implementation notes (quality gate)
+
+`engine/delivery.py` implements this contract. What it enforces, in order of
+how badly getting it wrong would hurt:
+
+- **Both sides or neither.** A column declaring `delivery_unit` without
+  `source_unit` (or vice versa) fails at template load. A one-sided unit is the
+  precise shape of a 10.76x error entering a delivery.
+- **Only known conversions.** `sqft <-> sqm`, declared in one table. Anything
+  else is a `TemplateError`, not a pass-through.
+- **Undeclared size is passed through and flagged.** The Noor artifact's shape —
+  `SIZE` with no unit anywhere — emits the canonical value unchanged with a
+  `passthrough / unit_declared: false` lineage entry. Never converted, never
+  guessed.
+- **Accounting must balance.** `raw = unique + excluded` and
+  `unique = valid + invalid`, asserted on every run.
+- **The summary names the rule.** `one row per distinct ['Mobile 1'], keep first`
+  — and the Park Gate acceptance test asserts the declared rule does **not**
+  reproduce the historical 434, so a coincidental match would be caught rather
+  than trusted.
+
+Fixture: the two Park Gate artifacts, deterministically pseudonymised
+(`tests/fixtures/park_gate_noor_*.xlsx`). Equal inputs map to equal fakes, so
+the duplicate structure, the 434-in-2,348 verbatim overlap and every count are
+the real ones, with no real name, phone or email in the repo.

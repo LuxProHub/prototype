@@ -1,5 +1,27 @@
 # What changed
 
+## Quality gate before entity resolution (branch `feat/atlas-semantic-observations`)
+
+The review queue and decision loop were audited adversarially before anything
+was built on them. Two findings would have shipped as silent failures.
+
+| # | Finding | Effect | Fix |
+|---|---------|--------|-----|
+| 1 | `run_job` never constructed a `DecisionIndex` | every human review decision was recorded and **ignored by every production ingest**; the loop worked only in tests | wired into `run_job`, which reprocessing also uses |
+| 2 | erasure re-apply failure was logged only | a PDPL control could fail and the job still reported `COMPLETED` | recorded as an `ERROR` on the job; status demoted to `COMPLETED_WITH_ERRORS` |
+| 3 | `_build_property_index` swallowed all exceptions | a `NameError` had silently disabled the property/owner join | surfaced as `PROPERTY_INDEX_FAILED` |
+| 4 | reference enrichment exception became "not enriched" | crash indistinguishable from absence | row flag `enrichment_failed` + one `ENRICHMENT_FAILED` warning per sheet |
+| 5 | decision-store load failure fell back to inference silently | a run that ignored every decision looked like a run with none to apply | `DECISIONS_UNAVAILABLE` on the job; `decision_lookup_failed` on each observation |
+| 6 | a decision suppressed contradictions forever | strong new evidence could never reopen a decided column | contradiction + strong inference re-flags the column with the decision still applied |
+
+Also: scope integrity moved from API validation to `CHECK` constraints; stale
+decisions detectable (`?stale=true`); personal-field values masked in the
+grouped review queue; `engine/delivery.py` with the Noor/Park Gate template and
+an anonymised acceptance fixture (2,348 / 434 / 1,914 derived, not typed); 61
+new tests across delivery, acceptance, adversarial and scale suites.
+
+---
+
 Everything below landed on `main` in two merges: `c100ccf` (data quality, scale,
 reprocessing) and `3d4acae` (outreach, compliance, feedback loop).
 

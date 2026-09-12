@@ -186,21 +186,44 @@ def resolve(field: str, ctx: SemanticContext, decisions=None) -> dict:
             decided = decisions.lookup(field, header=ctx.header,
                                        source_file=ctx.workbook_name,
                                        sheet_name=ctx.sheet_name)
-        except Exception:
-            decided = None          # a broken lookup must not stop ingestion
+        except Exception as exc:
+            # A broken lookup must not stop ingestion -- but it must not be
+            # invisible either. The reading below is inference-only when it
+            # may have had a human answer, so it is flagged as such rather than
+            # passed off as the same thing.
+            inferred = dict(inferred)
+            inferred["needs_review"] = True
+            ev = dict(inferred.get("evidence") or {})
+            ev["decision_lookup_failed"] = f"{type(exc).__name__}: {exc}"[:200]
+            ev["reason"] = (ev.get("reason", "") + "; decision lookup failed, "
+                            "inference-only").lstrip("; ")
+            inferred["evidence"] = ev
+            return inferred
+
         if decided:
             ev = dict(decided.get("evidence") or {})
             ev["inferred_semantic_type"] = inferred["semantic_type"]
             ev["inferred_confidence"] = inferred["confidence"]
-            # Worth seeing in the data rather than in anecdote: a decision that
-            # keeps contradicting a confident inference means one of the two is
-            # systematically wrong.
-            ev["contradicts_inference"] = (
+            contradicts = (
                 inferred["semantic_type"] != UNRESOLVED
                 and inferred["semantic_type"] != decided["semantic_type"]
             )
+            ev["contradicts_inference"] = contradicts
             decided = dict(decided)
             decided["evidence"] = ev
+
+            # The decision still wins the reading -- a person who looked at the
+            # source outranks a phrase-match score. But a decision must not be
+            # able to suppress a contradiction forever. When the source gives
+            # STRONG evidence for a different reading (the inference alone
+            # would have cleared the review threshold), the column goes back
+            # to the queue with the decision applied and the disagreement
+            # stated, so a human sees it rather than the old answer silently
+            # winning against new data.
+            if contradicts and inferred["confidence"] >= min_confidence(field):
+                decided["needs_review"] = True
+                ev["reason"] = ("human decision applied, but contradicted by "
+                                "strong evidence in this source")
             return decided
 
     return inferred

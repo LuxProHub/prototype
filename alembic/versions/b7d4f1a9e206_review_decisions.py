@@ -61,6 +61,8 @@ def upgrade() -> None:
         # reviewer was looking at.
         sa.Column("rationale", sa.Text(), nullable=True),
 
+        # Where the decision came from: api / import / migration.
+        sa.Column("source", sa.String(32), nullable=False, server_default="api"),
         sa.Column("decided_by", sa.Integer(), nullable=True),
         # Denormalised so the trail survives the account being deleted.
         sa.Column("decided_by_email", sa.String(320), nullable=True),
@@ -76,6 +78,16 @@ def upgrade() -> None:
 
         sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("superseded_by", sa.Integer(), nullable=True),
+
+        # Structural, not advisory: a narrow scope that does not say what it
+        # is narrow TO would behave as global at lookup time. The API rejects
+        # it too, but the API is not the only writer this table will ever have.
+        sa.CheckConstraint("scope IN ('sheet','workbook','global')",
+                           name="ck_decisions_scope_known"),
+        sa.CheckConstraint("scope = 'global' OR scope_file IS NOT NULL",
+                           name="ck_decisions_narrow_scope_has_file"),
+        sa.CheckConstraint("scope <> 'sheet' OR scope_sheet IS NOT NULL",
+                           name="ck_decisions_sheet_scope_has_sheet"),
 
         sa.ForeignKeyConstraint(["decided_by"], ["users.id"], ondelete="SET NULL"),
         # SET NULL rather than CASCADE: a reprocess replaces observations, and

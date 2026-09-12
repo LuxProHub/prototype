@@ -48,6 +48,34 @@ _OPERATOR = require_role(list(UserRole.at_least(UserRole.DATA_PROCESSOR)))
 
 MAX_PAGE = 200
 
+# Canonical fields whose raw values are a person's data. The grouped queue never
+# needs them -- a reviewer deciding whether "Seller Name" is a seller or a buyer
+# is reading the HEADER, not the name -- so the list view masks them. The
+# single-item endpoint returns the full value, because deterministic review
+# sometimes does need it, and a deliberate per-item fetch by an authenticated
+# user is a narrower exposure than a page of them. Documented in
+# docs/SEMANTIC_RESOLUTION.md under "Privacy in review".
+_PERSONAL_FIELDS = {"Name", "Mobile 1", "Mobile 2", "Mobile 3", "Email Address",
+                    "Nationality"}
+
+
+def _mask(value: str | None) -> str | None:
+    """'Allan Howard Errington' -> 'A***n H***d E***n'; '+971501234567' -> '+9715*****67'."""
+    if value is None:
+        return None
+    s = str(value)
+    if "@" in s:
+        local, _, dom = s.partition("@")
+        return (local[:1] + "***@" + dom) if dom else "***"
+    digits = sum(ch.isdigit() for ch in s)
+    if digits >= 7:
+        return s[:5] + "*" * max(0, len(s) - 7) + s[-2:]
+    return " ".join((w[:1] + "***" + w[-1:]) if len(w) > 2 else "***" for w in s.split())
+
+
+def _display_value(canonical_field: str, raw: str | None) -> str | None:
+    return _mask(raw) if canonical_field in _PERSONAL_FIELDS else raw
+
 
 # --------------------------------------------------------------------------
 # schemas
@@ -66,21 +94,13 @@ class DecisionIn(BaseModel):
 # --------------------------------------------------------------------------
 # queue
 # --------------------------------------------------------------------------
-@router.get("/queue")
-def review_queue(
-    canonical_field: str | None = Query(None, description="Filter to one field."),
-    source_file: str | None = Query(None),
-    limit: int = Query(50, ge=1, le=MAX_PAGE),
-    offset: int = Query(0, ge=0),
-    _user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """What needs a human, grouped by the question rather than by the row.
+def queue_questions(db: Session, *, canonical_field: str | None = None,
+                    source_file: str | None = None, limit: int = 50, offset: int = 0):
+    """The grouped queue query, shared with the scale tests.
 
-    Grouped deliberately. A 24,000-row file with one ambiguous `Date` column
-    produces 24,000 flagged observations and exactly ONE question. Listing them
-    row by row would bury the decision in its own evidence, and answering it
-    once has to be enough.
+    Groups on (field, header, file, sheet, reading) so N flagged rows from one
+    ambiguous column are ONE question. The number of questions scales with
+    ambiguity, not with row count -- test_review_scale.py holds it to that.
     """
     grouping = (
         FieldObservation.canonical_field,
@@ -99,12 +119,36 @@ def review_queue(
         q = q.where(FieldObservation.canonical_field == canonical_field)
     if source_file:
         q = q.where(FieldObservation.source_file == source_file)
-    # Biggest blast radius first: the question affecting most rows is the one
-    # worth a person's attention.
     q = q.order_by(func.count(FieldObservation.id).desc()).limit(limit).offset(offset)
+    groups = db.execute(q).all()
+    total = db.scalar(
+        select(func.count()).select_from(
+            select(*grouping).where(FieldObservation.needs_review.is_(True))
+            .group_by(*grouping).subquery()))
+    return groups, (total or 0)
+
+
+@router.get("/queue")
+def review_queue(
+    canonical_field: str | None = Query(None, description="Filter to one field."),
+    source_file: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=MAX_PAGE),
+    offset: int = Query(0, ge=0),
+    _user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """What needs a human, grouped by the question rather than by the row.
+
+    Grouped deliberately. A 24,000-row file with one ambiguous `Date` column
+    produces 24,000 flagged observations and exactly ONE question. Listing them
+    row by row would bury the decision in its own evidence, and answering it
+    once has to be enough.
+    """
+    groups, total = queue_questions(db, canonical_field=canonical_field,
+                                    source_file=source_file, limit=limit, offset=offset)
 
     items = []
-    for r in db.execute(q).all():
+    for r in groups:
         example = db.get(FieldObservation, r.example_id)
         items.append({
             "canonical_field": r.canonical_field,
@@ -115,7 +159,11 @@ def review_queue(
             "affected_rows": r.affected_rows,
             "avg_confidence": round(float(r.avg_confidence or 0), 4),
             "example_observation_id": r.example_id,
-            "example_raw_value": example.raw_value if example else None,
+            # Masked for personal fields: the grouped view is for deciding
+            # what a COLUMN means, and never needs to show a person to do it.
+            "example_raw_value": (_display_value(r.canonical_field, example.raw_value)
+                                  if example else None),
+            "example_value_masked": r.canonical_field in _PERSONAL_FIELDS,
             # Every review item has to answer four questions for the person
             # looking at it, or it is not reviewable.
             "what": _what(r),
@@ -124,11 +172,7 @@ def review_queue(
             "options": semantics.type_names(r.canonical_field) or None,
         })
 
-    total = db.scalar(
-        select(func.count()).select_from(
-            select(*grouping).where(FieldObservation.needs_review.is_(True))
-            .group_by(*grouping).subquery()))
-    return {"total_questions": total or 0, "limit": limit, "offset": offset,
+    return {"total_questions": total, "limit": limit, "offset": offset,
             "items": items}
 
 
@@ -156,7 +200,13 @@ def review_item(
     o = db.get(FieldObservation, observation_id)
     if o is None:
         raise HTTPException(404, "No such observation.")
+    if o.canonical_field in _PERSONAL_FIELDS:
+        # The full value of a personal field is being shown to a person. Not
+        # blocked -- sometimes review genuinely needs it -- but never silent.
+        log.info("review item %d (%s) opened in full by %s",
+                 o.id, o.canonical_field, _user.email)
     return {
+        "personal_data": o.canonical_field in _PERSONAL_FIELDS,
         "id": o.id, "record_id": o.record_id,
         "canonical_field": o.canonical_field, "semantic_type": o.semantic_type,
         "raw_value": o.raw_value, "parsed_value": o.parsed_value,
@@ -212,6 +262,7 @@ def decide(
         original_header=body.original_header,
         scope=body.scope, scope_file=body.scope_file, scope_sheet=body.scope_sheet,
         semantic_type=body.semantic_type, rationale=body.rationale,
+        source="api",
         decided_by=user.id, decided_by_email=user.email,
         observation_id=observation.id if observation else None,
         # What the engine thought, kept so a pattern of human/engine
@@ -254,6 +305,9 @@ def decide(
 def list_decisions(
     canonical_field: str | None = Query(None),
     include_inactive: bool = Query(False),
+    stale: bool | None = Query(None, description=(
+        "true: only decisions made under an older engine version; "
+        "false: only current ones.")),
     limit: int = Query(100, ge=1, le=MAX_PAGE),
     _user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -263,14 +317,21 @@ def list_decisions(
         q = q.where(ReviewDecision.active.is_(True))
     if canonical_field:
         q = q.where(ReviewDecision.canonical_field == canonical_field)
+    if stale is True:
+        q = q.where(ReviewDecision.engine_version < ENGINE_VERSION)
+    elif stale is False:
+        q = q.where(ReviewDecision.engine_version >= ENGINE_VERSION)
     rows = db.scalars(q.order_by(ReviewDecision.decided_at.desc()).limit(limit)).all()
-    return {"items": [{
+    return {"engine_version": ENGINE_VERSION, "items": [{
         "id": d.id, "canonical_field": d.canonical_field,
         "original_header": d.original_header, "semantic_type": d.semantic_type,
         "scope": d.scope, "scope_file": d.scope_file, "scope_sheet": d.scope_sheet,
         "rationale": d.rationale, "decided_by": d.decided_by_email,
         "decided_at": d.decided_at, "active": d.active,
         "superseded_by": d.superseded_by,
+        "source": d.source,
+        "engine_version": d.engine_version,
+        "stale": d.engine_version is not None and d.engine_version < ENGINE_VERSION,
         "engine_semantic_type": d.engine_semantic_type,
         "engine_confidence": d.engine_confidence,
         "contradicted_engine": (

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..config import settings
 from ..core.security import get_current_user, require_role
+from ..core.decision_index import DecisionIndex
 from ..core.dedup_index import DedupIndex
 from ..database.maintenance import refresh_dashboard_caches
 from .erasure import apply_erasures
@@ -34,6 +35,33 @@ _ALLOWED_SUFFIX = {".xlsx", ".xlsm", ".xls", ".csv"}
 # Ingestion is a write path: uploading, starting, pausing and cancelling all
 # change stored data, so viewers get read access only.
 _OPERATOR = require_role(list(UserRole.at_least(UserRole.DATA_PROCESSOR)))
+
+
+def _record_post_commit_failure(db: Session, job_id: int, code: str,
+                                severity: str, message: str) -> None:
+    """Attach a failure that happened AFTER the job committed its status.
+
+    The job's rows are already written and its status already set, so this
+    cannot roll anything back. What it can do is refuse to let the job keep
+    claiming a clean COMPLETED: the error is recorded against the job, the
+    count is bumped, and an ERROR-severity failure demotes the status. A
+    problem that only exists in a log line is a problem nobody will see.
+    """
+    try:
+        db.add(ProcessingError(job_id=job_id, sheet_name=None, batch_number=None,
+                               source_row=None, severity=severity, code=code,
+                               message=message, payload=None))
+        job = db.get(ProcessingJob, job_id)
+        if job is not None:
+            job.error_count = (job.error_count or 0) + 1
+            if severity == "ERROR" and job.status == JobStatus.COMPLETED:
+                job.status = JobStatus.COMPLETED_WITH_ERRORS
+        db.commit()
+    except Exception:
+        # The one place a log line is all that is left: the failure recorder
+        # itself failing. Do not raise out of the job's cleanup path.
+        db.rollback()
+        log.exception("could not record post-commit failure %s for job %s", code, job_id)
 
 
 def _job_out(job: ProcessingJob) -> JobOut:
@@ -596,6 +624,12 @@ def run_job(job_id: int) -> None:
             # its own earlier attempt wrote and calling every one a duplicate.
             dedup_index=(DedupIndex(db, exclude_job_id=job_id)
                          if settings.CROSS_REGISTER_DEDUP else None),
+            # Human review decisions, consulted before inference. Without this
+            # the review queue was a write-only surface: answers were recorded
+            # and every ingest ignored them. Reprocessing goes through this
+            # same path, which is what makes "re-derive under the new
+            # decision" actually mean that.
+            decisions=DecisionIndex(db),
         )
 
         def on_batch(rows: list[dict]) -> int:
@@ -696,16 +730,26 @@ def run_job(job_id: int) -> None:
         # so outreach history follows the data it belongs to.
         try:
             relink_leads(db, job_id)
-        except Exception:
+        except Exception as exc:
             log.exception("lead relink failed for job %s", job_id)
+            _record_post_commit_failure(
+                db, job_id, "LEAD_RELINK_FAILED", "WARNING",
+                "Outreach history could not be reattached to the rewritten "
+                f"rows. {type(exc).__name__}: {exc}")
 
         # Records are rebuilt from a source file that still contains the
         # people who asked to be erased. Without this, the next reprocess
-        # quietly restores what was deleted.
+        # quietly restores what was deleted -- so a failure here is a privacy
+        # failure, and the job must say so rather than report success.
         try:
             apply_erasures(db, job_id)
-        except Exception:
+        except Exception as exc:
             log.exception("erasure re-apply failed for job %s", job_id)
+            _record_post_commit_failure(
+                db, job_id, "ERASURE_REAPPLY_FAILED", "ERROR",
+                "Standing erasure requests could NOT be re-applied to this "
+                "job's rows. Erased individuals may be present in the data "
+                f"until this is resolved. {type(exc).__name__}: {exc}")
 
     except InterruptedError as exc:
         db.rollback()
