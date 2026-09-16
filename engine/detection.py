@@ -156,6 +156,43 @@ def _norm_cell(c):
 
 
 def read_xlsx(path: Path) -> Iterator[SheetData]:
+    # 1. High-speed Rust Calamine streaming reader
+    try:
+        import python_calamine
+        wb = python_calamine.load_workbook(str(path))
+        for name in wb.sheet_names:
+            sheet = wb.get_sheet_by_name(name)
+            it = sheet.iter_rows()
+            preview: list[list] = []
+            for _ in range(12):
+                try:
+                    preview.append(list(next(it)))
+                except StopIteration:
+                    break
+            if not preview:
+                continue
+            hi = find_header_row(preview)
+            n_cols = max((len(r) for r in preview), default=0)
+            if hi < 0:
+                header, headerless = [], True
+                buffered = preview
+            else:
+                header = [("" if c is None else str(c).strip()) for c in preview[hi]]
+                headerless = False
+                buffered = preview[hi + 1:]
+
+            def gen(buffered=buffered, it=it):
+                for r in buffered:
+                    yield [_norm_cell(c) for c in r]
+                for r in it:
+                    yield [_norm_cell(c) for c in r]
+
+            yield SheetData(name, header, hi, gen(), n_cols, headerless)
+        return
+    except Exception:
+        pass
+
+    # 2. openpyxl fallback
     from openpyxl import load_workbook
 
     wb = load_workbook(path, read_only=True, data_only=True)
@@ -261,14 +298,26 @@ def read_csv(path: Path) -> Iterator[SheetData]:
         except Exception:
             dialect = _csv.excel
         reader = _csv.reader(fh, dialect)
-        rows = list(reader)
-    if not rows:
-        return
-    hi = find_header_row(rows[:12])
-    header = [] if hi < 0 else [str(c).strip() for c in rows[hi]]
-    body = rows if hi < 0 else rows[hi + 1:]
-    yield SheetData(path.name, header, hi, iter([[_norm_cell(c) for c in r] for r in body]),
-                    max((len(r) for r in rows), default=0), hi < 0)
+        preview: list[list] = []
+        for _ in range(12):
+            try:
+                preview.append(next(reader))
+            except StopIteration:
+                break
+        if not preview:
+            return
+        hi = find_header_row(preview)
+        header = [] if hi < 0 else [("" if c is None else str(c).strip()) for c in preview[hi]]
+        buffered = preview if hi < 0 else preview[hi + 1:]
+
+        def gen(buffered=buffered, reader=reader):
+            for r in buffered:
+                yield [_norm_cell(c) for c in r]
+            for r in reader:
+                yield [_norm_cell(c) for c in r]
+
+        n_cols = max((len(r) for r in preview), default=0)
+        yield SheetData(path.name, header, hi, gen(), n_cols, hi < 0)
 
 
 READERS = {
