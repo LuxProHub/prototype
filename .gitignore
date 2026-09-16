@@ -72,10 +72,32 @@ Documentation/
 graphify-out/*
 !graphify-out/GRAPH_REPORT.md
 !graphify-out/.graphify_labels.json
-!graphify-out/2026-09-09
+
 # Scratch benchmark and profile scripts
 scratch/
 
+# Test caches and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# OS and temporary files
+desktop.ini
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Screen recordings and device capture
+*.mp4
+scrcpy*
+
+# Ingestion progress and transient logs
+ingestion_manifest*.json
+ingestion_progress*.json
 
 # Anonymised test fixtures are test code, not data. The *.xlsx rule above
 # exists to keep source registers out of the repo; these two carry no real
@@ -83,3 +105,4 @@ scratch/
 # acceptance test would silently skip in CI without them.
 !tests/fixtures/park_gate_noor_raw.xlsx
 !tests/fixtures/park_gate_noor_unique.xlsx
+
