@@ -411,16 +411,16 @@ class Processor:
         consecutive_empty = 0
         enrich_failures_reported: set[str] = set()
 
-        def handle(raw_row):
+        def handle(raw_row) -> bool:
             nonlocal row_no, consecutive_empty
             row_no += 1
 
             if not any(c not in (None, "") for c in raw_row):
                 consecutive_empty += 1
                 if consecutive_empty >= 100:
-                    return
+                    return False
                 result.skipped_rows += 1
-                return
+                return True
             else:
                 consecutive_empty = 0
 
@@ -428,7 +428,7 @@ class Processor:
             result.processed_rows += 1
             if not sheet.headerless and is_repeated_header(raw_row, plan):
                 result.skipped_rows += 1
-                return
+                return True
 
             try:
                 fields, extras = apply_plan(plan, raw_row)
@@ -439,11 +439,11 @@ class Processor:
                     "message": f"{type(exc).__name__}: {exc}", "payload": None,
                 })
                 result.invalid_rows += 1
-                return
+                return True
 
             if V.looks_like_building_row(extras, fields):
                 result.skipped_rows += 1
-                return
+                return True
 
             # complete the owner row with its property's location
             pidx = getattr(self, "_property_index", None)
@@ -524,7 +524,7 @@ class Processor:
                     "message": "; ".join(flags) or "record failed validation",
                     "payload": None,
                 })
-                return
+                return True
 
             # Duplicate status and outreach readiness are decided in
             # _classify_batch(), once the whole batch is assembled, so the
@@ -535,11 +535,14 @@ class Processor:
                 flush()
                 if on_progress:
                     on_progress(result, sheet.name)
+            return True
 
         for r in buffered:
-            handle(r)
+            if not handle(r):
+                break
         for r in row_iter:
-            handle(r)
+            if not handle(r):
+                break
         flush()
         if on_progress:
             on_progress(result, sheet.name)

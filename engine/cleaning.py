@@ -8,7 +8,7 @@ None and a validation flag is raised.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 # --------------------------------------------------------------------------
 NULL_TOKENS = {"", "-", "--", "—", ".", "..", "n/a", "na", "null", "none", "nil",
@@ -361,6 +361,8 @@ def clean_date(v) -> datetime | None:
         return None
     if isinstance(v, datetime):
         return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
+    if isinstance(v, date):
+        return datetime(v.year, v.month, v.day, tzinfo=timezone.utc)
     if isinstance(v, (int, float)) and not isinstance(v, bool):
         n = float(v)
         if 1 < n < 80000:                      # plausible Excel serial

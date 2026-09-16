@@ -36,6 +36,9 @@ _NAME_SYNONYMS = {
 }
 
 
+import functools
+
+@functools.lru_cache(maxsize=65536)
 def normalize_name_tokens(name: str | None) -> str:
     """Normalize, expand contractions, and sort name tokens to maximize fuzzy match recall."""
     if not name:
@@ -67,6 +70,12 @@ def calculate_name_similarity(name1: str | None, name2: str | None) -> float:
         return 0.0
     if n1 == n2:
         return 1.0
+    
+    len1, len2 = len(n1), len(n2)
+    # difflib ratio is 2*M / (len1 + len2) <= 2*min(len1, len2) / (len1 + len2)
+    # If the mathematical upper bound is below FUZZY_THRESHOLD, it cannot match.
+    if (2.0 * min(len1, len2)) / (len1 + len2) < FUZZY_THRESHOLD:
+        return 0.0
     
     return difflib.SequenceMatcher(None, n1, n2).ratio()
 
