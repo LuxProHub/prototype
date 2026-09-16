@@ -53,9 +53,12 @@ const SECTIONS = [
   },
   {
     id: 'registry',
-    label: 'Registry',
+    label: 'Registry & Source File',
     icon: Layers,
     fields: [
+      { key: 'source_file', label: 'Source File', span: 2 },
+      { key: 'source_sheet', label: 'Sheet' },
+      { key: 'source_row', label: 'Source Row', num: true },
       { key: 'plot_reg_no', label: 'Plot Reg. No', val: true },
       { key: 'plot_number', label: 'Plot Number', val: true },
       { key: 'dmno', label: 'DMNO', val: true },

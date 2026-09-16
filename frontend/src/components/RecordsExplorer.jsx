@@ -173,6 +173,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
     property_types: [],
     bedroom_types: [],
     statuses: [],
+    source_files: [],
   });
 
   // Column Visibility
@@ -244,11 +245,16 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
         if (!data) return;
         setFilterOptions({
           communities: (data.communities || []).filter(
-            (c) => c && !c.toLowerCase().includes('owner detail') && !c.toLowerCase().includes('total owner')
+            (c) => c && !c.toLowerCase().includes('owner detail') && !c.toLowerCase().includes('total owner') && !c.startsWith('_') && !c.toLowerCase().startsWith('0 consolidated') && !/^\d{10,}/.test(c) && !/^\d+$/.test(c)
           ),
-          property_types: data.property_types || [],
-          bedroom_types: data.bedrooms || data.bedroom_types || [],
+          property_types: (data.property_types || []).filter(
+            (p) => p && !p.startsWith('-') && !/^\d+[A-Za-z]+$/.test(p) && !/^\d+$/.test(p)
+          ),
+          bedroom_types: (data.bedrooms || data.bedroom_types || []).filter(
+            (b) => b && !b.startsWith('-') && !/^\d{4,}$/.test(b)
+          ),
           statuses: data.statuses || ['VALID', 'DUPLICATE', 'INCOMPLETE', 'ERROR'],
+          source_files: data.source_files || [],
         });
       })
       .catch(() => {});

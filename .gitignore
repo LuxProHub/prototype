@@ -72,7 +72,7 @@ Documentation/
 graphify-out/*
 !graphify-out/GRAPH_REPORT.md
 !graphify-out/.graphify_labels.json
-
+!graphify-out/2026-09-09
 # Scratch benchmark and profile scripts
 scratch/
 

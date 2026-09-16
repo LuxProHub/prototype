@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -35,6 +36,7 @@ SORTABLE = {
     "bedroom": Record.bedroom, "procedure_value": Record.procedure_value,
     "mobile_1": Record.mobile_1, "status": Record.status,
     "created_at": Record.created_at, "record_date": Record.record_date,
+    "source_file": Record.source_file,
 }
 
 # Free-text search now lives in core/search.py. It tokenises the query and
@@ -73,13 +75,33 @@ def _build_records_query(
         stmt = stmt.where(search)
 
     for col, val in (
-        (Record.community, community), (Record.sub_community, sub_community),
+        (Record.sub_community, sub_community),
         (Record.building_cluster, building_cluster),
         (Record.developer, developer),
         (Record.nationality, nationality), (Record.source_file, source_file),
     ):
         if val:
             stmt = stmt.where(col == val)
+
+    if community:
+        comm_clean = community.strip()
+        COMMUNITY_ALIASES = {
+            "Jumeirah Village Circle": ["Jumeirah Village Circle", "0 Consolidated JVC Mar", "Jvc", "JVC"],
+            "Dubai Hills Estate": ["Dubai Hills Estate", "0 Consolidated Dubai Hills March 2026 Partial for all ongoing", "Dubai Hills"],
+            "Downtown Dubai": ["Downtown Dubai", "0 Consolidated downtown Jan", "Downtown"],
+            "Dubai Marina": ["Dubai Marina", "0 Consolidated Dubai Marina"],
+            "Business Bay": ["Business Bay", "Business Bay Jan 2025 dec 24 data", "0 Consolidated Data Business Bay 2024 Nov", "Business Bay ("],
+            "Jumeirah Lake Towers": ["Jumeirah Lake Towers", "0 Consolidated data JLT Nov", "JLT", "Jumeirah Lakes Towers"],
+            "Meydan": ["Meydan", "0 Meydan Consolidated Dec end2024", "Meydan Consolidated"],
+            "Abu Dhabi": ["Abu Dhabi", "20260903103145288218 Abu Dhabi Data mayl", "20260903103053117965 Abu Dhabi Data mayl"],
+            "Al Kifaf": ["Al Kifaf", "20260903102332962533 AL kifaf park gate residences"],
+            "Deira Islands": ["Deira Islands", "20260903102555171551 Deira Island"],
+        }
+        aliases = COMMUNITY_ALIASES.get(comm_clean, [comm_clean])
+        if len(aliases) > 1:
+            stmt = stmt.where(Record.community.in_(aliases))
+        else:
+            stmt = stmt.where(Record.community == comm_clean)
 
     if bedroom:
         b_clean = bedroom.strip()
@@ -89,6 +111,30 @@ def _build_records_query(
                 Record.bedroom.ilike(f"%{b_clean}%")
             )
         )
+
+    if property_type:
+        pt_clean = property_type.strip()
+        pt_low = pt_clean.lower()
+        if pt_low == "apartment":
+            stmt = stmt.where(or_(
+                Record.property_type.ilike("Apartment%"),
+                Record.property_type.ilike("Flat%"),
+                Record.property_type.ilike("Unit%"),
+                Record.property_type.ilike("Residential Flat%"),
+            ))
+        elif pt_low == "villa":
+            stmt = stmt.where(or_(
+                Record.property_type.ilike("Villa%"),
+                Record.property_type.ilike("Residential Villa%"),
+            ))
+        elif pt_low == "townhouse":
+            stmt = stmt.where(or_(
+                Record.property_type.ilike("Townhouse%"),
+                Record.property_type.ilike("Town House%"),
+                Record.property_type.ilike("Townhome%"),
+            ))
+        else:
+            stmt = stmt.where(Record.property_type.ilike(pt_clean))
 
     # "Verified valid mobile": non-null, non-N/A, and matching one of the three
     # accepted E.164 shapes (UAE mobile, UAE landline, other international) --
@@ -123,10 +169,6 @@ def _build_records_query(
         # Default: show all valid outreach-ready records (with verified valid phone)
         stmt = stmt.where(Record.status == "VALID")
         stmt = stmt.where(valid_mobile_filter)
-
-    if property_type:
-        stmt = stmt.where(Record.property_type.ilike(property_type))
-
     if job_id is not None:
         stmt = stmt.where(Record.job_id == job_id)
     if has_mobile is True:
@@ -481,19 +523,162 @@ def _matview(db: Session, sql: str):
         return None
 
 
-def _facet_cache(db: Session) -> dict[str, list[str]] | None:
-    """Return {column_name: [distinct values]} from mv_record_facets, or None."""
+def _facet_cache(db: Session) -> dict[str, list[tuple[str, int]]] | None:
+    """Return {column_name: [(value, n)]} from mv_record_facets ordered by n DESC, or None."""
     rows = _matview(
         db,
-        "SELECT field, value FROM mv_record_facets "
-        "WHERE value <> '' ORDER BY field, value",
+        "SELECT field, value, n FROM mv_record_facets "
+        "WHERE value <> '' ORDER BY field, n DESC",
     )
     if rows is None:
         return None
-    out: dict[str, list[str]] = {}
-    for field, value in rows:
-        out.setdefault(field, []).append(value)
+    out: dict[str, list[tuple[str, int]]] = {}
+    for field, value, n in rows:
+        out.setdefault(field, []).append((value, n))
     return out
+
+
+def _sanitize_communities(raw_list: list[tuple[str, int]]) -> list[str]:
+    res = []
+    seen = set()
+    for v, _ in raw_list:
+        s = v.strip()
+        low = s.lower()
+        if any(x in low for x in ("owner detail", "total owner", "owners data", "_multi-community", "_unclassified")):
+            continue
+        if s in ("0 Dubai", "112") or re.fullmatch(r"^\d+$", s) or (re.fullmatch(r"^[0-9a-fA-F\s]+$", s) and len(s) > 15):
+            continue
+        # Strip batch timestamp prefix like 20260903102332962533
+        cleaned = re.sub(r"^\d{14,24}\s*", "", s)
+        # Strip "0 Consolidated (data)?"
+        cleaned = re.sub(r"^0\s+Consolidated\s+(?:data\s+)?", "", cleaned, flags=re.I)
+        # Strip trailing date/noise
+        cleaned = re.sub(r"\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|202\d|end202\d|ongoing|partial|for all ongoing|data mayl|data)\b.*$", "", cleaned, flags=re.I)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip(" -_/(#[]{}")
+        u = cleaned.upper()
+        if u in ("JVC", "JUMEIRAH VILLAGE CIRCLE"):
+            name = "Jumeirah Village Circle"
+        elif u in ("JLT", "JUMEIRAH LAKES TOWERS", "JUMEIRAH LAKE TOWERS"):
+            name = "Jumeirah Lake Towers"
+        elif u in ("DOWNTOWN", "DOWNTOWN JAN", "DOWNTOWN DUBAI"):
+            name = "Downtown Dubai"
+        elif u in ("DUBAI HILLS", "DUBAI HILLS ESTATE"):
+            name = "Dubai Hills Estate"
+        elif u in ("DUBAI MARINA",):
+            name = "Dubai Marina"
+        elif u in ("BUSINESS BAY",):
+            name = "Business Bay"
+        elif u in ("MEYDAN", "0 MEYDAN CONSOLIDATED"):
+            name = "Meydan"
+        elif u in ("ABU DHABI", "ABU DHABI PART1"):
+            name = "Abu Dhabi"
+        elif len(cleaned) < 2 or re.fullmatch(r"^\d+$", cleaned):
+            continue
+        else:
+            name = cleaned.title() if (cleaned.isupper() or cleaned.islower()) else cleaned
+        
+        # Strip any dangling closing parens
+        if name.endswith(")") and "(" not in name:
+            name = name[:-1].strip()
+
+        if name and name not in seen and not re.fullmatch(r"^\d+$", name):
+            seen.add(name)
+            res.append(name)
+    return sorted(res)
+
+
+def _sanitize_bedrooms(raw_list: list[tuple[str, int]]) -> list[str]:
+    BEDROOM_ORDER = [
+        "Studio", "1 BR", "1 + Terrace", "2 BR", "2 + Terrace",
+        "3 BR", "3 + Terrace", "4 BR", "4 + Terrace", "5 BR",
+        "6 BR", "7 BR", "8 BR", "9 BR", "10 BR",
+        "Penthouse", "Duplex", "Loft", "Retail", "Office"
+    ]
+    seen = set()
+    ordered = []
+    counts = {}
+    for v, n in raw_list:
+        s = v.strip()
+        if re.match(r"^[-_0-9]+-[0-9]+", s) or re.fullmatch(r"\d{4,}", s):
+            continue
+        low = s.lower()
+        if low.startswith("_") or any(x in low for x in ("unclassified", "multi-community", "consolidated")):
+            continue
+        norm = None
+        if "studio" in low:
+            norm = "Studio"
+        elif "penthouse" in low:
+            norm = "Penthouse"
+        elif "duplex" in low:
+            norm = "Duplex"
+        elif "loft" in low:
+            norm = "Loft"
+        elif "retail" in low:
+            norm = "Retail"
+        elif "office" in low:
+            norm = "Office"
+        elif "terrace" in low:
+            m = re.search(r"(\d+)\s*\+\s*terrace", low)
+            if m:
+                norm = f"{m.group(1)} + Terrace"
+            else:
+                norm = s.title()
+        else:
+            m = re.search(r"(\d+)\s*(?:bhk|b\s*/?\s*r|bed(?:room)?s?)", low)
+            if m:
+                n_br = int(m.group(1))
+                if 1 <= n_br <= 10:
+                    norm = f"{n_br} BR"
+            elif re.fullmatch(r"\d{1,2}", s):
+                n_br = int(s)
+                if 1 <= n_br <= 10:
+                    norm = f"{n_br} BR"
+        if norm:
+            counts[norm] = counts.get(norm, 0) + n
+            
+    for item in BEDROOM_ORDER:
+        if item in counts:
+            ordered.append(item)
+            seen.add(item)
+    for item, _ in sorted(counts.items(), key=lambda x: x[1], reverse=True):
+        if item not in seen:
+            ordered.append(item)
+            seen.add(item)
+    return ordered
+
+
+def _sanitize_property_types(raw_list: list[tuple[str, int]]) -> list[str]:
+    PROP_ORDER = [
+        "Apartment", "Villa", "Townhouse", "Penthouse", "Commercial",
+        "Office", "Retail", "Plot", "Building", "Hotel Apartment",
+        "Warehouse", "Showroom", "Duplex"
+    ]
+    CANON_MAP = {
+        "apartment": "Apartment", "flat": "Apartment", "unit": "Apartment",
+        "villa": "Villa", "townhouse": "Townhouse", "townhome": "Townhouse",
+        "penthouse": "Penthouse", "commercial": "Commercial",
+        "office": "Office", "retail": "Retail", "shop": "Retail",
+        "plot": "Plot", "land": "Plot", "building": "Building",
+        "hotel apartment": "Hotel Apartment", "hotel": "Hotel Apartment",
+        "warehouse": "Warehouse", "showroom": "Showroom", "duplex": "Duplex"
+    }
+    counts = {}
+    for v, n in raw_list:
+        s = v.strip()
+        if re.match(r"^[-_0-9]+-[0-9]+", s) or re.fullmatch(r"[0-9]{2,}[A-Za-z]+", s) or re.fullmatch(r"\d+", s):
+            continue
+        low = s.lower()
+        if low.startswith("_") or any(x in low for x in ("unclassified", "multi-community", "consolidated")):
+            continue
+        norm = None
+        for k, target in CANON_MAP.items():
+            if k in low:
+                norm = target
+                break
+        if norm:
+            counts[norm] = counts.get(norm, 0) + n
+    ordered = [p for p in PROP_ORDER if p in counts]
+    return ordered
 
 
 from ..core.cache import get_cached_filters, set_cached_filters, invalidate_filters_cache
@@ -514,34 +699,23 @@ def filter_options(
 
     facets = _facet_cache(db)
 
-    def distinct(col, limit=500, is_community=False):
-        cached = facets.get(col.key) if facets is not None else None
-        if cached is not None:
-            raw_vals = cached[:limit]
-        else:
-            raw_vals = [v for (v,) in db.execute(
-                select(col).where(col.is_not(None)).distinct().order_by(col).limit(limit)
-            ).all() if v]
-        if is_community:
-            valid_comms = []
-            for v in raw_vals:
-                s_low = str(v).lower()
-                if "total owner" in s_low or "owner detail" in s_low or "owners data" in s_low:
-                    continue
-                cleaned = C.clean_community(v)
-                if cleaned and "total owner" not in cleaned.lower() and cleaned not in valid_comms:
-                    valid_comms.append(cleaned)
-            return sorted(valid_comms)
-        return raw_vals
+    def get_raw_facets(col, limit=500):
+        if facets is not None and col.key in facets:
+            return facets[col.key]
+        return [
+            (v, 1) for (v,) in db.execute(
+                select(col).where(col.is_not(None)).distinct().limit(limit)
+            ).all() if v
+        ]
 
     res = FilterOptions(
-        communities=distinct(Record.community, is_community=True),
-        sub_communities=distinct(Record.sub_community),
-        property_types=distinct(Record.property_type),
-        bedrooms=distinct(Record.bedroom),
-        developers=distinct(Record.developer),
-        source_files=distinct(Record.source_file),
-        statuses=distinct(Record.status),
+        communities=_sanitize_communities(get_raw_facets(Record.community, limit=2000)),
+        sub_communities=[v for v, _ in get_raw_facets(Record.sub_community, limit=500) if v and not v.startswith("_")][:500],
+        property_types=_sanitize_property_types(get_raw_facets(Record.property_type, limit=500)),
+        bedrooms=_sanitize_bedrooms(get_raw_facets(Record.bedroom, limit=500)),
+        developers=[v for v, _ in get_raw_facets(Record.developer, limit=500) if v and not v.startswith("_")][:500],
+        source_files=[v for v, _ in get_raw_facets(Record.source_file, limit=500) if v][:500],
+        statuses=[v for v, _ in get_raw_facets(Record.status, limit=10) if v],
     )
     set_cached_filters(res)
     return res
