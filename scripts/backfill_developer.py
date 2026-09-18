@@ -7,12 +7,11 @@ back.  Safe to run multiple times — only touches records with NULL developer.
 """
 import json, os, sys
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from engine.reference import load_reference, enrich, canon
+from engine.reference import load_reference, enrich
 
 # ── load reference ──────────────────────────────────────────────────────
 ref = load_reference(str(ROOT / "Builders data" / "UAE_Development_Builders.xlsx"))

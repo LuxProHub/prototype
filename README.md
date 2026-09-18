@@ -129,7 +129,7 @@ python -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 ```
 
 Create a `.env` file in the project root (never commit this file — it's already covered by `.gitignore`). Start from `.env.example`, which documents every setting:
@@ -269,7 +269,6 @@ prototype/
 │   └── vite.config.js
 ├── scripts/                 # Maintenance, migration, and data normalization tools
 ├── tests/                   # Backend & engine test suites
-├── column_mapping.json      # Canonical target fields & alias definitions
 ├── worker.py                # Standalone queue worker for heavy ingestion jobs
 ├── start-backend.ps1        # Local backend service launcher
 ├── start-frontend.ps1       # Local frontend development launcher

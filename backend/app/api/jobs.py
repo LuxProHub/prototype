@@ -137,7 +137,6 @@ async def inspect_file_endpoint(
 
 
 @router.post("/upload", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
-@router.post("/files/upload", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_file(
     background: BackgroundTasks,
     file: UploadFile = File(...),

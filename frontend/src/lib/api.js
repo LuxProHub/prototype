@@ -34,15 +34,6 @@ function forceLogout() {
   window.dispatchEvent(new CustomEvent('datalink:unauthorized'));
 }
 
-export class ApiError extends Error {
-  constructor(status, detail) {
-    super(detail || `Request failed with status ${status}`);
-    this.name = 'ApiError';
-    this.status = status;
-    this.detail = detail;
-  }
-}
-
 /**
  * fetch() wrapper that injects auth. Same signature and same Response object,
  * so existing `res.ok` / `res.json()` call sites keep working unchanged.

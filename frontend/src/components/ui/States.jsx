@@ -74,16 +74,3 @@ export function LoadingRows({ rows = 6, className = '' }) {
     </div>
   );
 }
-
-/**
- * Granular Skeleton primitive.
- */
-export function Skeleton({ className = '', variant = 'rectangular', ...props }) {
-  const variantClass = variant === 'circular' ? 'rounded-full' : 'rounded-[var(--r-md)]';
-  return (
-    <div
-      className={`bg-[var(--surface-2)] animate-pulse ${variantClass} ${className}`}
-      {...props}
-    />
-  );
-}

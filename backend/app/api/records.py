@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import and_, func, or_, select, text as sa_text
+from sqlalchemy import func, or_, select, text as sa_text
 from sqlalchemy.orm import Session, selectinload
 
 from ..config import settings
@@ -347,7 +347,6 @@ def export_records(
 ):
     """Export filtered dataset to CSV or Excel (.xlsx). Exactly respects active search and filters."""
     import csv
-    import io
     import tempfile
     from datetime import datetime, timezone
     from fastapi.responses import StreamingResponse
@@ -1030,11 +1029,9 @@ def column_mappings(_user: User = Depends(get_current_user)):
 
 def _sync_alias_files(cfg: dict) -> None:
     """Save updated mapping config to disk and reload in-memory engine structures."""
-    root_path = Path(__file__).resolve().parents[3] / "column_mapping.json"
     engine_path = Path(__file__).resolve().parents[3] / "engine" / "resources" / "column_mapping.json"
 
     formatted = json.dumps(cfg, indent=2, ensure_ascii=False)
-    root_path.write_text(formatted, encoding="utf8")
     engine_path.write_text(formatted, encoding="utf8")
 
     # Reload engine.mapping in memory dynamically

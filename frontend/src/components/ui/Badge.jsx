@@ -65,11 +65,3 @@ export function StatusBadge({ status = 'VALID', className = '' }) {
     </span>
   );
 }
-
-export function NeoTag({ children, className = '', ...props }) {
-  return (
-    <span className={`neo-tag ${className}`} {...props}>
-      {children}
-    </span>
-  );
-}

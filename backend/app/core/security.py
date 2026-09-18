@@ -82,26 +82,6 @@ def _subject_id(payload: dict) -> int | None:
         return None
 
 
-def get_current_user_optional(
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security_scheme)],
-    db: Annotated[Session, Depends(get_db)],
-) -> User | None:
-    """Optional user dependency for public routes with enhanced context."""
-    if not credentials or not credentials.credentials:
-        return None
-
-    payload = decode_access_token(credentials.credentials)
-    if not payload:
-        return None
-
-    user_id = _subject_id(payload)
-    if user_id is None:
-        return None
-
-    user = db.scalar(select(User).where(User.id == user_id, User.is_active.is_(True)))
-    return user
-
-
 # The only routes reachable while a forced password change is outstanding.
 # Anything else would let someone keep working indefinitely on a password an
 # administrator handed them and can therefore still guess.

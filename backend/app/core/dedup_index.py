@@ -102,16 +102,3 @@ class DedupIndex:
                 if phone and phone not in out:
                     out[phone] = (rec_id, name)
         return out
-
-
-class NullDedupIndex:
-    """No-op index. Restores single-file dedup when no database is available."""
-
-    def seen_hashes(self, hashes) -> set[str]:
-        return set()
-
-    def seen_properties(self, keys) -> dict[str, tuple[int, str]]:
-        return {}
-
-    def seen_phones(self, phones) -> dict[str, tuple[int, str]]:
-        return {}

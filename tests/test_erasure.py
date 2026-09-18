@@ -5,13 +5,13 @@ upload, and that file still contains the person. A redaction that is not backed
 by a standing request is undone by the next engine fix.
 """
 import pytest
-from sqlalchemy import create_engine, delete, event, select
+from sqlalchemy import create_engine, delete, event
 from sqlalchemy.orm import sessionmaker
 
 from backend.app.api.erasure import PERSONAL_FIELDS, _redact, apply_erasures
 from backend.app.api.leads import _get_or_create_lead
 from backend.app.models.models import (
-    Base, ErasureRequest, Lead, LeadStage, ProcessingJob, Record, SourceFile,
+    Base, ErasureRequest, LeadStage, ProcessingJob, Record, SourceFile,
     User, UserRole,
 )
 

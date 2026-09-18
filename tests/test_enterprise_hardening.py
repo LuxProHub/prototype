@@ -19,9 +19,8 @@ from backend.app.core.security import hash_password, verify_password, create_acc
 from backend.app.database.session import SessionLocal, init_db
 from backend.app.main import app
 from backend.app.models.models import (User, UserRole, Record, RecordStatus,
-                                       RecordEditAudit, ExportAuditLog,
-                                       ProcessingJob, SourceFile)
-from engine.dedup import calculate_name_similarity, normalize_name_tokens, extract_property_key
+                                       ExportAuditLog, ProcessingJob, SourceFile)
+from engine.dedup import calculate_name_similarity, extract_property_key
 
 client = TestClient(app)
 

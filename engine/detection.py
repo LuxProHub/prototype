@@ -157,39 +157,48 @@ def _norm_cell(c):
 
 def read_xlsx(path: Path) -> Iterator[SheetData]:
     # 1. High-speed Rust Calamine streaming reader
+    calamine_success = False
     try:
         import python_calamine
         wb = python_calamine.load_workbook(str(path))
         for name in wb.sheet_names:
-            sheet = wb.get_sheet_by_name(name)
-            it = sheet.iter_rows()
-            preview: list[list] = []
-            for _ in range(12):
-                try:
-                    preview.append(list(next(it)))
-                except StopIteration:
-                    break
-            if not preview:
+            try:
+                sheet = wb.get_sheet_by_name(name)
+                it = sheet.iter_rows()
+                preview: list[list] = []
+                for _ in range(12):
+                    try:
+                        preview.append(list(next(it)))
+                    except StopIteration:
+                        break
+                if not preview:
+                    continue
+                hi = find_header_row(preview)
+                n_cols = max((len(r) for r in preview), default=0)
+                if hi < 0:
+                    header, headerless = [], True
+                    buffered = preview
+                else:
+                    header = [("" if c is None else str(c).strip()) for c in preview[hi]]
+                    headerless = False
+                    buffered = preview[hi + 1:]
+
+                def gen(buffered=buffered, it=it):
+                    for r in buffered:
+                        yield [_norm_cell(c) for c in r]
+                    try:
+                        for r in it:
+                            yield [_norm_cell(c) for c in r]
+                    except BaseException:
+                        return
+
+                calamine_success = True
+                yield SheetData(name, header, hi, gen(), n_cols, headerless)
+            except BaseException:
                 continue
-            hi = find_header_row(preview)
-            n_cols = max((len(r) for r in preview), default=0)
-            if hi < 0:
-                header, headerless = [], True
-                buffered = preview
-            else:
-                header = [("" if c is None else str(c).strip()) for c in preview[hi]]
-                headerless = False
-                buffered = preview[hi + 1:]
-
-            def gen(buffered=buffered, it=it):
-                for r in buffered:
-                    yield [_norm_cell(c) for c in r]
-                for r in it:
-                    yield [_norm_cell(c) for c in r]
-
-            yield SheetData(name, header, hi, gen(), n_cols, headerless)
-        return
-    except Exception:
+        if calamine_success:
+            return
+    except BaseException:
         pass
 
     # 2. openpyxl fallback

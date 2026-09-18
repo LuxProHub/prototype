@@ -32,23 +32,7 @@ class Page(BaseModel, Generic[T]):
     total_capped: bool = False
 
 
-class ErrorResponse(BaseModel):
-    detail: str
-    code: str | None = None
-
-
 # --------------------------------------------------------------------------
-class SourceFileOut(ORMModel):
-    id: int
-    filename: str
-    size_bytes: int
-    content_sha256: str
-    detected_format: str | None
-    sheet_count: int | None
-    is_encrypted: bool
-    uploaded_at: datetime
-
-
 class JobOut(ORMModel):
     id: int
     source_file_id: int

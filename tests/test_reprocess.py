@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.app.api.maintenance import _stale_job_ids
 from backend.app.core.dedup_index import DedupIndex
-from backend.app.models.models import Base, ProcessingJob, Record, SourceFile
+from backend.app.models.models import Base, Record
 from engine import ENGINE_VERSION, observations
 from engine.processor import Processor
 

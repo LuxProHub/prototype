@@ -200,15 +200,6 @@ def clean_phones_multi(v) -> tuple[list[str], list[str]]:
     return numbers, flags
 
 
-def is_mobile(number: str | None) -> bool:
-    if not number:
-        return False
-    d = number.lstrip("+")
-    if d.startswith("971"):
-        return d[3:5] in _UAE_PREFIXES
-    return True          # non-UAE: cannot tell, keep it
-
-
 # --------------------------------------------------------------------------
 # email
 # --------------------------------------------------------------------------

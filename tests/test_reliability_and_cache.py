@@ -5,7 +5,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
 
 from backend.app.core.security import create_access_token
 from backend.app.core.cache import (
@@ -15,7 +14,7 @@ from backend.app.core.cache import (
 )
 from backend.app.database.session import SessionLocal, init_db
 from backend.app.main import app
-from backend.app.models.models import User, UserRole, Record, RecordStatus, ProcessingJob, SourceFile
+from backend.app.models.models import User, Record, RecordStatus, ProcessingJob, SourceFile
 
 client = TestClient(app)
 

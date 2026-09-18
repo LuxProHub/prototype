@@ -30,16 +30,6 @@ PROGRESS_SHEET_WEIGHT = 0.98
 
 
 @dataclass
-class BatchOutcome:
-    rows: list[dict] = field(default_factory=list)
-    valid: int = 0
-    invalid: int = 0
-    duplicate: int = 0
-    skipped: int = 0
-    errors: list[dict] = field(default_factory=list)
-
-
-@dataclass
 class ProcessResult:
     detected_format: str | None = None
     sheet_count: int = 0

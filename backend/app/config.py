@@ -55,7 +55,7 @@ class Settings(BaseSettings):
 
     # Record grain: "owner"    -> one row per owner-property pair (keeps every owner)
     #               "property" -> one row per property, owners collapsed into Mobile 1..3
-    # See API_CONTRACT.md / DECISIONS.md. Default preserves data.
+    # Default preserves data.
     RECORD_GRAIN: str = "owner"
 
     # Enrich Developer/Community from the UAE builders reference workbook.

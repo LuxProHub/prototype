@@ -25,7 +25,7 @@ from sqlalchemy.orm import sessionmaker
 from backend.app.core.search import (
     build_search_filter, has_indexable_token, tokenize,
 )
-from backend.app.models.models import Base, ProcessingJob, Record, RecordStatus
+from backend.app.models.models import Base, Record, RecordStatus
 
 
 @pytest.fixture(scope="module")

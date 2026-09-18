@@ -93,11 +93,6 @@ class SemanticContext:
         }
 
 
-def fields_with_semantics() -> list[str]:
-    """Canonical field names (and raw labels) this module can reason about."""
-    return [k for k in _VOCAB if not k.startswith("_")]
-
-
 def type_names(field: str) -> list[str]:
     spec = _VOCAB.get(field) or {}
     return [t["name"] for t in spec.get("types", [])]

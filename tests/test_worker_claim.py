@@ -6,7 +6,7 @@ them running the same job would write its rows twice and fight over its
 counters. A compare-and-set on the status is the whole mechanism.
 """
 import pytest
-from sqlalchemy import create_engine, select, update
+from sqlalchemy import create_engine, update
 from sqlalchemy.orm import sessionmaker
 
 from backend.app.models.models import Base, JobStatus, ProcessingJob, SourceFile

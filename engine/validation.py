@@ -176,27 +176,6 @@ def is_valid_contact(row: dict) -> bool:
     return False
 
 
-def count_populated_fields(row: dict) -> int:
-    """Count non-null, non-N/A business fields on a record."""
-    fields_to_check = [
-        "name", "mobile_1", "mobile_2", "mobile_3", "email_address",
-        "community", "sub_community", "building_cluster", "unit_number",
-        "plot_number", "bedroom", "procedure_value", "developer", "project",
-        "property_type", "party_type"
-    ]
-    count = 0
-    for f in fields_to_check:
-        val = row.get(f)
-        if val is not None and str(val).strip() != "":
-            if f == "community":
-                comm = C.clean_community(val)
-                if comm:
-                    count += 1
-            else:
-                count += 1
-    return count
-
-
 def validate(row: dict) -> tuple[bool, list[str]]:
     """A record must identify a person OR a property. Both empty = useless."""
     flags: list[str] = []
