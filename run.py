@@ -5,11 +5,14 @@ from pathlib import Path
 
 import uvicorn
 
+from dotenv import load_dotenv
+
 ROOT = Path(__file__).resolve().parent
+load_dotenv(ROOT / ".env")
 sys.path.insert(0, str(ROOT))
 
 if __name__ == "__main__":
-    port_env = os.environ.get("PORT", "8000")
+    port_env = os.environ.get("PORT", "8001")
     try:
         port = int(port_env)
     except (ValueError, TypeError):

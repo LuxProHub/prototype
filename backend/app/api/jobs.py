@@ -533,8 +533,10 @@ def reap_stale_jobs() -> int:
         stale = db.scalars(
             select(ProcessingJob).where(
                 ProcessingJob.status.in_(JobStatus.ACTIVE),
-                or_(ProcessingJob.heartbeat_at.is_(None),
-                    ProcessingJob.heartbeat_at < cutoff),
+                or_(
+                    (ProcessingJob.heartbeat_at.is_(None) & (ProcessingJob.created_at < cutoff)),
+                    ProcessingJob.heartbeat_at < cutoff,
+                ),
             )
         ).all()
         for job in stale:

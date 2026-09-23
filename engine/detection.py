@@ -164,6 +164,10 @@ def read_xlsx(path: Path) -> Iterator[SheetData]:
         for name in wb.sheet_names:
             try:
                 sheet = wb.get_sheet_by_name(name)
+                h = getattr(sheet, "height", 1)
+                w = getattr(sheet, "width", 1)
+                if h == 0 or w == 0 or h > 200000:
+                    continue
                 it = sheet.iter_rows()
                 preview: list[list] = []
                 for _ in range(12):
