@@ -82,6 +82,19 @@ def test_trailing_plot_numbers_are_still_stripped():
     assert C.clean_community("damac hills 2 1044") == "DAMAC Hills 2"
 
 
+def test_community_monthly_sheet_and_plot_noise_stripping():
+    assert C.clean_community("Palm Jumeirah jan") == "Palm Jumeirah"
+    assert C.clean_community("Palm Jumeirah_jan 2025") == "Palm Jumeirah"
+    assert C.clean_community("Arjan plots") == "Arjan"
+    assert C.clean_community("Arjan 2024") == "Arjan"
+    assert C.clean_community("Business Bay Jan 2025 dec 24 data") == "Business Bay"
+    assert C.clean_community("0 Consolidated JVC Mar") == "Jumeirah Village Circle"
+    assert C.clean_community("Dubai Hills dec 24 jan") == "Dubai Hills Estate"
+    assert C.clean_community("Dubai Maritime City") == "Dubai Maritime City"
+    assert C.clean_community("Villa Nova") == "Villanova"
+
+
+
 # --- 3. developer canonicalisation ------------------------------------------
 # The README advertised a "Developer Reference Resolver"; the transform ran
 # clean_text, so every spelling of one builder stayed a separate facet value.

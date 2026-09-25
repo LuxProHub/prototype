@@ -161,8 +161,8 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
   const [propertyType, setPropertyType] = useState('');
   const [bedroom, setBedroom] = useState('');
   const [status, setStatus] = useState('');
-  const [sortBy, setSortBy] = useState('name');
-  const [sortDir, setSortDir] = useState('asc');
+  const [sortBy, setSortBy] = useState('default');
+  const [sortDir, setSortDir] = useState('desc');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
@@ -265,12 +265,44 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
       .catch(() => setAssignableUsers([]));
   }, []);
 
-  const fetchRecords = useCallback(async () => {
+  // Keep active refs for selectedRecord and totalRecords to avoid re-triggering fetchRecords
+  const selectedRecordRef = useRef(selectedRecord);
+  useEffect(() => {
+    selectedRecordRef.current = selectedRecord;
+  }, [selectedRecord]);
+
+  const totalRecordsRef = useRef(totalRecords);
+  useEffect(() => {
+    totalRecordsRef.current = totalRecords;
+  }, [totalRecords]);
+
+  // Fast in-memory page cache for instant pagination navigation
+  const pageCacheRef = useRef(new Map());
+
+  // Clear cache whenever filtering/sorting parameters change
+  useEffect(() => {
+    pageCacheRef.current.clear();
+  }, [debouncedSearch, community, propertyType, bedroom, status, sortBy, sortDir, limit]);
+
+  const fetchRecords = useCallback(async (targetPage = page) => {
     const currentReq = ++activeRequestRef.current;
+
+    const cacheKey = `${targetPage}_${limit}_${sortBy}_${sortDir}_${debouncedSearch}_${community}_${propertyType}_${bedroom}_${status}`;
+    const cached = pageCacheRef.current.get(cacheKey);
+    if (cached) {
+      setRecords(cached.items);
+      setTotalPages(cached.totalPages);
+      setTotalRecords(cached.total);
+      setTotalCapped(cached.totalCapped);
+      setLoadError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        page: page.toString(),
+        page: targetPage.toString(),
         limit: limit.toString(),
         sort_by: sortBy,
         sort_dir: sortDir,
@@ -280,7 +312,9 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
       if (propertyType) params.append('property_type', propertyType);
       if (bedroom) params.append('bedroom', bedroom);
       if (status) params.append('status', status);
-      if (page > 1 && totalRecords > 0) params.append('total_hint', totalRecords.toString());
+      if (targetPage > 1 && totalRecordsRef.current > 0) {
+        params.append('total_hint', totalRecordsRef.current.toString());
+      }
 
       const res = await apiFetch(`/api/records?${params.toString()}`);
       if (currentReq !== activeRequestRef.current) return;
@@ -288,16 +322,52 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
       if (res.ok) {
         const data = await res.json();
         const items = data.items || data.records || [];
+        const tPages = data.total_pages || 1;
+        const tTotal = data.total || 0;
+        const tCapped = Boolean(data.total_capped);
+
+        // Store in cache
+        pageCacheRef.current.set(cacheKey, {
+          items,
+          totalPages: tPages,
+          total: tTotal,
+          totalCapped: tCapped,
+        });
+
         setRecords(items);
-        setTotalPages(data.total_pages || 1);
-        setTotalRecords(data.total || 0);
-        setTotalCapped(Boolean(data.total_capped));
+        setTotalPages(tPages);
+        setTotalRecords(tTotal);
+        setTotalCapped(tCapped);
         setLoadError(null);
 
-        // If selected record is in current list, update its reference
-        if (selectedRecord) {
-          const matched = items.find((r) => r.id === selectedRecord.id);
+        // If selected record is in current list, update its reference without triggering a re-fetch
+        if (selectedRecordRef.current) {
+          const matched = items.find((r) => r.id === selectedRecordRef.current.id);
           if (matched) setSelectedRecord(matched);
+        }
+
+        // Prefetch next page in background for seamless pagination
+        if (targetPage < tPages) {
+          const nextPage = targetPage + 1;
+          const nextKey = `${nextPage}_${limit}_${sortBy}_${sortDir}_${debouncedSearch}_${community}_${propertyType}_${bedroom}_${status}`;
+          if (!pageCacheRef.current.has(nextKey)) {
+            const nextParams = new URLSearchParams(params);
+            nextParams.set('page', nextPage.toString());
+            if (tTotal > 0) nextParams.set('total_hint', tTotal.toString());
+            apiFetch(`/api/records?${nextParams.toString()}`)
+              .then((r) => (r.ok ? r.json() : null))
+              .then((nextData) => {
+                if (nextData) {
+                  pageCacheRef.current.set(nextKey, {
+                    items: nextData.items || nextData.records || [],
+                    totalPages: nextData.total_pages || tPages,
+                    total: nextData.total || tTotal,
+                    totalCapped: Boolean(nextData.total_capped),
+                  });
+                }
+              })
+              .catch(() => {});
+          }
         }
       } else {
         setLoadError(`The server answered ${res.status}.`);
@@ -312,7 +382,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
         setLoading(false);
       }
     }
-  }, [page, limit, sortBy, sortDir, debouncedSearch, community, propertyType, bedroom, status, totalRecords, selectedRecord]);
+  }, [page, limit, sortBy, sortDir, debouncedSearch, community, propertyType, bedroom, status]);
 
   useEffect(() => {
     fetchRecords();
@@ -323,7 +393,8 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
       setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(field);
-      setSortDir('asc');
+      // For numerical values, start descending (highest value first); for text, start ascending (A-Z)
+      setSortDir(field === 'procedure_value' ? 'desc' : 'asc');
     }
     setPage(1);
   };
@@ -413,6 +484,7 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
   };
 
   const handleRecordUpdated = (updated) => {
+    pageCacheRef.current.clear();
     setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
     setSelectedRecord(updated);
   };
@@ -632,15 +704,54 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
                   )}
 
                   {visibleColumns.building_cluster !== false && (
-                    <th className="min-w-[140px]">Building</th>
+                    <th
+                      aria-sort={sortBy === 'building_cluster' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                      onClick={() => handleHeaderSort('building_cluster')}
+                      className="min-w-[140px]"
+                    >
+                      <div className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <span>Building</span>
+                        {sortBy === 'building_cluster' ? (
+                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--accent)]" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60" />
+                        )}
+                      </div>
+                    </th>
                   )}
 
                   {visibleColumns.unit_number !== false && (
-                    <th className="min-w-[90px]">Unit</th>
+                    <th
+                      aria-sort={sortBy === 'unit_number' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                      onClick={() => handleHeaderSort('unit_number')}
+                      className="min-w-[90px]"
+                    >
+                      <div className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <span>Unit</span>
+                        {sortBy === 'unit_number' ? (
+                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--accent)]" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60" />
+                        )}
+                      </div>
+                    </th>
                   )}
 
                   {visibleColumns.bedroom !== false && (
-                    <th className="min-w-[90px]">Bedroom</th>
+                    <th
+                      aria-sort={sortBy === 'bedroom' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                      onClick={() => handleHeaderSort('bedroom')}
+                      className="min-w-[90px]"
+                    >
+                      <div className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <span>Bedroom</span>
+                        {sortBy === 'bedroom' ? (
+                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--accent)]" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60" />
+                        )}
+                      </div>
+                    </th>
                   )}
 
                   {visibleColumns.procedure_value !== false && (
@@ -661,7 +772,20 @@ export default function RecordsExplorer({ initialQuery = '', onNavigate }) {
                   )}
 
                   {visibleColumns.mobile_1 !== false && (
-                    <th className="min-w-[130px]">Mobile</th>
+                    <th
+                      aria-sort={sortBy === 'mobile_1' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                      onClick={() => handleHeaderSort('mobile_1')}
+                      className="min-w-[130px]"
+                    >
+                      <div className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <span>Mobile</span>
+                        {sortBy === 'mobile_1' ? (
+                          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[var(--accent)]" /> : <ArrowDown className="w-3.5 h-3.5 text-[var(--accent)]" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-60" />
+                        )}
+                      </div>
+                    </th>
                   )}
                 </tr>
               </thead>

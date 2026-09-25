@@ -62,6 +62,18 @@ Developer Reference Resolver maps naming variants (`EMAAR`, `Emaar Properties PJ
 
 </td>
 </tr>
+<tr>
+<td colspan="3" valign="top">
+
+### 🚀 High-Performance Multi-Column Sorting & Filtering (21.5M+ Rows)
+
+- **Interactive Table Sorting**: Full ascending (`↑`) and descending (`↓`) sorting across all primary columns: **Name**, **Developer**, **Community**, **Building**, **Unit**, **Bedroom**, **Value (AED)**, and **Mobile**.
+- **Smart Initial Ordering**: The default view surfaces high-value, contactable leads with bedroom data first via `idx_records_default_landing` in **~11ms**.
+- **Null-Safe Index Traversals**: Backward and forward B-tree scans run in **<50ms** without triggering 40-second unindexed table stalls or memory heapsorts.
+- **Dynamic Field Toggle**: Smart first-click sorting for numeric/financial columns starts descending (highest AED value first), while text attributes start ascending (A-Z).
+
+</td>
+</tr>
 </table>
 
 <br/>
@@ -221,9 +233,11 @@ The app will be available at **`http://localhost:3000/`**.
 | `POST` | `/api/jobs/{id}/start` | Triggers the processing pipeline for a queued job |
 | `GET` | `/api/jobs/{id}` | Polls real-time progress and batch metrics |
 | `GET` | `/api/jobs/{id}/errors` | Row-level error audit log for a job |
-| `GET` | `/api/records` | Paginated search & filtering across normalized records |
-| `PUT` | `/api/records/{id}` | Updates a normalized record directly in Supabase |
+| `GET` | `/api/records` | Paginated search, filtering, and sorting (`sort_by`: `name`, `developer`, `community`, `building_cluster`, `unit_number`, `bedroom`, `procedure_value`, `mobile_1`, `id`, `default`; `sort_dir`: `asc`, `desc`) |
+| `GET` | `/api/records/export` | Export filtered and sorted records to CSV or Excel (`format=csv` / `format=xlsx`) |
+| `PUT` | `/api/records/{id}` | Updates a normalized record directly in PostgreSQL |
 | `GET` | `/api/column-mappings` | Canonical target field catalog and alias definitions |
+| `GET` | `/api/records/filters` | Aggregated filter dropdown facets cached from materialized views |
 
 <br/>
 

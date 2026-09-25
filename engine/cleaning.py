@@ -667,10 +667,12 @@ _COMMUNITY_CANON_MAP = {
     "PALM JUMEIRAH": "Palm Jumeirah",
     "JUMEIRAH VILLAGE CIRCLE": "Jumeirah Village Circle",
     "JUMEIRAH LAKE TOWERS": "Jumeirah Lake Towers",
+    "JUMEIRAH LAKES TOWERS": "Jumeirah Lake Towers",
     "JUMEIRAH BEACH RESIDENCE": "Jumeirah Beach Residence",
     "DUBAI MARINA": "Dubai Marina",
     "DUBAI SILICON OASIS": "Dubai Silicon Oasis",
     "DOWNTOWN DUBAI": "Downtown Dubai",
+    "DOWNTOWN": "Downtown Dubai",
     "ARABIAN RANCHES": "Arabian Ranches",
     "AL BARSHA": "Al Barsha",
     "AL KIFAF": "Al Kifaf",
@@ -679,10 +681,33 @@ _COMMUNITY_CANON_MAP = {
     "DAMAC LAGOONS": "DAMAC Lagoons",
     "DUBAI CREEK HARBOUR": "Dubai Creek Harbour",
     "EMAAR BEACHFRONT": "Emaar Beachfront",
+    "EMAR BEACH FRONT": "Emaar Beachfront",
     "DUBAI SPORTS CITY": "Dubai Sports City",
     "JUMEIRAH GOLF ESTATES": "Jumeirah Golf Estates",
+    "JUMEIRA GOLF ESTATES": "Jumeirah Golf Estates",
+    "JGE": "Jumeirah Golf Estates",
     "THE VALLEY": "The Valley",
     "TILAL AL GHAF": "Tilal Al Ghaf",
+    "ARJAN": "Arjan",
+    "JVC": "Jumeirah Village Circle",
+    "JLT": "Jumeirah Lake Towers",
+    "JBR": "Jumeirah Beach Residence",
+    "SOBHA HARTLAND": "Sobha Hartland",
+    "DUBAI SOUTH": "Dubai South",
+    "EMAAR SOUTH": "Emaar South",
+    "NAD AL SHEBA": "Nad Al Sheba",
+    "NAD AL SHIBA": "Nad Al Sheba",
+    "MUDON": "Mudon",
+    "CITY WALK": "City Walk",
+    "MADINAT JUMEIRAH LIVING": "Madinat Jumeirah Living",
+    "MJL": "Madinat Jumeirah Living",
+    "JUMEIRAH VILLAGE TRIANGLE": "Jumeirah Village Triangle",
+    "JVT": "Jumeirah Village Triangle",
+    "DISTRICT ONE": "District One",
+    "MARSA DUBAI": "Dubai Marina",
+    "MARINA DUBAI": "Dubai Marina",
+    "VILLA NOVA": "Villanova",
+    "VILLANOVA": "Villanova",
 }
 
 # Districts where a trailing number is part of the name, not a stray plot number.
@@ -693,7 +718,7 @@ _NUMBERED_COMMUNITY_BASES = {
     "DAMAC HILLS", "AL BARSHA", "AL QUOZ", "AL NAHDA", "AL WARQA", "AL WARQAA",
     "MUHAISNAH", "JUMEIRAH", "AL SUFOUH", "AL QUSAIS", "AL TWAR", "AL MIZHAR",
     "INTERNATIONAL CITY", "DUBAI INVESTMENT PARK", "DUBAI INVESTMENTS PARK",
-    "JUMEIRAH VILLAGE", "NAD AL SHEBA", "AL SAFA", "UMM SUQEIM", "AL MANARA",
+    "JUMEIRAH VILLAGE", "NAD AL SHEBA", "NAD AL SHIBA", "AL SAFA", "UMM SUQEIM", "AL MANARA",
     "AL RASHIDIYA", "AL KHAIL HEIGHTS", "LIVING LEGENDS", "AL WASL",
     "SPRINGS", "MEADOWS", "LAKES", "THE SPRINGS", "THE MEADOWS", "THE LAKES",
     "EMIRATES HILLS", "AL FURJAN", "SERENA", "MUDON", "REEM",
@@ -702,10 +727,11 @@ _NUMBERED_COMMUNITY_BASES = {
 _MAX_DISTRICT_NUMBER = 9
 _TRAILING_NUM_RE = re.compile(r"^(.*?)\s+(\d{1,2})$")
 
-
 _COMMUNITY_HEADER_NOISE_RE = re.compile(
     r"^(total\s+owners?(\s+details)?|owners?\s+details?|owners?\s+data|owner\s+details)(\s*#\d+)?$", re.I
 )
+
+_MONTHS_PATTERN = r"\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b"
 
 
 def clean_community(v) -> str | None:
@@ -722,6 +748,35 @@ def clean_community(v) -> str | None:
     upper_raw = s.upper()
     if upper_raw in _COMMUNITY_CANON_MAP:
         return _COMMUNITY_CANON_MAP[upper_raw]
+
+    # Pre-cleaning: normalize underscores to spaces so file_name_tags match word boundaries
+    s = re.sub(r"_+", " ", s)
+
+    # Pre-cleaning: strip batch prefixes (e.g. "0 Consolidated JVC Mar", "Consolidated ")
+    s = re.sub(r"^(?:0\s+|pao\s+)?consol[a-z]*(?:\s+data|\s+master)?\s+", "", s, flags=re.I)
+    s = re.sub(r"^\d{10,}\s*", "", s)
+
+    # Strip spreadsheet extensions embedded in community column
+    s = re.sub(r"\.(?:xlsx|xls|csv)$", "", s, flags=re.I)
+    s = re.sub(r"(?:xlsx|xls)$", "", s, flags=re.I)
+
+    # Strip trailing metadata noise (e.g. "jan", "jan 2025", "2024", "plots")
+    for _ in range(3):
+        prev = s
+        s = re.sub(r"[\s_-]+\bplots?\b", "", s, flags=re.I)
+        s = re.sub(rf"[\s_-]+{_MONTHS_PATTERN}(?:[\s_-]*(?:end|\d{{2,4}}))*.*$", "", s, flags=re.I)
+        s = re.sub(r"[\s_-]+202\d.*$", "", s, flags=re.I)
+        s = re.sub(r"[\s_-]+\b(?:data|partial|ongoing|copy|file\s*\d+|new|svr\s*duplicate|dld\s*duplicate)\b.*$", "", s, flags=re.I)
+        s = s.strip(" _-")
+        if s == prev:
+            break
+
+    # Strip parenthetical abbreviations: "Jumeirah Village Circle (JVC)" -> "Jumeirah Village Circle"
+    s = re.sub(r"\s*\((?:JVC|JLT|JBR)\)", "", s, flags=re.I)
+
+    upper_clean = s.upper()
+    if upper_clean in _COMMUNITY_CANON_MAP:
+        return _COMMUNITY_CANON_MAP[upper_clean]
 
     # A small trailing integer on a known district base is part of the name.
     m = _TRAILING_NUM_RE.match(s)
@@ -746,4 +801,5 @@ def clean_community(v) -> str | None:
         return stripped.title()
 
     return stripped if stripped else s
+
 

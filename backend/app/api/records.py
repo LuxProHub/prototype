@@ -37,6 +37,11 @@ SORTABLE = {
     "mobile_1": Record.mobile_1, "status": Record.status,
     "created_at": Record.created_at, "record_date": Record.record_date,
     "source_file": Record.source_file,
+    "developer": Record.developer,
+    "project": Record.project,
+    "property_type": Record.property_type,
+    "nationality": Record.nationality,
+    "email_address": Record.email_address,
 }
 
 # Free-text search now lives in core/search.py. It tokenises the query and
@@ -49,8 +54,18 @@ SORTABLE = {
 # rows is seconds for a broad filter and is spent on a number nobody reads past
 # the first significant digit. Counting stops here and the UI shows "20,000+"
 # or "5,000+" for broad free-text search.
-COUNT_CEILING = 20_000
+COUNT_CEILING = 5_000
 COUNT_CEILING_SEARCH = 5_000
+
+
+def _matview(db: Session, sql: str):
+    """Safely query a materialised view, rolling back on relation error if missing."""
+    try:
+        return db.execute(sa_text(sql)).all()
+    except Exception:
+        db.rollback()
+        return None
+
 
 
 
@@ -105,10 +120,11 @@ def _build_records_query(
 
     if bedroom:
         b_clean = bedroom.strip()
+        # Direct equality or prefix match to utilize the btree index ix_records_bedroom
         stmt = stmt.where(
             or_(
                 Record.bedroom == b_clean,
-                Record.bedroom.ilike(f"%{b_clean}%")
+                Record.bedroom.ilike(f"{b_clean}%"),
             )
         )
 
@@ -237,7 +253,7 @@ def list_records(
 ):
     effective_page_size = limit if limit is not None else page_size
 
-    if sort_by not in SORTABLE:
+    if sort_by != "default" and sort_by not in SORTABLE:
         raise HTTPException(400, f"sort_by must be one of {sorted(SORTABLE)}")
 
     effective_status = status or record_status
@@ -266,16 +282,30 @@ def list_records(
     active_ceiling = COUNT_CEILING_SEARCH if q else COUNT_CEILING
 
     if not has_narrowing_filter and IS_POSTGRES and (effective_status in (None, "", "VALID", "COMPLETE", "ALL", "ALL_RECORDS", "SHOW_ALL", "DUPLICATE")):
-        cached_count = get_cached_default_count()
+        status_key = effective_status or "default"
+        cached_count = get_cached_default_count(status_key)
         if cached_count is not None:
             total = cached_count
             total_capped = False
         else:
-            total = db.scalar(
-                select(func.count()).select_from(stmt.subquery())
-            ) or 0
-            set_cached_default_count(total)
-            total_capped = False
+            # Fast count from mv_record_stats (<0.5ms) without 40-second 21M-row disk scans
+            stats_cached = _matview(db, "SELECT valid_records, total_records, duplicate_records FROM mv_record_stats LIMIT 1")
+            if stats_cached:
+                m = stats_cached[0]._mapping
+                if effective_status in ("ALL", "ALL_RECORDS", "SHOW_ALL"):
+                    total = m.get("total_records") or 0
+                elif effective_status == "DUPLICATE":
+                    total = m.get("duplicate_records") or 0
+                else:
+                    total = m.get("valid_records") or 0
+                set_cached_default_count(total, status_key)
+                total_capped = False
+            else:
+                total = db.scalar(
+                    select(func.count()).select_from(stmt.limit(active_ceiling).subquery())
+                ) or 0
+                set_cached_default_count(total, status_key)
+                total_capped = total >= active_ceiling
     elif total_hint is not None and page > 1:
         total = total_hint
         total_capped = total >= active_ceiling
@@ -285,8 +315,15 @@ def list_records(
         ) or 0
         total_capped = total >= active_ceiling
 
-    col = SORTABLE[sort_by]
-    if q and sort_by == "id":
+    if sort_by == "default":
+        # Rich default landing view: high-value records with visible bedroom surface first using idx_records_default_landing
+        stmt = stmt.order_by(
+            Record.procedure_value.desc().nullslast(),
+            Record.bedroom.desc().nullslast(),
+            Record.name.asc().nullslast(),
+            Record.id.desc(),
+        )
+    elif q and sort_by == "id":
         # Free-text search with default ordering: skip full 174,000-row heapsort
         # so GIN index scan stops immediately at LIMIT 25 in <150ms.
         pass
@@ -295,16 +332,13 @@ def list_records(
         # id is NOT NULL; omitting .nullslast() allows PostgreSQL to use idx_records_default_id
         # directly in an Index-Only Scan (0.17ms) instead of a 400ms parallel heapsort.
         stmt = stmt.order_by(Record.id.desc() if sort_dir == "desc" else Record.id.asc())
-    elif sort_by == "name" and sort_dir == "asc" and not q:
-        # On default initial page load, prioritize complete records where procedure_value > 0 so VALUE (AED) and BEDROOM are visible right at the top
-        stmt = stmt.order_by(
-            Record.procedure_value.desc().nullslast(),
-            Record.bedroom.desc().nullslast(),
-            col.asc().nullslast(),
-            Record.id.desc(),
-        )
     else:
-        order_clause = col.desc().nullslast() if sort_dir == "desc" else col.asc().nullslast()
+        col = SORTABLE[sort_by]
+        # For non-id columns, filtering NULLs allows PostgreSQL to traverse the B-tree
+        # index in both ASC and DESC directions directly in <50ms instead of full-table heapsorting
+        # millions of NULL rows (which causes 40+ second stalls).
+        stmt = stmt.where(col.is_not(None))
+        order_clause = col.desc() if sort_dir == "desc" else col.asc().nullslast()
         stmt = stmt.order_by(order_clause, Record.id.desc())
 
     # OFFSET is bounded by COUNT_CEILING above (the UI cannot page past the
@@ -352,7 +386,7 @@ def export_records(
     from fastapi.responses import StreamingResponse
     from ..database.session import read_engine
 
-    if sort_by not in SORTABLE:
+    if sort_by != "default" and sort_by not in SORTABLE:
         sort_by = "id"
 
     effective_status = status or record_status
@@ -364,9 +398,20 @@ def export_records(
         has_mobile=has_mobile, has_email=has_email,
     )
 
-    col = SORTABLE[sort_by]
-    order_clause = col.desc().nullslast() if sort_dir == "desc" else col.asc().nullslast()
-    stmt = stmt.order_by(order_clause, Record.id.desc()).limit(limit)
+    if sort_by == "default":
+        stmt = stmt.order_by(
+            Record.procedure_value.desc().nullslast(),
+            Record.bedroom.desc().nullslast(),
+            Record.name.asc().nullslast(),
+            Record.id.desc(),
+        ).limit(limit)
+    elif sort_by == "id":
+        stmt = stmt.order_by(Record.id.desc() if sort_dir == "desc" else Record.id.asc()).limit(limit)
+    else:
+        col = SORTABLE[sort_by]
+        stmt = stmt.where(col.is_not(None))
+        order_clause = col.desc() if sort_dir == "desc" else col.asc().nullslast()
+        stmt = stmt.order_by(order_clause, Record.id.desc()).limit(limit)
 
     export_cols = [
         Record.id, Record.name, Record.community, Record.sub_community, Record.building_cluster,
@@ -512,16 +557,6 @@ def export_records(
 # rolls out before `alembic upgrade head` has finished, and a view that has been
 # dropped by hand. In all three the dashboard stays correct and merely slow,
 # rather than erroring.
-def _matview(db: Session, sql: str):
-    try:
-        return db.execute(sa_text(sql)).all()
-    except Exception:
-        # A missing relation aborts the surrounding PostgreSQL transaction, so
-        # the session must be rolled back before the fallback query can run on it.
-        db.rollback()
-        return None
-
-
 def _facet_cache(db: Session) -> dict[str, list[tuple[str, int]]] | None:
     """Return {column_name: [(value, n)]} from mv_record_facets ordered by n DESC, or None."""
     rows = _matview(

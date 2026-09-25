@@ -93,6 +93,17 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set([activeTab, 'records']));
+
+  useEffect(() => {
+    setVisitedTabs((prev) => {
+      if (prev.has(activeTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
+
   const fetchStats = async () => {
     try {
       const res = await apiFetch('/api/dashboard/stats');
@@ -176,8 +187,8 @@ export default function App() {
 
           {/* Active View Container (with bottom padding on mobile for the bottom nav) */}
           <main className="flex-1 flex flex-col min-h-0 overflow-hidden pb-16 md:pb-0">
-            {activeTab === 'overview' && (
-              <div className="flex-1 overflow-y-auto">
+            {visitedTabs.has('overview') && (
+              <div className={activeTab === 'overview' ? 'flex-1 overflow-y-auto' : 'hidden'}>
                 <OverviewDashboard
                   stats={stats}
                   statsError={statsError}
@@ -189,8 +200,8 @@ export default function App() {
               </div>
             )}
 
-            {activeTab === 'upload' && (
-              <div className="flex-1 overflow-y-auto">
+            {visitedTabs.has('upload') && (
+              <div className={activeTab === 'upload' ? 'flex-1 overflow-y-auto' : 'hidden'}>
                 <UploadSection
                   onUploadComplete={handleUploadComplete}
                   onNavigate={setActiveTab}
@@ -199,8 +210,8 @@ export default function App() {
               </div>
             )}
 
-            {activeTab === 'tracker' && (
-              <div className="flex-1 overflow-y-auto">
+            {visitedTabs.has('tracker') && (
+              <div className={activeTab === 'tracker' ? 'flex-1 overflow-y-auto' : 'hidden'}>
                 <LiveProcessingTracker
                   jobId={activeJobId}
                   onJobCompleted={handleJobFinished}
@@ -209,8 +220,8 @@ export default function App() {
               </div>
             )}
 
-            {activeTab === 'jobs' && (
-              <div className="flex-1 overflow-y-auto">
+            {visitedTabs.has('jobs') && (
+              <div className={activeTab === 'jobs' ? 'flex-1 overflow-y-auto' : 'hidden'}>
                 <JobDetailsView
                   selectedJobId={selectedJobId}
                   setSelectedJobId={setSelectedJobId}
@@ -218,18 +229,32 @@ export default function App() {
               </div>
             )}
 
-            {activeTab === 'records' && (
-              <RecordsExplorer initialQuery={searchQuery} onNavigate={setActiveTab} />
+            {visitedTabs.has('records') && (
+              <div className={activeTab === 'records' ? 'flex-1 flex flex-col min-h-0 overflow-hidden' : 'hidden'}>
+                <RecordsExplorer initialQuery={searchQuery} onNavigate={setActiveTab} />
+              </div>
             )}
 
-            {activeTab === 'queue' && <CallQueue />}
+            {visitedTabs.has('queue') && (
+              <div className={activeTab === 'queue' ? 'flex-1 flex flex-col min-h-0 overflow-hidden' : 'hidden'}>
+                <CallQueue />
+              </div>
+            )}
 
-            {activeTab === 'team' && <UserManagement currentUser={currentUser} />}
+            {visitedTabs.has('team') && (
+              <div className={activeTab === 'team' ? 'flex-1 overflow-y-auto' : 'hidden'}>
+                <UserManagement currentUser={currentUser} />
+              </div>
+            )}
 
-            {activeTab === 'executive' && <ExecutiveDashboard />}
+            {visitedTabs.has('executive') && (
+              <div className={activeTab === 'executive' ? 'flex-1 overflow-y-auto' : 'hidden'}>
+                <ExecutiveDashboard />
+              </div>
+            )}
 
-            {activeTab === 'mapping' && (
-              <div className="flex-1 overflow-y-auto">
+            {visitedTabs.has('mapping') && (
+              <div className={activeTab === 'mapping' ? 'flex-1 overflow-y-auto' : 'hidden'}>
                 <ColumnMappingInspector />
               </div>
             )}
